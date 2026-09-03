@@ -1,0 +1,40 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Compilacion
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Entorno: NUNCA se versiona el archivo real, solo .env.example
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Cobertura y pruebas
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editores y sistema operativo
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Volumenes locales de Docker
+docker/volumenes/

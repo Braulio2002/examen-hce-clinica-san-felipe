@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps",
+  "monorepo": true,
+  "root": "apps/api-gateway",
+  "compilerOptions": {
+    "webpack": false,
+    "tsConfigPath": "apps/api-gateway/tsconfig.app.json",
+    "deleteOutDir": false
+  },
+  "projects": {
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    },
+    "ms-auth": {
+      "type": "application",
+      "root": "apps/ms-auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/ms-auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ms-auth/tsconfig.app.json"
+      }
+    },
+    "ms-catalogo": {
+      "type": "application",
+      "root": "apps/ms-catalogo",
+      "entryFile": "main",
+      "sourceRoot": "apps/ms-catalogo/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ms-catalogo/tsconfig.app.json"
+      }
+    },
+    "ms-inventario": {
+      "type": "application",
+      "root": "apps/ms-inventario",
+      "entryFile": "main",
+      "sourceRoot": "apps/ms-inventario/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ms-inventario/tsconfig.app.json"
+      }
+    },
+    "compartido": {
+      "type": "library",
+      "root": "libs/compartido",
+      "entryFile": "index",
+      "sourceRoot": "libs/compartido/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/compartido/tsconfig.lib.json"
+      }
+    }
+  }
+}

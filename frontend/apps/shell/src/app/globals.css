@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --fuente-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Foco visible y consistente: el personal clinico navega mucho con teclado. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-clinica-600;
+  }
+
+  /* Respeta la preferencia del sistema de reducir animaciones. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .tabla-hce {
+    @apply min-w-full divide-y divide-slate-200 text-sm;
+  }
+
+  .tabla-hce thead th {
+    @apply whitespace-nowrap bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .tabla-hce tbody tr {
+    @apply transition-colors hover:bg-slate-50;
+  }
+
+  .tabla-hce tbody td {
+    @apply whitespace-nowrap px-4 py-3 text-slate-700;
+  }
+
+  .tarjeta {
+    @apply rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200;
+  }
+}

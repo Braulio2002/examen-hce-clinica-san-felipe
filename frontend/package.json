@@ -1,0 +1,20 @@
+{
+  "name": "hce-insumos-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FrontEnd Next.js con enfoque de microfront (Multi-Zones) para la gestion de insumos medicos HCE",
+  "workspaces": [
+    "paquetes/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n shell,inventario -c cyan,magenta \"npm run dev -w @hce/shell\" \"npm run dev -w @hce/inventario\"",
+    "build": "npm run build -w @hce/api-cliente && npm run build -w @hce/ui && npm run build -w @hce/shell && npm run build -w @hce/inventario",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}

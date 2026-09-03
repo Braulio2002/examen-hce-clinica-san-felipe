@@ -1,0 +1,752 @@
+{
+  "info": {
+    "_postman_id": "8f3c1d2a-6b47-4e19-9a53-7d0c4f2e1b88",
+    "name": "HCE Insumos - Clinica San Felipe",
+    "description": "Coleccion de pruebas de la API de gestion de insumos medicos.\n\n**Uso**\n1. Importe tambien el entorno `HCE-Local.postman_environment.json` y seleccionelo.\n2. Ejecute `Autenticacion > Login` primero: guarda el token en la variable `accessToken` y el resto de peticiones lo reutiliza automaticamente.\n3. La coleccion puede ejecutarse completa con el Collection Runner; las peticiones estan ordenadas para que el flujo tenga sentido (crear producto -> comprar -> vender -> consultar Kardex).\n\n**Seguridad**\n- El token expira a los 30 minutos. Si recibe 401, vuelva a ejecutar el login.\n- El endpoint de login esta limitado a 5 intentos por minuto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Aviso temprano si falta el token, para no depurar un 401 sin contexto.",
+          "const rutaPublica = pm.request.url.getPath().includes('/auth/login') ||",
+          "                    pm.request.url.getPath().includes('/salud');",
+          "if (!rutaPublica && !pm.environment.get('accessToken')) {",
+          "  console.warn('No hay accessToken. Ejecute primero Autenticacion > Login.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api/v1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Operacion",
+      "item": [
+        {
+          "name": "Salud del Gateway",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/salud", "host": ["{{baseUrl}}"], "path": ["salud"] },
+            "description": "Endpoint publico usado por el healthcheck de Docker."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El servicio esta operativo', () => {",
+                  "  pm.expect(pm.response.json().estado).to.eql('operativo');",
+                  "});",
+                  "pm.test('Incluye la cabecera nosniff', () => {",
+                  "  pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.eql('nosniff');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Autenticacion",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{usuario}}\",\n  \"password\": \"{{contrasena}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Emite un JWT con vigencia estricta de 30 minutos. El token se devuelve en el cuerpo y ademas se establece como cookie HttpOnly."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const cuerpo = pm.response.json();",
+                  "",
+                  "pm.test('Devuelve un token', () => pm.expect(cuerpo.accessToken).to.be.a('string'));",
+                  "pm.test('El token expira en 30 minutos', () => {",
+                  "  pm.expect(cuerpo.expiraEnSegundos).to.eql(1800);",
+                  "});",
+                  "pm.test('Establece la cookie HttpOnly', () => {",
+                  "  pm.expect(pm.response.headers.get('Set-Cookie') || '').to.include('HttpOnly');",
+                  "});",
+                  "",
+                  "pm.environment.set('accessToken', cuerpo.accessToken);",
+                  "pm.environment.set('rolUsuario', cuerpo.usuario.rol);",
+                  "console.log('Sesion iniciada como', cuerpo.usuario.username, '-', cuerpo.usuario.rol);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con credenciales invalidas",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"contrasena-incorrecta\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "El mensaje es deliberadamente generico: no distingue usuario inexistente de contrasena incorrecta."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('No revela si el usuario existe', () => {",
+                  "  const mensaje = pm.response.json().mensaje.toLowerCase();",
+                  "  pm.expect(mensaje).to.not.include('no existe');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Perfil del usuario autenticado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "perfil"]
+            },
+            "description": "Se resuelve contra la base de datos, no contra el contenido del token, de modo que desactivar una cuenta surte efecto de inmediato."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Acceso sin token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"]
+            },
+            "description": "Todas las rutas estan protegidas por defecto; solo login y salud son publicas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 401', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/productos?pagina=1&tamanoPagina=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "tamanoPagina", "value": "20" },
+                { "key": "buscar", "value": "", "disabled": true },
+                { "key": "soloConStock", "value": "true", "disabled": true }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve la envoltura paginada', () => {",
+                  "  const c = pm.response.json();",
+                  "  pm.expect(c).to.have.property('datos');",
+                  "  pm.expect(c.meta).to.have.property('totalRegistros');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar producto",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreProducto\": \"Ketorolaco 30 mg Ampolla\",\n  \"nroLote\": \"LT-2026-{{$randomInt}}\",\n  \"costo\": 2.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"]
+            },
+            "description": "Si se omite precioVenta, se calcula automaticamente como Costo x 1.35. Requiere rol ADMIN o FARMACIA."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const p = pm.response.json();",
+                  "pm.test('El precio de venta es costo x 1.35', () => {",
+                  "  pm.expect(p.precioVenta).to.eql(Number((p.costo * 1.35).toFixed(4)));",
+                  "});",
+                  "",
+                  "pm.environment.set('idProducto', p.idProducto);",
+                  "console.log('Producto creado con id', p.idProducto);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/productos/{{idProducto}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos", "{{idProducto}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"costo\": 2.4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/productos/{{idProducto}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos", "{{idProducto}}"]
+            },
+            "description": "Actualizacion parcial. Al enviar costo sin precioVenta, el precio se recalcula para no dejar el catalogo con un margen inconsistente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Recalcula el precio de venta', () => {",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p.precioVenta).to.eql(Number((p.costo * 1.35).toFixed(4)));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar producto con costo negativo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreProducto\": \"Producto invalido\",\n  \"nroLote\": \"LT-ERROR\",\n  \"costo\": -5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 400', () => pm.response.to.have.status(400));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar producto con campo no declarado",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreProducto\": \"Producto X\",\n  \"nroLote\": \"LT-X\",\n  \"costo\": 1,\n  \"campoIntruso\": \"valor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"]
+            },
+            "description": "El ValidationPipe rechaza campos no declarados en el DTO: defensa contra mass assignment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 400', () => pm.response.to.have.status(400));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Compras",
+      "item": [
+        {
+          "name": "Registrar compra",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lineas\": [\n    {\n      \"idProducto\": {{idProducto}},\n      \"cantidad\": 50,\n      \"precio\": 2.5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"]
+            },
+            "description": "Operacion atomica: graba CompraCab y CompraDet, actualiza costo y precio de venta del producto, y genera el movimiento de tipo Entrada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const c = pm.response.json();",
+                  "const linea = c.detalle[0];",
+                  "",
+                  "pm.test('Subtotal = cantidad x precio', () => {",
+                  "  pm.expect(linea.subTotal).to.eql(linea.cantidad * linea.precio);",
+                  "});",
+                  "pm.test('IGV segun la formula del enunciado (x 1.18)', () => {",
+                  "  pm.expect(linea.igv).to.eql(Number((linea.cantidad * linea.precio * 1.18).toFixed(4)));",
+                  "});",
+                  "pm.test('Total = subtotal + IGV', () => {",
+                  "  pm.expect(linea.total).to.eql(Number((linea.subTotal + linea.igv).toFixed(4)));",
+                  "});",
+                  "",
+                  "pm.environment.set('idCompra', c.idCompraCab);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar compras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras?pagina=1&tamanoPagina=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "tamanoPagina", "value": "20" },
+                { "key": "fechaDesde", "value": "2026-01-01", "disabled": true },
+                { "key": "fechaHasta", "value": "2026-12-31", "disabled": true }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener compra",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras/{{idCompra}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "{{idCompra}}"]
+            }
+          }
+        },
+        {
+          "name": "Compra sin lineas",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"lineas\": []\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 400', () => pm.response.to.have.status(400));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ventas",
+      "item": [
+        {
+          "name": "Registrar venta",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lineas\": [\n    {\n      \"idProducto\": {{idProducto}},\n      \"cantidad\": 10\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ventas",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas"]
+            },
+            "description": "El precio NO se envia: lo determina el servidor a partir del catalogo. Aceptarlo del cliente permitiria despachar medicamentos a un importe manipulado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "const v = pm.response.json();",
+                  "pm.test('El servidor asigna el precio de venta', () => {",
+                  "  pm.expect(v.detalle[0].precio).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.environment.set('idVenta', v.idVentaCab);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Venta que supera el stock",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lineas\": [\n    {\n      \"idProducto\": {{idProducto}},\n      \"cantidad\": 999999\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ventas",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas"]
+            },
+            "description": "Regla central del enunciado: no se puede vender por encima del stock. Devuelve 422 porque la peticion es sintacticamente valida pero el estado del inventario lo impide."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('El codigo identifica el stock insuficiente', () => {",
+                  "  pm.expect(pm.response.json().codigo).to.eql('STOCK_INSUFICIENTE');",
+                  "});",
+                  "pm.test('El mensaje indica lo solicitado y lo disponible', () => {",
+                  "  pm.expect(pm.response.json().mensaje).to.include('Disponible');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar ventas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ventas?pagina=1&tamanoPagina=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "tamanoPagina", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener venta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ventas/{{idVenta}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ventas", "{{idVenta}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kardex",
+      "item": [
+        {
+          "name": "Listar Kardex",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/kardex?pagina=1&tamanoPagina=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["kardex"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "tamanoPagina", "value": "50" },
+                { "key": "buscar", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Id_producto, nombre, stock actual, costo y precio de venta. El stock se deriva integramente de la tabla de movimientos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cada fila trae stock y precio', () => {",
+                  "  const fila = pm.response.json().datos[0];",
+                  "  pm.expect(fila).to.have.property('stockActual');",
+                  "  pm.expect(fila).to.have.property('precioVenta');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Movimientos de un producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/kardex/producto/{{idProducto}}/movimientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["kardex", "producto", "{{idProducto}}", "movimientos"]
+            },
+            "description": "Alimenta el modal del Kardex: fecha de registro, tipo de movimiento, cantidad y saldo acumulado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye entradas y salidas con saldo', () => {",
+                  "  const movs = pm.response.json();",
+                  "  pm.expect(movs).to.be.an('array');",
+                  "  if (movs.length > 0) {",
+                  "    pm.expect(movs[0]).to.have.property('saldo');",
+                  "    pm.expect(['Entrada', 'Salida']).to.include(movs[0].tipoMovimiento);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Seguridad",
+      "item": [
+        {
+          "name": "Token con firma invalida",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjF9.firma_falsificada",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/kardex", "host": ["{{baseUrl}}"], "path": ["kardex"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 401', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rate limit del login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"mala\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Ejecute esta peticion 6 veces seguidas: a partir del sexto intento dentro del mismo minuto la API responde 429.\n\nATENCION: agota el limite de login. Espere 60 segundos antes de volver a autenticarse."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401 o 429 segun el numero de intento', () => {",
+                  "  pm.expect([401, 429]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 429) {",
+                  "  console.log('Rate limit activo: la proteccion contra fuerza bruta funciona.');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CORS desde un origen no autorizado",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Origin", "value": "http://sitio-no-autorizado.com" }],
+            "url": { "raw": "{{baseUrl}}/salud", "host": ["{{baseUrl}}"], "path": ["salud"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('No devuelve cabecera CORS para un origen ajeno', () => {",
+                  "  pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

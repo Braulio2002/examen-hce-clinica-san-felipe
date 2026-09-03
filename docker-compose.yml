@@ -1,0 +1,281 @@
+# =============================================================================
+# EXAMEN TECNICO - ESPECIALISTA DESARROLLO HCE
+# Despliegue local unificado: base de datos, microservicios, API Gateway y
+# FrontEnd.
+#
+#   docker compose up --build
+#
+# Topologia de red y seguridad
+# ----------------------------
+# Los tres microservicios NO publican puertos hacia el host: solo son
+# alcanzables por TCP dentro de la red interna "hce-red". El unico componente
+# expuesto es el API Gateway, que concentra autenticacion, autorizacion, rate
+# limit y CORS. SQL Server publica un puerto solo por comodidad de desarrollo
+# (conectarse con SSMS o Azure Data Studio); en un entorno real ese mapeo se
+# elimina.
+#
+# Orden de arranque
+# -----------------
+#   sqlserver (healthy) -> db-init (completa) -> microservicios -> gateway -> front
+# El uso de condiciones (service_healthy / service_completed_successfully) evita
+# la carrera clasica en la que el backend intenta conectarse antes de que la
+# base exista.
+# =============================================================================
+
+name: hce-insumos
+
+services:
+  # ---------------------------------------------------------------------------
+  # Base de datos
+  # ---------------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: hce-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: Developer
+    ports:
+      - "${SQLSERVER_PUERTO_HOST:-14330}:1433"
+    volumes:
+      - datos-sqlserver:/var/opt/mssql
+    networks:
+      - hce-red
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Inicializacion de la base (contenedor efimero, corre una sola vez)
+  # ---------------------------------------------------------------------------
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: hce-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      DB_HOST: sqlserver
+      DB_PORT: "1433"
+      DB_USER: sa
+      SCRIPTS_DIR: /scripts
+    volumes:
+      - ./database:/scripts:ro
+    networks:
+      - hce-red
+    entrypoint: ["/bin/bash", "/scripts/init/run-init.sh"]
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Microservicio de Autenticacion
+  # ---------------------------------------------------------------------------
+  ms-auth:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: ms-auth
+    image: hce/ms-auth:1.0.0
+    container_name: hce-ms-auth
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: sqlserver
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT:-true}
+      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRACION_SEGUNDOS: ${JWT_EXPIRACION_SEGUNDOS:-1800}
+      JWT_ISSUER: ${JWT_ISSUER:-hce-clinica-san-felipe}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-hce-frontend}
+      BCRYPT_RONDAS: ${BCRYPT_RONDAS:-10}
+      MS_AUTH_HOST: 0.0.0.0
+      MS_AUTH_PORT: "4001"
+    networks:
+      - hce-red
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Microservicio de Catalogo
+  # ---------------------------------------------------------------------------
+  ms-catalogo:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: ms-catalogo
+    image: hce/ms-catalogo:1.0.0
+    container_name: hce-ms-catalogo
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: sqlserver
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT:-true}
+      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      MS_CATALOGO_HOST: 0.0.0.0
+      MS_CATALOGO_PORT: "4002"
+    networks:
+      - hce-red
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Microservicio de Inventario (compras, ventas y Kardex)
+  # ---------------------------------------------------------------------------
+  ms-inventario:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: ms-inventario
+    image: hce/ms-inventario:1.0.0
+    container_name: hce-ms-inventario
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DB_HOST: sqlserver
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ENCRYPT: ${DB_ENCRYPT:-true}
+      DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
+      MS_INVENTARIO_HOST: 0.0.0.0
+      MS_INVENTARIO_PORT: "4003"
+    networks:
+      - hce-red
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # API Gateway (unico servicio expuesto al exterior)
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: api-gateway
+    image: hce/api-gateway:1.0.0
+    container_name: hce-api-gateway
+    depends_on:
+      - ms-auth
+      - ms-catalogo
+      - ms-inventario
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      GATEWAY_PORT: "4000"
+      API_PREFIJO: ${API_PREFIJO:-api}
+      CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRACION_SEGUNDOS: ${JWT_EXPIRACION_SEGUNDOS:-1800}
+      JWT_ISSUER: ${JWT_ISSUER:-hce-clinica-san-felipe}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-hce-frontend}
+      JWT_COOKIE: ${JWT_COOKIE:-hce_access_token}
+      COOKIE_SEGURA: ${COOKIE_SEGURA:-false}
+      RATE_LIMIT_VENTANA_SEGUNDOS: ${RATE_LIMIT_VENTANA_SEGUNDOS:-60}
+      RATE_LIMIT_GENERAL: ${RATE_LIMIT_GENERAL:-100}
+      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-5}
+      MS_AUTH_HOST: ms-auth
+      MS_AUTH_PORT: "4001"
+      MS_CATALOGO_HOST: ms-catalogo
+      MS_CATALOGO_PORT: "4002"
+      MS_INVENTARIO_HOST: ms-inventario
+      MS_INVENTARIO_PORT: "4003"
+    ports:
+      - "4000:4000"
+    networks:
+      - hce-red
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4000/api/v1/salud || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # FrontEnd - zona de inventario (microfront: compras, ventas y Kardex)
+  #
+  # No publica puerto hacia el host: solo la shell la alcanza, por la red
+  # interna, mediante la reescritura de /inventario/*. Asi el usuario siempre
+  # navega por un unico origen y las cookies de sesion no se fragmentan.
+  # ---------------------------------------------------------------------------
+  front-inventario:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        APP: inventario
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+    image: hce/front-inventario:1.0.0
+    container_name: hce-front-inventario
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+      PORT: "3000"
+    networks:
+      - hce-red
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # FrontEnd - shell (microfront anfitrion: login, inicio y productos)
+  #
+  # Es el unico punto de entrada del FrontEnd. Compone la zona de inventario por
+  # reescritura y centraliza la proteccion de rutas en su middleware.
+  # ---------------------------------------------------------------------------
+  front-shell:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        APP: shell
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+        # Debe pasarse como build arg: Next congela las reescrituras al compilar.
+        ZONA_INVENTARIO_URL: http://front-inventario:3000
+    image: hce/front-shell:1.0.0
+    container_name: hce-front-shell
+    depends_on:
+      - front-inventario
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+      ZONA_INVENTARIO_URL: http://front-inventario:3000
+      JWT_COOKIE: ${JWT_COOKIE:-hce_access_token}
+      PORT: "3000"
+    ports:
+      - "${FRONTEND_PUERTO:-3000}:3000"
+    networks:
+      - hce-red
+    restart: unless-stopped
+
+networks:
+  hce-red:
+    driver: bridge
+
+volumes:
+  datos-sqlserver:
+    driver: local

@@ -1,0 +1,10 @@
+# Normaliza los finales de linea al versionar.
+* text=auto eol=lf
+
+# Los scripts de shell DEBEN conservar LF: con CRLF fallan dentro de los
+# contenedores Linux con "bad interpreter: No such file or directory".
+*.sh text eol=lf
+
+# Los archivos propios de Windows conservan CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
