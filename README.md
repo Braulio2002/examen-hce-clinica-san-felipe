@@ -58,6 +58,16 @@ openssl rand -base64 48
 
 ## Verificación
 
+### Pruebas unitarias del dominio (29 casos)
+
+```bash
+cd backend && npm test
+```
+
+Cubren el value object `Importe` —la fórmula de importes del enunciado y el
+margen de 1.35— y las reglas del agregado de inventario. Corren sin base de
+datos ni contenedores: es la ventaja concreta de mantener el dominio aislado.
+
 ### Pruebas de la API (36 verificaciones end-to-end)
 
 ```bash
