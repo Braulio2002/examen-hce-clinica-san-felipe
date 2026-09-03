@@ -1,85 +1,72 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { ErrorNoAutorizado, RegistroPuerto } from '@hce/compartido';
 
-import { ErrorNoAutorizado } from '@hce/compartido';
-
-import { PerfilUsuario } from '../../dominio/entidades/usuario.entidad';
-import {
-  SERVICIO_HASH,
-  ServicioHash,
-  USUARIO_REPOSITORIO,
-  UsuarioRepositorio,
-} from '../../dominio/puertos/usuario.repositorio';
-
-export interface Credenciales {
-  readonly username: string;
-  readonly password: string;
-}
-
-export interface ResultadoSesion {
-  readonly accessToken: string;
-  /** Vigencia del token en segundos. El enunciado exige 30 minutos = 1800 s. */
-  readonly expiraEnSegundos: number;
-  readonly usuario: PerfilUsuario;
-}
+import { IniciarSesionPeticion, SesionRespuesta } from '../modelos/auth.modelos';
+import { IniciarSesionPuerto } from '../puertos/entrada/auth.puertos';
+import { ServicioHashPuerto } from '../puertos/salida/servicio-hash.puerto';
+import { ServicioTokenPuerto } from '../puertos/salida/servicio-token.puerto';
+import { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
 
 /**
- * Caso de uso: iniciar sesion.
+ * CAPA 2 · APLICACION — Caso de uso: iniciar sesión.
  *
- * Responsabilidad unica (SRP): validar credenciales y emitir el token. No sabe
- * de HTTP, de cookies ni de TCP; el transporte lo resuelven las capas externas.
+ * Regla de negocio de aplicación: validar credenciales y emitir un token.
+ *
+ * Obsérvese lo que este archivo NO importa: ni `@nestjs/common`, ni
+ * `@nestjs/jwt`, ni `bcryptjs`, ni `mssql`. Todas sus dependencias son puertos
+ * declarados por la propia capa de aplicación y recibidos por constructor.
+ *
+ * Consecuencia práctica: la prueba unitaria de este caso de uso se escribe con
+ * tres objetos literales y se ejecuta en milisegundos, sin contenedor de
+ * inyección ni base de datos.
  */
-@Injectable()
-export class IniciarSesionCasoUso {
-  private readonly logger = new Logger(IniciarSesionCasoUso.name);
+export class IniciarSesionCasoUso implements IniciarSesionPuerto {
+  /**
+   * Hash bcrypt válido de una contraseña aleatoria que nadie conoce.
+   *
+   * Se compara contra él cuando el usuario NO existe, para consumir el mismo
+   * tiempo de CPU que una verificación real. Sin esto, el tiempo de respuesta
+   * revelaría qué usuarios están registrados (enumeración por temporización).
+   */
+  private static readonly HASH_SENUELO =
+    '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.4rXWiTXHQ0kx6cVxOJ0aQCFnu2xC';
 
   constructor(
-    @Inject(USUARIO_REPOSITORIO) private readonly repositorio: UsuarioRepositorio,
-    @Inject(SERVICIO_HASH) private readonly hash: ServicioHash,
-    private readonly jwt: JwtService,
-    private readonly config: ConfigService,
+    private readonly repositorio: UsuarioRepositorio,
+    private readonly hash: ServicioHashPuerto,
+    private readonly token: ServicioTokenPuerto,
+    private readonly registro: RegistroPuerto,
   ) {}
 
-  async ejecutar(credenciales: Credenciales): Promise<ResultadoSesion> {
-    const usuario = await this.repositorio.buscarPorUsername(credenciales.username);
+  async ejecutar(peticion: IniciarSesionPeticion): Promise<SesionRespuesta> {
+    const usuario = await this.repositorio.buscarPorUsername(peticion.username);
 
-    /*
-     * Se verifica el hash incluso cuando el usuario no existe, contra un hash
-     * ficticio de coste equivalente. Sin esto, el tiempo de respuesta revela si
-     * un username esta registrado (ataque de enumeracion por temporizacion).
-     */
-    const hashComparacion = usuario?.obtenerHash() ?? HASH_SENUELO;
-    const passwordValido = await this.hash.verificar(credenciales.password, hashComparacion);
+    const hashComparacion = usuario?.obtenerHash() ?? IniciarSesionCasoUso.HASH_SENUELO;
+    const passwordValido = await this.hash.verificar(peticion.password, hashComparacion);
 
     if (!usuario || !passwordValido || !usuario.activo) {
-      this.logger.warn(`Intento de acceso fallido para el usuario "${credenciales.username}".`);
-      // Mensaje deliberadamente generico: no distingue usuario inexistente de
-      // contrasena incorrecta.
+      this.registro.advertir(
+        `Intento de acceso fallido para el usuario "${peticion.username}".`,
+      );
+      // Mensaje deliberadamente genérico: no distingue usuario inexistente de
+      // contraseña incorrecta.
       throw new ErrorNoAutorizado('Usuario o contrasena incorrectos.');
     }
 
-    const expiraEnSegundos = Number(this.config.get<string>('JWT_EXPIRACION_SEGUNDOS', '1800'));
     const perfil = usuario.aPerfilPublico();
 
-    const accessToken = await this.jwt.signAsync(
-      {
-        sub: perfil.id,
-        username: perfil.username,
-        nombre: perfil.nombreCompleto,
-        rol: perfil.rol,
-      },
-      { expiresIn: expiraEnSegundos },
-    );
+    const emitido = await this.token.emitir({
+      idUsuario: perfil.id,
+      username: perfil.username,
+      nombreCompleto: perfil.nombreCompleto,
+      rol: perfil.rol,
+    });
 
-    this.logger.log(`Sesion iniciada por "${perfil.username}" (rol ${perfil.rol}).`);
+    this.registro.informar(`Sesion iniciada por "${perfil.username}" (rol ${perfil.rol}).`);
 
-    return { accessToken, expiraEnSegundos, usuario: perfil };
+    return {
+      accessToken: emitido.token,
+      expiraEnSegundos: emitido.expiraEnSegundos,
+      usuario: perfil,
+    };
   }
 }
-
-/**
- * Hash bcrypt valido de una contrasena aleatoria que nadie conoce. Solo se usa
- * para consumir el mismo tiempo de CPU cuando el usuario no existe.
- */
-const HASH_SENUELO = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.4rXWiTXHQ0kx6cVxOJ0aQCFnu2xC';

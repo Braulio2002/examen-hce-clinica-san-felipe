@@ -16,10 +16,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "start:prod:gateway": "node dist/apps/api-gateway/src/main.js",
-    "start:prod:auth": "node dist/apps/ms-auth/src/main.js",
-    "start:prod:catalogo": "node dist/apps/ms-catalogo/src/main.js",
-    "start:prod:inventario": "node dist/apps/ms-inventario/src/main.js"
+    "start:prod:gateway": "node dist/apps/api-gateway/src/infraestructura/main.js",
+    "start:prod:auth": "node dist/apps/ms-auth/src/infraestructura/main.js",
+    "start:prod:catalogo": "node dist/apps/ms-catalogo/src/infraestructura/main.js",
+    "start:prod:inventario": "node dist/apps/ms-inventario/src/infraestructura/main.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -87,7 +87,8 @@
     "testEnvironment": "node",
     "roots": [
       "<rootDir>/apps/",
-      "<rootDir>/libs/"
+      "<rootDir>/libs/",
+      "<rootDir>/test/"
     ],
     "moduleNameMapper": {
       "^@hce/compartido(|/.*)$": "<rootDir>/libs/compartido/src/$1"

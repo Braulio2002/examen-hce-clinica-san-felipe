@@ -58,15 +58,17 @@ openssl rand -base64 48
 
 ## Verificación
 
-### Pruebas unitarias del dominio (29 casos)
+### Pruebas de dominio y arquitectura (33 casos)
 
 ```bash
 cd backend && npm test
 ```
 
 Cubren el value object `Importe` —la fórmula de importes del enunciado y el
-margen de 1.35— y las reglas del agregado de inventario. Corren sin base de
-datos ni contenedores: es la ventaja concreta de mantener el dominio aislado.
+margen de 1.35—, las reglas del agregado de inventario y **la regla de
+dependencia de Clean Architecture**, que se comprueba analizando los `import`
+del código fuente. Corren sin base de datos ni contenedores: es la ventaja
+concreta de mantener el dominio aislado.
 
 ### Pruebas de la API (36 verificaciones end-to-end)
 
@@ -79,8 +81,9 @@ CORS restringido, rate limiting, cabeceras de seguridad, autorización por rol,
 cálculo de importes, actualización de precio por compra, validación de stock en
 la venta y coherencia del Kardex.
 
-> La prueba 15 agota deliberadamente el límite de intentos de login (5 por
-> minuto). Si la ejecuta dos veces seguidas, espere ~60 segundos.
+> El script es reejecutable sin re-provisionar la base: crea su producto de
+> prueba con un lote único por ejecución y absorbe las esperas del rate limit
+> que él mismo agota al verificarlo.
 
 ### Pruebas de base de datos (10 reglas de negocio)
 
@@ -153,8 +156,10 @@ Navegador
 ```
 
 **Backend:** monorepo NestJS con tres microservicios y un API Gateway. Cada
-servicio sigue **Arquitectura Hexagonal**: el dominio no importa NestJS ni el
-driver de base de datos.
+servicio sigue **Clean Architecture** en cuatro capas (dominio, aplicación,
+adaptadores, infraestructura). El dominio y la aplicación no importan NestJS ni
+el driver de base de datos, y **una prueba automatizada verifica esa regla de
+dependencia** en cada ejecución de la suite.
 
 **Frontend:** microfront con **Next.js Multi-Zones**. Dos aplicaciones
 independientes que se construyen y despliegan por separado, compuestas en una
@@ -167,8 +172,10 @@ movimientos, que es la única fuente de verdad de la existencia física.
 Detalle completo, diagramas y justificaciones:
 - [Evaluación teórica](docs/01-evaluacion-teorica.md) — API REST, monolito vs.
   microservicios, BFF, DDD
-- [Arquitectura](docs/02-arquitectura.md) — diagramas, hexagonal en salud,
-  patrones, seguridad, modelo de datos
+- [Arquitectura](docs/02-arquitectura.md) — diagramas, Clean Architecture en
+  salud, patrones, seguridad, modelo de datos
+- [Guía de capas del BackEnd](backend/ARQUITECTURA.md) — qué va en cada capa y
+  dónde poner un cambio
 
 ---
 
@@ -201,7 +208,7 @@ Las limitaciones conocidas están declaradas en el
 ├── docker-compose.yml         Levanta todo el ecosistema
 ├── .env.example               Plantilla de configuración
 ├── database/                  Esquema, triggers, procedimientos, seed y pruebas
-├── backend/                   Monorepo NestJS (gateway + 3 microservicios)
+├── backend/                   Monorepo NestJS · Clean Architecture en 4 capas
 ├── frontend/                  Microfront Next.js (2 zonas + 2 paquetes)
 ├── postman/                   Colección de la API
 ├── scripts/prueba-humo.sh     36 verificaciones end-to-end
@@ -250,7 +257,7 @@ Queda registrada la observación técnica: con esa fórmula el IGV resulta ser e
 el 18 % del valor de venta (`Igv = SubTotal × 0.18`, `Total = SubTotal × 1.18`).
 
 La fórmula está centralizada en un único lugar por capa —el value object
-[`Importe`](backend/libs/compartido/src/dominio/value-objects/importe.vo.ts) y la
+[`Importe`](backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts) y la
 función SQL `hce.fn_CalcularImportes`— precisamente para que corregir el
 criterio sea un cambio mínimo.
 

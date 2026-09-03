@@ -1,29 +1,24 @@
-import { Inject, Injectable } from '@nestjs/common';
-
 import { ErrorNoEncontrado } from '@hce/compartido';
 
-import { PerfilUsuario } from '../../dominio/entidades/usuario.entidad';
-import {
-  USUARIO_REPOSITORIO,
-  UsuarioRepositorio,
-} from '../../dominio/puertos/usuario.repositorio';
+import { ObtenerPerfilPeticion, PerfilUsuarioRespuesta } from '../modelos/auth.modelos';
+import { ObtenerPerfilPuerto } from '../puertos/entrada/auth.puertos';
+import { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
 
 /**
- * Caso de uso: obtener el perfil publico de un usuario ya autenticado.
+ * CAPA 2 · APLICACION — Caso de uso: obtener el perfil de un usuario.
  *
- * Se resuelve contra la base y no contra el contenido del token, para que la
- * desactivacion de una cuenta tenga efecto inmediato aunque el JWT emitido siga
- * dentro de su ventana de 30 minutos.
+ * Se resuelve contra el repositorio y no contra el contenido del token, para
+ * que la desactivación de una cuenta surta efecto de inmediato aunque su JWT
+ * siga dentro de la ventana de 30 minutos.
  */
-@Injectable()
-export class ObtenerPerfilCasoUso {
-  constructor(@Inject(USUARIO_REPOSITORIO) private readonly repositorio: UsuarioRepositorio) {}
+export class ObtenerPerfilCasoUso implements ObtenerPerfilPuerto {
+  constructor(private readonly repositorio: UsuarioRepositorio) {}
 
-  async ejecutar(username: string): Promise<PerfilUsuario> {
-    const usuario = await this.repositorio.buscarPorUsername(username);
+  async ejecutar(peticion: ObtenerPerfilPeticion): Promise<PerfilUsuarioRespuesta> {
+    const usuario = await this.repositorio.buscarPorUsername(peticion.username);
 
     if (!usuario || !usuario.activo) {
-      throw new ErrorNoEncontrado('Usuario', username);
+      throw new ErrorNoEncontrado('Usuario', peticion.username);
     }
     return usuario.aPerfilPublico();
   }

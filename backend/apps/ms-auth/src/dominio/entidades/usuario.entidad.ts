@@ -1,9 +1,9 @@
 /**
  * Entidad de dominio Usuario.
  *
- * Capa mas interna de la arquitectura hexagonal: no importa nada de Nest, del
- * driver de base de datos ni de la libreria de hashing. Por eso puede probarse
- * de forma unitaria sin ningun contenedor de inyeccion.
+ * CAPA 1 · DOMINIO — la mas interna de Clean Architecture. No importa nada de
+ * NestJS, del driver de base de datos ni de la libreria de hashing. Por eso
+ * puede probarse de forma unitaria sin ningun contenedor de inyeccion.
  */
 
 export type RolUsuario = 'ADMIN' | 'FARMACIA' | 'CONSULTA';

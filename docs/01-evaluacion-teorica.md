@@ -79,7 +79,7 @@ sistema no puede aceptarlo". Vender 10 unidades cuando hay 5 es sintácticamente
 correcto; es el estado del inventario lo que lo impide.
 
 La traducción entre errores de dominio y códigos HTTP ocurre en un único lugar:
-[`excepcion-http.filtro.ts`](../backend/libs/compartido/src/filtros/excepcion-http.filtro.ts).
+[`excepcion-http.filtro.ts`](../backend/libs/compartido/src/adaptadores/filtros/excepcion-http.filtro.ts).
 
 ### 1.4 Formato uniforme de respuesta
 
@@ -211,7 +211,7 @@ Dos ejemplos concretos del código:
    token en el cuerpo, no una cookie. Es exactamente el tipo de decisión que
    pertenece al BFF y no al servicio de dominio.
 
-Ver [`auth.controlador.ts`](../backend/apps/api-gateway/src/modulos/auth/auth.controlador.ts).
+Ver [`auth.controlador.ts`](../backend/apps/api-gateway/src/adaptadores/controladores/auth.controlador.ts).
 
 ### 3.3 Su riesgo, y cómo se contuvo
 
@@ -237,9 +237,9 @@ arquitectónica.
 | Lenguaje ubicuo | Vocabulario común entre negocio y código | El código está en español y usa los términos del enunciado: `CompraCab`, `MovimientoDet`, `Kardex`, `Entrada`, `Salida` |
 | Bounded Context | Frontera donde un término tiene un solo significado | Tres contextos: Identidad, Catálogo, Inventario |
 | Entidad | Objeto con identidad propia y ciclo de vida | [`Producto`](../backend/apps/ms-catalogo/src/dominio/entidades/producto.entidad.ts), [`Usuario`](../backend/apps/ms-auth/src/dominio/entidades/usuario.entidad.ts) |
-| Value Object | Objeto sin identidad, comparado por valor, inmutable | [`Importe`](../backend/libs/compartido/src/dominio/value-objects/importe.vo.ts) |
+| Value Object | Objeto sin identidad, comparado por valor, inmutable | [`Importe`](../backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts) |
 | Agregado | Grupo de objetos con una raíz que garantiza invariantes | Inventario: la raíz es el movimiento; el stock es su invariante |
-| Repositorio | Abstracción de persistencia orientada al dominio | [`ProductoRepositorio`](../backend/apps/ms-catalogo/src/dominio/puertos/producto.repositorio.ts), [`InventarioRepositorio`](../backend/apps/ms-inventario/src/dominio/puertos/inventario.repositorio.ts) |
+| Repositorio | Abstracción de persistencia orientada al dominio | [`ProductoRepositorio`](../backend/apps/ms-catalogo/src/aplicacion/puertos/salida/producto.repositorio.ts), [`InventarioRepositorio`](../backend/apps/ms-inventario/src/aplicacion/puertos/salida/inventario.repositorio.ts) |
 | Caso de uso | Una operación completa del negocio | `RegistrarCompraCasoUso`, `RegistrarVentaCasoUso` |
 
 ### 4.2 El agregado de Inventario
@@ -285,7 +285,7 @@ sin retorno proporcional.
 
 El diagrama completo, con Docker, monitoreo e integraciones, está en
 [`02-arquitectura.md`](02-arquitectura.md), junto con la justificación de la
-Arquitectura Hexagonal en sistemas de salud y el detalle de los mecanismos de
+Clean Architecture en sistemas de salud y el detalle de los mecanismos de
 seguridad.
 
 ---

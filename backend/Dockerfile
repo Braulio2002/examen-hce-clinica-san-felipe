@@ -65,4 +65,4 @@ ENV APP=${APP}
 EXPOSE 4000
 
 # La forma "sh -c" es necesaria para que se expanda la variable APP.
-CMD ["sh", "-c", "node dist/apps/${APP}/src/main.js"]
+CMD ["sh", "-c", "node dist/apps/${APP}/src/infraestructura/main.js"]

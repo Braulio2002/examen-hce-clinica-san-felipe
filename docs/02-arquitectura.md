@@ -1,7 +1,7 @@
 # Arquitectura de la Solución
 
 > Complementa la [evaluación teórica](01-evaluacion-teorica.md) con el diagrama
-> del sistema, la justificación de la Arquitectura Hexagonal en entornos de
+> del sistema, la justificación de Clean Architecture en entornos de
 > salud, los patrones de diseño aplicados y los mecanismos de seguridad.
 
 ---
@@ -139,7 +139,7 @@ flowchart LR
 | Healthcheck HTTP del Gateway | Implementado | `GET /api/v1/salud` |
 | Healthcheck de la base | Implementado | `docker-compose.yml` |
 | Logs por servicio con contexto | Implementado | `Logger` de NestJS en cada capa |
-| Medición de latencia de acceso a datos | Implementado | Decoradores `*RepositorioTrazado` |
+| Medición de latencia de acceso a datos | Implementado | Decoradores `*PasarelaTrazada` |
 | Detección de consulta lenta | Implementado | Umbral configurable (500 ms lectura, 1 s escritura) |
 | Auditoría de cambios con usuario | Implementado | Triggers DML → `hce.Auditoria` |
 | Trazas distribuidas, métricas, alertas | **No implementado** | Requiere OpenTelemetry + Prometheus |
@@ -152,33 +152,94 @@ mapeando el despacho de insumos a un recurso `MedicationDispense` vinculado al
 
 ---
 
-## 2. Arquitectura Hexagonal: justificación en sistemas de salud
+## 2. Clean Architecture: justificación en sistemas de salud
 
 > Apartado exigido explícitamente por la sección 1.3 del enunciado.
 
 ### 2.1 La estructura
 
-Cada microservicio se organiza en tres capas con dependencias que apuntan
-**siempre hacia adentro**:
+Cada microservicio se organiza en las **cuatro capas de Clean Architecture**, con
+dependencias que apuntan **siempre hacia adentro**:
+
+```
+        ┌─────────────────────────────────────────────────────┐
+        │  4 · INFRAESTRUCTURA                                │
+        │     NestJS · main.ts · módulos · driver mssql       │
+        │  ┌───────────────────────────────────────────────┐  │
+        │  │  3 · ADAPTADORES DE INTERFAZ                  │  │
+        │  │     Controladores · Pasarelas · Mapeadores    │  │
+        │  │  ┌─────────────────────────────────────────┐  │  │
+        │  │  │  2 · APLICACIÓN                         │  │  │
+        │  │  │     Casos de uso · Puertos · Modelos    │  │  │
+        │  │  │  ┌───────────────────────────────────┐  │  │  │
+        │  │  │  │  1 · DOMINIO                      │  │  │  │
+        │  │  │  │     Entidades · Objetos de valor  │  │  │  │
+        │  │  │  └───────────────────────────────────┘  │  │  │
+        │  │  └─────────────────────────────────────────┘  │  │
+        │  └───────────────────────────────────────────────┘  │
+        └─────────────────────────────────────────────────────┘
+```
 
 ```
 apps/ms-inventario/src/
-├── dominio/                      ← Núcleo. No importa NADA externo
-│   ├── entidades/                   Reglas e invariantes del negocio
-│   └── puertos/                     Interfaces que el dominio necesita
-├── aplicacion/                   ← Orquestación
-│   ├── casos-uso/                   Un caso de uso = una operación de negocio
-│   └── inventario.fachada.ts        Patrón Facade
-└── infraestructura/              ← Adaptadores. Aquí vive lo reemplazable
-    ├── persistencia/                Adaptador SQL Server + decoradores
-    └── controladores/               Adaptador de transporte TCP
+├── dominio/                              Capa 1 · Reglas de negocio de empresa
+│   └── entidades/inventario.entidades.ts    Invariantes del agregado
+├── aplicacion/                           Capa 2 · Reglas de negocio de aplicación
+│   ├── puertos/entrada/                     Fronteras de entrada (Input Boundary)
+│   ├── puertos/salida/                      Fronteras de salida (Output Boundary)
+│   ├── modelos/                             Peticiones y respuestas planas
+│   ├── casos-uso/                           8 archivos, una clase cada uno
+│   └── fachadas/                            Patrón Facade
+├── adaptadores/                          Capa 3 · Adaptadores de interfaz
+│   ├── controladores/                       Transporte TCP
+│   ├── pasarelas/                           Gateways a SQL Server + Decorator
+│   └── mapeadores/                          Fila de BD → modelo de aplicación
+└── infraestructura/                      Capa 4 · Frameworks y drivers
+    ├── nestjs/inventario.module.ts          Raíz de composición
+    └── main.ts                              Arranque del proceso
 ```
 
-La prueba de que la regla se respeta: **ningún archivo de `dominio/` importa
-`@nestjs/*` ni `mssql`**. Si mañana se sustituye NestJS por Fastify o SQL Server
-por PostgreSQL, la capa de dominio no cambia una línea.
+### 2.2 La regla de dependencia está verificada, no solo escrita
 
-### 2.2 Por qué importa específicamente en salud
+Esto es lo que separa "Clean Architecture de nombre" de Clean Architecture real.
+
+Dos invariantes se comprueban automáticamente en cada ejecución de la suite:
+
+1. **Ninguna capa importa de una capa más externa.**
+2. **El dominio y la aplicación no importan NINGÚN framework**: ni `@nestjs/*`,
+   ni `mssql`, ni `express`, ni `bcryptjs`, ni `class-validator`.
+
+```bash
+npm test -- regla-dependencia
+```
+
+La prueba [`test/regla-dependencia.spec.ts`](../backend/test/regla-dependencia.spec.ts)
+recorre el código fuente, analiza cada `import` y falla señalando el archivo y la
+línea exactos. Si falla, no se rompió una convención de estilo: se rompió la
+arquitectura.
+
+La consecuencia práctica de esa segunda regla es que **los casos de uso son
+clases planas de TypeScript, sin `@Injectable()`**. Se instancian con
+`useFactory` en la raíz de composición:
+
+```typescript
+// infraestructura/nestjs/inventario.module.ts
+{
+  provide: REGISTRAR_VENTA_PUERTO,
+  inject: [INVENTARIO_REPOSITORIO],
+  useFactory: (r: InventarioRepositorio): RegistrarVentaPuerto =>
+    new RegistrarVentaCasoUso(r, new RegistroNest('RegistrarVenta')),
+}
+```
+
+Poner `@Injectable()` sobre un caso de uso lo ataría al contenedor de NestJS y ya
+no podría instanciarse sin él. La verbosidad del módulo es el precio; a cambio,
+todo el grafo de dependencias del servicio —incluida la composición de
+decoradores— se lee en un solo archivo.
+
+El detalle completo está en [`backend/ARQUITECTURA.md`](../backend/ARQUITECTURA.md).
+
+### 2.3 Por qué importa específicamente en salud
 
 Cuatro razones que no son genéricas:
 
@@ -195,7 +256,7 @@ NestJS. La lógica de negocio es *legible como documento*, no solo como código.
 
 **3. La validación de software sanitario es cara.**
 Cuando un sistema clínico se somete a validación, revalidar es costoso. La
-arquitectura hexagonal delimita qué cambió: una modificación en el adaptador de
+separación en capas delimita qué cambió: una modificación en una pasarela de
 persistencia no toca el dominio validado y acota el alcance de la revalidación.
 
 **4. Se puede probar la regla clínica sin infraestructura.**
@@ -204,11 +265,12 @@ en memoria, sin levantar SQL Server. Eso hace viable ejecutar la suite completa
 en cada commit, que es la única forma realista de sostener seguridad clínica en
 el tiempo.
 
-### 2.3 El precio que se paga
+### 2.4 El precio que se paga
 
-Ser honesto sobre el coste es parte de la justificación: la arquitectura
-hexagonal **añade archivos e indirección**. Un CRUD simple que serían 40 líneas
-en un controlador aquí son cuatro archivos.
+Ser honesto sobre el coste es parte de la justificación: Clean Architecture
+**añade archivos e indirección**. Un CRUD que serían 40 líneas en un controlador
+aquí son seis archivos repartidos en cuatro capas, más el cableado explícito en
+la raíz de composición.
 
 El intercambio se justifica cuando el dominio tiene reglas reales que proteger.
 En este sistema las tiene: derivación de precio, validación de stock con
@@ -251,8 +313,9 @@ uso.
 
 ### 3.2 Decorator
 
-**Dónde:** `UsuarioRepositorioTrazado`, `ProductoRepositorioTrazado`,
-`ProductoRepositorioConReintentos`, `InventarioRepositorioTrazado`.
+**Dónde:** `UsuarioPasarelaTrazada`, `ProductoPasarelaTrazada`,
+`ProductoPasarelaConReintentos`, `InventarioPasarelaTrazada`
+(capa 3, en `adaptadores/pasarelas/`).
 
 Los decoradores implementan la misma interfaz que envuelven, reciben el
 componente por constructor y son apilables:
@@ -262,7 +325,7 @@ componente por constructor y son apilables:
   provide: PRODUCTO_REPOSITORIO,
   inject: [MssqlService],
   useFactory: (mssql: MssqlService) =>
-    new ProductoRepositorioTrazado(          // añade trazabilidad
+    new ProductoPasarelaTrazada(             // añade trazabilidad
       new ProductoRepositorioConReintentos(  // añade tolerancia a fallos
         new ProductoMssqlRepositorio(mssql), // acceso real a datos
       ),
@@ -357,7 +420,7 @@ por inventario). Mientras eso no exista, **la lectura barata no compensa el
 riesgo clínico** de que un operador confíe en una existencia que ya no está.
 
 El razonamiento queda documentado en el propio código, en
-[`producto.repositorio-decoradores.ts`](../backend/apps/ms-catalogo/src/infraestructura/persistencia/producto.repositorio-decoradores.ts).
+[`producto.repositorio-decoradores.ts`](../backend/apps/ms-catalogo/src/adaptadores/pasarelas/producto.pasarela-decoradores.ts).
 
 ### 5.4 Limitaciones conocidas
 
@@ -490,13 +553,15 @@ examen-hce-clinica-san-felipe/
 │   ├── 99-pruebas-verificacion.sql  10 pruebas de reglas de negocio
 │   └── init/run-init.sh          Inicialización dentro de Docker
 │
-├── backend/                      Monorepo NestJS
+├── backend/                      Monorepo NestJS · Clean Architecture
+│   ├── ARQUITECTURA.md           Guía de capas: qué va dónde y por qué
+│   ├── test/                     Prueba de la regla de dependencia
 │   ├── apps/
 │   │   ├── api-gateway/          HTTP, seguridad, Swagger
 │   │   ├── ms-auth/              Identidad y JWT
 │   │   ├── ms-catalogo/          Productos
 │   │   └── ms-inventario/        Compras, ventas, Kardex
-│   └── libs/compartido/          Dominio, persistencia, contratos
+│   └── libs/compartido/          Dominio · aplicación · adaptadores · infra
 │
 ├── frontend/                     Microfront (Next.js Multi-Zones)
 │   ├── apps/shell/               Zona anfitriona

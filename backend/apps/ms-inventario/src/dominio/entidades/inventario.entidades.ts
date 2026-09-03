@@ -1,15 +1,22 @@
 import { Importe } from '@hce/compartido';
 
 /**
- * Entidades y objetos de valor del agregado Inventario.
+ * CAPA 1 · DOMINIO — Reglas de negocio de empresa del agregado Inventario.
  *
- * Este microservicio agrupa Compras, Ventas y Kardex en un solo bounded context
- * por una razon deliberada: las tres operan sobre el MISMO invariante, el stock
- * derivado de la tabla de movimientos. Separarlas en servicios distintos
- * obligaria a coordinar una transaccion distribuida (saga o 2PC) para algo que
- * la base resuelve de forma atomica, y abriria la puerta a sobreventa de
- * medicamentos durante la ventana de inconsistencia eventual. En un sistema de
- * salud ese riesgo no es aceptable.
+ * Este archivo no importa NADA fuera del dominio compartido. Ni NestJS, ni el
+ * driver de base de datos, ni un DTO de transporte. Es la capa más interna de
+ * Clean Architecture y la que sobrevive a cualquier cambio tecnológico.
+ *
+ * POR QUE COMPRAS, VENTAS Y KARDEX VIVEN EN UN SOLO AGREGADO
+ * ----------------------------------------------------------
+ * Las tres operan sobre el MISMO invariante: el stock derivado de la tabla de
+ * movimientos. Separarlas en microservicios distintos obligaría a coordinar una
+ * transacción distribuida (saga con compensación o 2PC) para algo que la base
+ * resuelve de forma atómica, y abriría una ventana de inconsistencia eventual
+ * durante la cual dos cajas podrían despachar el mismo medicamento.
+ *
+ * En un sistema de salud ese riesgo no es aceptable. Regla aplicada: un
+ * agregado de dominio no se parte entre servicios.
  */
 
 export type TipoMovimiento = 1 | 2; // (1) Entrada, (2) Salida
@@ -19,104 +26,32 @@ export const TIPO_MOVIMIENTO = {
   SALIDA: 2 as TipoMovimiento,
 } as const;
 
-/** Linea solicitada por el cliente al registrar una compra. */
+/** Línea solicitada al registrar una compra. */
 export interface LineaCompra {
   readonly idProducto: number;
   readonly cantidad: number;
-  /** Costo unitario de adquisicion. */
+  /** Costo unitario de adquisición. */
   readonly precio: number;
-}
-
-/** Linea solicitada por el cliente al registrar una venta. */
-export interface LineaVenta {
-  readonly idProducto: number;
-  readonly cantidad: number;
-  /*
-   * El precio NO se acepta del cliente. Se toma del catalogo en el servidor.
-   * Aceptarlo permitiria a un cliente manipulado despachar medicamentos a
-   * precio cero.
-   */
-}
-
-/** Linea persistida, con los importes ya calculados. */
-export interface LineaDocumento {
-  readonly idDetalle: number;
-  readonly idProducto: number;
-  readonly nombreProducto: string;
-  readonly nroLote: string;
-  readonly cantidad: number;
-  readonly precio: number;
-  readonly subTotal: number;
-  readonly igv: number;
-  readonly total: number;
-}
-
-export interface DocumentoCompra {
-  readonly idCompraCab: number;
-  readonly fechaRegistro: Date;
-  readonly subTotal: number;
-  readonly igv: number;
-  readonly total: number;
-  readonly detalle: readonly LineaDocumento[];
-}
-
-export interface DocumentoVenta {
-  readonly idVentaCab: number;
-  readonly fechaRegistro: Date;
-  readonly subTotal: number;
-  readonly igv: number;
-  readonly total: number;
-  readonly detalle: readonly LineaDocumento[];
-}
-
-export interface ResumenCompra {
-  readonly idCompraCab: number;
-  readonly fechaRegistro: Date;
-  readonly subTotal: number;
-  readonly igv: number;
-  readonly total: number;
-  readonly items: number;
-}
-
-export interface ResumenVenta {
-  readonly idVentaCab: number;
-  readonly fechaRegistro: Date;
-  readonly subTotal: number;
-  readonly igv: number;
-  readonly total: number;
-  readonly items: number;
-}
-
-/** Fila de la grilla principal del Kardex (seccion 1.2.3 del enunciado). */
-export interface FilaKardex {
-  readonly idProducto: number;
-  readonly nombreProducto: string;
-  readonly nroLote: string;
-  readonly stockActual: number;
-  readonly costo: number;
-  readonly precioVenta: number;
-  readonly valorizado: number;
-}
-
-/** Fila del modal de movimientos de un producto. */
-export interface MovimientoProducto {
-  readonly idMovimientoDet: number;
-  readonly fechaRegistro: Date;
-  readonly tipoMovimiento: string;
-  readonly idTipoMovimiento: TipoMovimiento;
-  readonly documentoOrigen: number;
-  readonly cantidad: number;
-  /** Saldo acumulado tras el movimiento: convierte la lista en un Kardex real. */
-  readonly saldo: number;
 }
 
 /**
- * Reglas de negocio del documento, verificables sin base de datos.
+ * Línea solicitada al registrar una venta.
  *
- * Existen aqui, y no solo en el procedimiento almacenado, porque el dominio
- * debe poder rechazar una operacion invalida antes de consumir una conexion.
- * La validacion en SQL sigue siendo la autoridad final: esta es la primera
- * barrera, no la unica.
+ * No lleva precio a propósito: lo determina el servidor a partir del catálogo.
+ * Aceptarlo del cliente permitiría despachar medicamentos a importe manipulado.
+ */
+export interface LineaVenta {
+  readonly idProducto: number;
+  readonly cantidad: number;
+}
+
+/**
+ * Reglas de forma de un documento de compra o venta.
+ *
+ * Existen aquí, y no solo en el procedimiento almacenado, porque el dominio
+ * debe poder rechazar una operación inválida antes de consumir una conexión.
+ * La validación en SQL sigue siendo la autoridad final sobre el stock: ésta es
+ * la primera barrera, no la única.
  */
 export class ReglasDocumento {
   static readonly MAX_LINEAS = 200;
@@ -125,9 +60,8 @@ export class ReglasDocumento {
     ReglasDocumento.validarCardinalidad(lineas.length, 'compra');
 
     for (const linea of lineas) {
-      if (!Number.isInteger(linea.idProducto) || linea.idProducto <= 0) {
-        throw new RangeError('Cada linea debe referenciar un producto valido.');
-      }
+      ReglasDocumento.validarProducto(linea.idProducto);
+
       if (!Number.isFinite(linea.cantidad) || linea.cantidad <= 0) {
         throw new RangeError('Las cantidades de la compra deben ser mayores a cero.');
       }
@@ -141,20 +75,31 @@ export class ReglasDocumento {
     ReglasDocumento.validarCardinalidad(lineas.length, 'venta');
 
     for (const linea of lineas) {
-      if (!Number.isInteger(linea.idProducto) || linea.idProducto <= 0) {
-        throw new RangeError('Cada linea debe referenciar un producto valido.');
-      }
+      ReglasDocumento.validarProducto(linea.idProducto);
+
       if (!Number.isFinite(linea.cantidad) || linea.cantidad <= 0) {
         throw new RangeError('Las cantidades de la venta deben ser mayores a cero.');
       }
     }
   }
 
-  /** Totales previstos por el dominio, usados para verificar lo devuelto por la base. */
+  /**
+   * Totales previstos por el dominio.
+   *
+   * Reutiliza el value object `Importe`, que concentra la fórmula del enunciado.
+   * Sirve para verificar contra lo que devuelve la base: si divergieran, sería
+   * señal de que la fórmula del código y la de SQL se desincronizaron.
+   */
   static totalesPrevistos(
     lineas: readonly { cantidad: number; precio: number }[],
   ): { subTotal: number; igv: number; total: number } {
     return Importe.sumar(lineas.map((l) => Importe.calcular(l.cantidad, l.precio))).toJSON();
+  }
+
+  private static validarProducto(idProducto: number): void {
+    if (!Number.isInteger(idProducto) || idProducto <= 0) {
+      throw new RangeError('Cada linea debe referenciar un producto valido.');
+    }
   }
 
   private static validarCardinalidad(cantidadLineas: number, documento: string): void {
