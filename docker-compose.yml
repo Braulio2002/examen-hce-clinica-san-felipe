@@ -39,6 +39,10 @@ services:
       - "${SQLSERVER_PUERTO_HOST:-14330}:1433"
     volumes:
       - datos-sqlserver:/var/opt/mssql
+      # Los scripts se montan tambien aqui (solo lectura) para poder ejecutar la
+      # bateria de verificacion desde el propio contenedor de la base:
+      #   docker compose exec sqlserver ... -i /scripts/99-pruebas-verificacion.sql
+      - ./database:/scripts:ro
     networks:
       - hce-red
     healthcheck:
