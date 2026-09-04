@@ -18,6 +18,7 @@ import {
   EtiquetaStock,
   MarcoAplicacion,
   useSesion,
+  ResumenTotales,
 } from '@hce/ui';
 
 import { apiHce } from '@/lib/api';
@@ -353,28 +354,7 @@ export default function PaginaVentas(): React.JSX.Element {
           </ContenedorTabla>
 
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="tarjeta w-full sm:max-w-xs">
-              <dl className="space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">Subtotal</dt>
-                  <dd className="tabular-nums text-slate-900">
-                    {formatearMoneda(totales.subTotal)}
-                  </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">IGV</dt>
-                  <dd className="tabular-nums text-slate-900">
-                    {formatearMoneda(totales.igv)}
-                  </dd>
-                </div>
-                <div className="flex justify-between border-t border-slate-200 pt-1.5">
-                  <dt className="font-semibold text-slate-900">Total</dt>
-                  <dd className="font-semibold tabular-nums text-clinica-700">
-                    {formatearMoneda(totales.total)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
+            <ResumenTotales totales={totales} />
 
             <div className="flex gap-2">
               <Boton

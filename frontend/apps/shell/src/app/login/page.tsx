@@ -7,30 +7,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { ErrorApi } from '@hce/api-cliente';
 import { Alerta, Boton, Campo, useSesion } from '@hce/ui';
 
-/**
- * Depura el destino al que se vuelve tras autenticarse.
- *
- * El middleware construye este parametro a partir de la ruta que el usuario
- * pidio, y en ese camino es de fiar. Pero /login es publica y cualquiera puede
- * teclear el parametro: sin depurar, un enlace como
- * `/login?destino=https://sitio-malicioso` redirige a la victima nada mas
- * abrirlo si ya tiene sesion, porque la redireccion es automatica. Es una
- * situacion normal en personal clinico que deja la sesion abierta.
- *
- * Se exige una ruta interna: una sola barra inicial. Rechazar la doble barra
- * importa porque `//sitio-malicioso` es una URL valida que hereda el protocolo
- * actual, y a simple vista parece una ruta relativa.
- */
-const RUTA_PREDETERMINADA = '/';
-
-function depurarDestino(valor: string | null): string {
-  if (valor === null) return RUTA_PREDETERMINADA;
-  if (!valor.startsWith('/')) return RUTA_PREDETERMINADA;
-  if (valor.startsWith('//')) return RUTA_PREDETERMINADA;
-  // `\` se normaliza a `/` en algunos navegadores, asi que `/\host` colaria.
-  if (valor.startsWith('/\\')) return RUTA_PREDETERMINADA;
-  return valor;
-}
+import { depurarDestino } from '@/lib/navegacion';
 
 /**
  * Las credenciales sembradas solo se muestran si se pide explicitamente.

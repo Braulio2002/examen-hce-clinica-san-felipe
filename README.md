@@ -73,8 +73,8 @@ cd frontend && npm run quality   # formato · tipos · lint · build
 | `format:check` (Prettier) | limpio | limpio |
 | `typecheck` (`strict` completo + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
 | `lint:strict` (0 avisos permitidos) | limpio | limpio |
-| Pruebas | 122 casos | — |
-| Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | — |
+| Pruebas | 122 casos | 29 casos |
+| Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | fórmulas y depuración de rutas |
 
 El linter no es el `next lint` por defecto: es la configuración de SIGPRO PECEPE
 adaptada a este proyecto — `typescript-eslint` con reglas que usan información de
@@ -97,7 +97,7 @@ Architecture**, que se comprueba analizando los `import` del código fuente.
 Corren sin base de datos ni contenedores: es la ventaja concreta de mantener el
 dominio aislado.
 
-### Pruebas de la API (36 verificaciones end-to-end)
+### Pruebas de extremo a extremo (42 verificaciones)
 
 ```bash
 bash scripts/prueba-humo.sh
@@ -111,6 +111,20 @@ la venta y coherencia del Kardex.
 > El script es reejecutable sin re-provisionar la base: crea su producto de
 > prueba con un lote único por ejecución y absorbe las esperas del rate limit
 > que él mismo agota al verificarlo.
+
+### Pruebas del FrontEnd (29 casos)
+
+```bash
+cd frontend && npm test
+```
+
+Cubren las dos piezas de lógica pura del cliente: las fórmulas del enunciado
+—IGV del 18 %, precio de venta a costo × 1.35, suma de líneas— y la depuración
+del destino tras autenticarse, que es lo que impide que un enlace
+`/login?destino=<url externa>` saque al usuario del dominio.
+
+No cubren componentes: para una interfaz de este tamaño, las verificaciones de
+extremo a extremo y el linter de accesibilidad dan más señal que montar el DOM.
 
 ### Pruebas de base de datos (13 comprobaciones)
 
@@ -242,7 +256,7 @@ Las limitaciones conocidas están declaradas en el
 ├── backend/                   Monorepo NestJS · Clean Architecture en 4 capas
 ├── frontend/                  Microfront Next.js (2 zonas + 2 paquetes)
 ├── postman/                   Colección de la API
-├── scripts/prueba-humo.sh     36 verificaciones end-to-end
+├── scripts/prueba-humo.sh     42 verificaciones end-to-end
 └── docs/                      Evaluación teórica y arquitectura
 ```
 

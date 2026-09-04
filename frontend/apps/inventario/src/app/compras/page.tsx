@@ -17,6 +17,7 @@ import {
   EstadoVacio,
   MarcoAplicacion,
   useSesion,
+  ResumenTotales,
 } from '@hce/ui';
 
 import { ModalNuevoProducto } from '@/componentes/ModalNuevoProducto';
@@ -124,22 +125,37 @@ export default function PaginaCompras(): React.JSX.Element {
   );
 
   /*
+   * Devuelve el motivo por el que la linea no es valida, o null si lo es.
+   *
+   * Antes esto era un booleano suelto que solo se consultaba dentro de
+   * `registrar()`: el usuario podia pulsar "Registrar compra" con datos
+   * invalidos y solo se enteraba despues, por un aviso generico arriba de la
+   * pantalla. Ventas, que es la pantalla gemela, si senalaba el campo concreto.
+   * Las dos implementaciones del mismo flujo divergieron por duplicacion, y
+   * quien perdia era el usuario de lector de pantalla: no habia forma de saber
+   * que campo fallaba.
+   *
    * Se comprueba con Number.isFinite y no con `!(x > 0)`: un campo vacio o con
    * texto produce NaN, y `NaN <= 0` es false, de modo que la forma invertida
-   * dejaria pasar una linea invalida. La comprobacion explicita cubre los tres
-   * casos: no numerico, no positivo y costo sin escribir.
+   * dejaria pasar una linea invalida.
    */
-  const hayLineasInvalidas = lineas.some((l) => {
-    const cantidad = Number(l.cantidad);
-    const precio = Number(l.precio);
-    return (
-      !Number.isFinite(cantidad) ||
-      cantidad <= 0 ||
-      !Number.isFinite(precio) ||
-      precio < 0 ||
-      l.precio === ''
-    );
-  });
+  const validarLinea = (linea: LineaEditable): string | null => {
+    const cantidad = Number(linea.cantidad);
+    if (!Number.isFinite(cantidad) || cantidad <= 0) {
+      return 'La cantidad debe ser un numero mayor a cero.';
+    }
+    if (linea.precio === '') {
+      return 'Indique el costo unitario.';
+    }
+    const precio = Number(linea.precio);
+    if (!Number.isFinite(precio) || precio < 0) {
+      return 'El costo debe ser un numero mayor o igual a cero.';
+    }
+    return null;
+  };
+
+  const lineasConError = lineas.filter((l) => validarLinea(l) !== null);
+  const puedeGuardar = lineas.length > 0 && lineasConError.length === 0 && !guardando;
 
   const registrar = async (): Promise<void> => {
     setError(null);
@@ -149,10 +165,8 @@ export default function PaginaCompras(): React.JSX.Element {
       setError('Agregue al menos un producto a la compra.');
       return;
     }
-    if (hayLineasInvalidas) {
-      setError(
-        'Revise las cantidades y los costos: deben ser numeros validos y mayores a cero.',
-      );
+    if (lineasConError.length > 0) {
+      setError('Revise las lineas senaladas: hay cantidades o costos no validos.');
       return;
     }
 
@@ -293,8 +307,14 @@ export default function PaginaCompras(): React.JSX.Element {
                     Number(l.cantidad) || 0,
                     Number(l.precio) || 0,
                   );
+                  const mensajeError = validarLinea(l);
+                  const idError = `error-${l.idFila}`;
+
                   return (
-                    <tr key={l.idFila}>
+                    <tr
+                      key={l.idFila}
+                      className={mensajeError ? 'bg-rose-50/60' : undefined}
+                    >
                       <td>
                         <p className="font-medium text-slate-900">{l.nombreProducto}</p>
                         <p className="text-xs text-slate-500">Lote {l.nroLote}</p>
@@ -306,11 +326,18 @@ export default function PaginaCompras(): React.JSX.Element {
                           step="1"
                           inputMode="decimal"
                           aria-label={`Cantidad de ${l.nombreProducto}`}
+                          aria-invalid={mensajeError ? true : undefined}
+                          aria-describedby={mensajeError ? idError : undefined}
                           value={l.cantidad}
                           onChange={(e) =>
                             actualizarLinea(l.idFila, 'cantidad', e.target.value)
                           }
-                          className="w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-clinica-600"
+                          className={[
+                            'w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset focus:ring-2',
+                            mensajeError
+                              ? 'ring-rose-400 focus:ring-rose-500'
+                              : 'ring-slate-300 focus:ring-clinica-600',
+                          ].join(' ')}
                         />
                       </td>
                       <td>
@@ -320,12 +347,28 @@ export default function PaginaCompras(): React.JSX.Element {
                           step="0.0001"
                           inputMode="decimal"
                           aria-label={`Costo unitario de ${l.nombreProducto}`}
+                          aria-invalid={mensajeError ? true : undefined}
+                          aria-describedby={mensajeError ? idError : undefined}
                           value={l.precio}
                           onChange={(e) =>
                             actualizarLinea(l.idFila, 'precio', e.target.value)
                           }
-                          className="w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-clinica-600"
+                          className={[
+                            'w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset focus:ring-2',
+                            mensajeError
+                              ? 'ring-rose-400 focus:ring-rose-500'
+                              : 'ring-slate-300 focus:ring-clinica-600',
+                          ].join(' ')}
                         />
+                        {mensajeError && (
+                          <p
+                            id={idError}
+                            role="alert"
+                            className="mt-1 text-xs text-rose-600"
+                          >
+                            {mensajeError}
+                          </p>
+                        )}
                       </td>
                       <td className="text-right tabular-nums">
                         {formatearMoneda(importes.subTotal)}
@@ -355,28 +398,7 @@ export default function PaginaCompras(): React.JSX.Element {
 
           {/* Totales y confirmacion */}
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="tarjeta w-full sm:max-w-xs">
-              <dl className="space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">Subtotal</dt>
-                  <dd className="tabular-nums text-slate-900">
-                    {formatearMoneda(totales.subTotal)}
-                  </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">IGV</dt>
-                  <dd className="tabular-nums text-slate-900">
-                    {formatearMoneda(totales.igv)}
-                  </dd>
-                </div>
-                <div className="flex justify-between border-t border-slate-200 pt-1.5">
-                  <dt className="font-semibold text-slate-900">Total</dt>
-                  <dd className="font-semibold tabular-nums text-clinica-700">
-                    {formatearMoneda(totales.total)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
+            <ResumenTotales totales={totales} />
 
             <div className="flex gap-2">
               <Boton
@@ -386,7 +408,17 @@ export default function PaginaCompras(): React.JSX.Element {
               >
                 Vaciar
               </Boton>
-              <Boton tamano="lg" onClick={() => void registrar()} cargando={guardando}>
+              <Boton
+                tamano="lg"
+                onClick={() => void registrar()}
+                cargando={guardando}
+                disabled={!puedeGuardar}
+                title={
+                  lineasConError.length > 0
+                    ? 'Hay lineas con cantidades o costos no validos'
+                    : undefined
+                }
+              >
                 Registrar compra
               </Boton>
             </div>

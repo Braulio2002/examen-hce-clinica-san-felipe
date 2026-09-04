@@ -112,6 +112,16 @@ services:
       BCRYPT_RONDAS: ${BCRYPT_RONDAS:-10}
       MS_AUTH_HOST: 0.0.0.0
       MS_AUTH_PORT: "4001"
+    healthcheck:
+      # El transporte de los microservicios es TCP, no HTTP: no hay endpoint que
+      # consultar, asi que la sonda comprueba que el puerto acepte conexiones.
+      # Sin esto, el gateway podia arrancar antes de que sus dependencias
+      # estuvieran escuchando, y el fallo aparecia en la primera peticion real.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4001 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - hce-red
     restart: unless-stopped
@@ -141,6 +151,16 @@ services:
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       MS_CATALOGO_HOST: 0.0.0.0
       MS_CATALOGO_PORT: "4002"
+    healthcheck:
+      # El transporte de los microservicios es TCP, no HTTP: no hay endpoint que
+      # consultar, asi que la sonda comprueba que el puerto acepte conexiones.
+      # Sin esto, el gateway podia arrancar antes de que sus dependencias
+      # estuvieran escuchando, y el fallo aparecia en la primera peticion real.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4002 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - hce-red
     restart: unless-stopped
@@ -170,6 +190,16 @@ services:
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       MS_INVENTARIO_HOST: 0.0.0.0
       MS_INVENTARIO_PORT: "4003"
+    healthcheck:
+      # El transporte de los microservicios es TCP, no HTTP: no hay endpoint que
+      # consultar, asi que la sonda comprueba que el puerto acepte conexiones.
+      # Sin esto, el gateway podia arrancar antes de que sus dependencias
+      # estuvieran escuchando, y el fallo aparecia en la primera peticion real.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4003 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - hce-red
     restart: unless-stopped
@@ -186,9 +216,12 @@ services:
     image: hce/api-gateway:1.0.0
     container_name: hce-api-gateway
     depends_on:
-      - ms-auth
-      - ms-catalogo
-      - ms-inventario
+      ms-auth:
+        condition: service_healthy
+      ms-catalogo:
+        condition: service_healthy
+      ms-inventario:
+        condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       GATEWAY_PORT: "4000"

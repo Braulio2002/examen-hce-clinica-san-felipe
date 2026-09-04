@@ -2,8 +2,8 @@
 
 import type React from 'react';
 
-import { Cargador } from './componentes';
 import { NavegacionPrincipal } from './navegacion';
+import { Cargador } from './retroalimentacion';
 import { useSesion } from './sesion';
 
 /**
