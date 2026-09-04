@@ -112,13 +112,17 @@ la venta y coherencia del Kardex.
 > prueba con un lote único por ejecución y absorbe las esperas del rate limit
 > que él mismo agota al verificarlo.
 
-### Pruebas de base de datos (10 reglas de negocio)
+### Pruebas de base de datos (13 comprobaciones)
 
 ```bash
 docker compose exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
   -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C \
   -i /scripts/99-pruebas-verificacion.sql
 ```
+
+Diez comprueban reglas de negocio del enunciado —fórmula del IGV, precio de
+venta a costo × 1.35, bloqueo por stock insuficiente, auditoría inmutable— y
+tres verifican que cada microservicio solo alcanza sus propios procedimientos.
 
 ### Colección de Postman
 
@@ -251,6 +255,10 @@ Requiere Node 22+ y una instancia de SQL Server accesible.
 ```bash
 # 1. Base de datos: ejecute en orden los scripts de database/
 #    01-schema.sql → 02-triggers-auditoria.sql → 03-stored-procedures.sql → 05-seed.sql
+#    Después 06-seguridad-accesos.sql, que crea la cuenta de cada microservicio.
+#    Necesita las contraseñas como variables de sqlcmd:
+#      -v ClaveAuth="..." ClaveCatalogo="..." ClaveInventario="..."
+#    Fuera de Docker puede omitirse, a costa de perder el aislamiento.
 
 # 2. Backend
 cd backend

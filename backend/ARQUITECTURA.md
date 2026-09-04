@@ -202,11 +202,11 @@ Los tres servicios apuntan a la **misma base de datos** `HCE_Insumos` y al mismo
 esquema `hce`. Eso es *shared database*, no *database per service*. La propiedad
 de los datos queda así:
 
-| Servicio | Escribe | Lee de otro servicio |
-|---|---|---|
-| `ms-auth` | `Usuarios` | — |
-| `ms-catalogo` | `Productos` | `vw_StockActual`, que agrega los movimientos de inventario |
-| `ms-inventario` | `CompraCab/Det`, `VentaCab/Det`, `MovimientoCab/Det` **y `Productos`** | `Productos` |
+| Servicio | Cuenta de BD | Escribe | Lee de otro servicio |
+|---|---|---|---|
+| `ms-auth` | `svc_hce_auth` | `Usuarios` | — |
+| `ms-catalogo` | `svc_hce_catalogo` | `Productos` | `vw_StockActual`, que agrega los movimientos de inventario |
+| `ms-inventario` | `svc_hce_inventario` | `CompraCab/Det`, `VentaCab/Det`, `MovimientoCab/Det` **y `Productos`** | `Productos` |
 
 La celda incómoda es la última: `usp_Compra_Registrar` hace
 `UPDATE p ... FROM hce.Productos AS p` dentro de su transacción. **ms-inventario
@@ -235,16 +235,48 @@ procedimiento no rompe a nadie.
 
 **Qué haría falta para cerrarlo de verdad**, si el sistema creciera:
 
-1. Un esquema por servicio (`auth`, `catalogo`, `inventario`) con permisos
-   separados —hoy todos usan el mismo login, que es la deuda más fácil de saldar.
+1. ~~Permisos separados por servicio~~ — **hecho**, ver abajo.
 2. Mover el precio de venta a inventario, o publicar `CompraRegistrada` y que
    catálogo recalcule su propio precio.
 3. Aceptar consistencia eventual en el precio, con la regla de negocio explícita
    de qué precio aplica a una venta que llega en mitad de la ventana.
 
-Los tres son cambios de diseño de producto, no refactors. Por eso el sistema se
-entrega con la base compartida y el motivo escrito, en vez de con una saga a
-medio hacer.
+Los dos que quedan son cambios de diseño de producto, no refactors. Por eso el
+sistema se entrega con la base compartida y el motivo escrito, en vez de con una
+saga a medio hacer.
+
+### Lo que sí se cerró: mínimo privilegio por servicio
+
+La base es compartida, pero el acceso ya no. Cada microservicio tiene su propia
+cuenta ([`database/06-seguridad-accesos.sql`](../database/06-seguridad-accesos.sql))
+con permiso para ejecutar **únicamente sus procedimientos**:
+
+| Cuenta | Puede ejecutar | No puede |
+|---|---|---|
+| `svc_hce_auth` | 1 procedimiento | Leer productos, compras ni ventas |
+| `svc_hce_catalogo` | 5 de producto | Registrar ventas ni compras |
+| `svc_hce_inventario` | 8 de compra/venta/kardex + 2 tipos tabla | Leer credenciales |
+
+**Ninguna tiene un solo permiso sobre tablas o vistas**, y ninguna pertenece a
+`db_datareader` ni a ningún otro rol. No hacen falta: procedimientos y tablas
+comparten propietario, así que el encadenamiento de propiedad deja que el
+procedimiento lea sus tablas en nombre de quien lo llama. Por eso `ms-catalogo`
+ve el stock —que sale de los movimientos de inventario— sin tener acceso a
+`MovimientoDet`.
+
+Eso apoya la decisión de no emitir SQL desde el código: si un solo procedimiento
+usara `sp_executesql`, la cadena se rompería y habría que conceder permisos
+sobre las tablas, con lo que este esquema dejaría de sostenerse.
+
+Lo que se gana en concreto: una inyección o un fallo lógico en un servicio ya no
+alcanza los datos de los demás. La frontera dejó de ser un acuerdo dentro del
+código —`ms-catalogo` intentando registrar una venta ahora recibe el error de
+SQL Server, no del programa—.
+
+Las pruebas P11 a P13 de
+[`database/99-pruebas-verificacion.sql`](../database/99-pruebas-verificacion.sql)
+lo comprueban suplantando cada cuenta con `EXECUTE AS`, y se verificó que
+**fallan** al conceder un permiso de más: no documentan lo que ya se hacía.
 
 ---
 

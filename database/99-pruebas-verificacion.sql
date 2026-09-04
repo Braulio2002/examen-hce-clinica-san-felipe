@@ -255,6 +255,117 @@ ELSE
     PRINT 'OK     P10 - El Kardex cuadra con el stock actual del producto';
 
 /* -----------------------------------------------------------------------------
+   PRUEBA 11 - Cada microservicio solo alcanza sus propios procedimientos
+
+   La frontera entre servicios deja de ser un acuerdo dentro del codigo y pasa a
+   sostenerla el motor. Se comprueba suplantando cada cuenta con EXECUTE AS: si
+   ms-catalogo pudiera registrar una venta, el aislamiento seria decorativo.
+
+   Se omite la prueba si las cuentas no existen, para que el script siga
+   sirviendo contra una base creada solo con los scripts 01 a 05.
+----------------------------------------------------------------------------- */
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'svc_hce_catalogo')
+BEGIN
+    SET @Pruebas += 1;
+
+    DECLARE @CruceIndebido INT = 0;
+
+    EXECUTE AS USER = 'svc_hce_catalogo';
+        BEGIN TRY
+            EXEC hce.usp_Venta_Registrar;
+            SET @CruceIndebido += 1;   /* No deberia llegar aqui */
+        END TRY
+        BEGIN CATCH
+            IF ERROR_NUMBER() <> 229 SET @CruceIndebido += 1;  /* 229 = permiso denegado */
+        END CATCH;
+    REVERT;
+
+    EXECUTE AS USER = 'svc_hce_auth';
+        BEGIN TRY
+            EXEC hce.usp_Producto_Eliminar @Id_producto = 1;
+            SET @CruceIndebido += 1;
+        END TRY
+        BEGIN CATCH
+            IF ERROR_NUMBER() <> 229 SET @CruceIndebido += 1;
+        END CATCH;
+    REVERT;
+
+    IF @CruceIndebido > 0
+    BEGIN
+        SET @Fallas += 1;
+        PRINT 'FALLA  P11 - Un servicio alcanzo procedimientos que no le pertenecen';
+    END
+    ELSE
+        PRINT 'OK     P11 - Cada servicio solo ejecuta sus propios procedimientos';
+END
+ELSE
+    PRINT 'OMITE  P11 - Las cuentas por servicio no existen en esta base';
+
+/* -----------------------------------------------------------------------------
+   PRUEBA 12 - Ningun servicio tiene acceso directo a las tablas
+
+   El acceso pasa siempre por procedimientos, y el encadenamiento de propiedad
+   hace que eso baste. Si una cuenta pudiera leer una tabla por su cuenta, una
+   inyeccion en ese servicio alcanzaria datos de los demas.
+----------------------------------------------------------------------------- */
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'svc_hce_catalogo')
+BEGIN
+    SET @Pruebas += 1;
+
+    DECLARE @PermisosDirectos INT = (
+        SELECT COUNT(*)
+        FROM sys.database_permissions AS perm
+        INNER JOIN sys.database_principals AS prin
+            ON prin.principal_id = perm.grantee_principal_id
+        INNER JOIN sys.objects AS obj
+            ON obj.object_id = perm.major_id
+        WHERE prin.name LIKE 'svc[_]hce[_]%'
+          AND obj.type IN ('U', 'V')          /* tablas y vistas */
+          AND perm.state_desc = 'GRANT'
+    );
+
+    IF @PermisosDirectos > 0
+    BEGIN
+        SET @Fallas += 1;
+        PRINT CONCAT('FALLA  P12 - Hay ', @PermisosDirectos, ' permiso(s) directos sobre tablas o vistas');
+    END
+    ELSE
+        PRINT 'OK     P12 - Ninguna cuenta de servicio tiene permisos sobre tablas ni vistas';
+END
+ELSE
+    PRINT 'OMITE  P12 - Las cuentas por servicio no existen en esta base';
+
+/* -----------------------------------------------------------------------------
+   PRUEBA 13 - Ninguna cuenta de servicio pertenece a un rol con privilegios
+
+   db_datareader o db_owner anularian de un plumazo las dos pruebas anteriores,
+   y es el atajo mas facil de tomar cuando algo no funciona. Queda vigilado.
+----------------------------------------------------------------------------- */
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'svc_hce_catalogo')
+BEGIN
+    SET @Pruebas += 1;
+
+    DECLARE @RolesIndebidos INT = (
+        SELECT COUNT(*)
+        FROM sys.database_role_members AS rm
+        INNER JOIN sys.database_principals AS miembro ON miembro.principal_id = rm.member_principal_id
+        INNER JOIN sys.database_principals AS rol     ON rol.principal_id     = rm.role_principal_id
+        WHERE miembro.name LIKE 'svc[_]hce[_]%'
+          AND rol.name <> 'public'
+    );
+
+    IF @RolesIndebidos > 0
+    BEGIN
+        SET @Fallas += 1;
+        PRINT CONCAT('FALLA  P13 - ', @RolesIndebidos, ' cuenta(s) de servicio pertenecen a roles con privilegios');
+    END
+    ELSE
+        PRINT 'OK     P13 - Ninguna cuenta de servicio pertenece a roles privilegiados';
+END
+ELSE
+    PRINT 'OMITE  P13 - Las cuentas por servicio no existen en esta base';
+
+/* -----------------------------------------------------------------------------
    RESUMEN
 ----------------------------------------------------------------------------- */
 PRINT '';

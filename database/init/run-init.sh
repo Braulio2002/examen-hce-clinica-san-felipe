@@ -72,4 +72,21 @@ for script in 01-schema.sql 02-triggers-auditoria.sql 03-stored-procedures.sql 0
   "$SQLCMD" -S "${DB_HOST},${DB_PORT}" -U "$DB_USER" -P "$DB_PASSWORD" -C -b -i "$ruta"
 done
 
+# -----------------------------------------------------------------------------
+# Cuentas por microservicio.
+#
+# Va aparte del bucle porque necesita las contrasenas como variables de sqlcmd:
+# de este modo no aparecen en el script SQL, que si esta versionado.
+#
+# Se ejecuta al final, cuando los procedimientos y los tipos de tabla ya
+# existen: no se puede conceder EXECUTE sobre algo que todavia no se creo.
+# -----------------------------------------------------------------------------
+echo ">> Creando cuentas de acceso por microservicio..."
+
+: "${DB_PASSWORD_AUTH:?Falta DB_PASSWORD_AUTH}"
+: "${DB_PASSWORD_CATALOGO:?Falta DB_PASSWORD_CATALOGO}"
+: "${DB_PASSWORD_INVENTARIO:?Falta DB_PASSWORD_INVENTARIO}"
+
+"$SQLCMD" -S "${DB_HOST},${DB_PORT}" -U "$DB_USER" -P "$DB_PASSWORD" -C -b   -i "${SCRIPTS_DIR}/06-seguridad-accesos.sql"   -v ClaveAuth="$DB_PASSWORD_AUTH"      ClaveCatalogo="$DB_PASSWORD_CATALOGO"      ClaveInventario="$DB_PASSWORD_INVENTARIO"
+
 echo ">> Base de datos HCE_Insumos inicializada correctamente."

@@ -71,6 +71,9 @@ services:
       DB_HOST: sqlserver
       DB_PORT: "1433"
       DB_USER: sa
+      DB_PASSWORD_AUTH: ${DB_PASSWORD_AUTH}
+      DB_PASSWORD_CATALOGO: ${DB_PASSWORD_CATALOGO}
+      DB_PASSWORD_INVENTARIO: ${DB_PASSWORD_INVENTARIO}
       SCRIPTS_DIR: /scripts
     volumes:
       - ./database:/scripts:ro
@@ -98,8 +101,8 @@ services:
       DB_HOST: sqlserver
       DB_PORT: "1433"
       DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: svc_hce_auth
+      DB_PASSWORD: ${DB_PASSWORD_AUTH}
       DB_ENCRYPT: ${DB_ENCRYPT:-true}
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       JWT_SECRET: ${JWT_SECRET}
@@ -132,8 +135,8 @@ services:
       DB_HOST: sqlserver
       DB_PORT: "1433"
       DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: svc_hce_catalogo
+      DB_PASSWORD: ${DB_PASSWORD_CATALOGO}
       DB_ENCRYPT: ${DB_ENCRYPT:-true}
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       MS_CATALOGO_HOST: 0.0.0.0
@@ -161,8 +164,8 @@ services:
       DB_HOST: sqlserver
       DB_PORT: "1433"
       DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: svc_hce_inventario
+      DB_PASSWORD: ${DB_PASSWORD_INVENTARIO}
       DB_ENCRYPT: ${DB_ENCRYPT:-true}
       DB_TRUST_SERVER_CERTIFICATE: ${DB_TRUST_SERVER_CERTIFICATE:-true}
       MS_INVENTARIO_HOST: 0.0.0.0

@@ -550,7 +550,8 @@ examen-hce-clinica-san-felipe/
 │   ├── 03-stored-procedures.sql  TVPs, funciones y los 8 servicios
 │   ├── 04-consultas-tsql.sql     CRUD de referencia por entidad
 │   ├── 05-seed.sql               Usuarios, catálogo, compras y venta
-│   ├── 99-pruebas-verificacion.sql  10 pruebas de reglas de negocio
+│   ├── 06-seguridad-accesos.sql  Una cuenta por microservicio, mínimo privilegio
+│   ├── 99-pruebas-verificacion.sql  13 pruebas: negocio y aislamiento
 │   └── init/run-init.sh          Inicialización dentro de Docker
 │
 ├── backend/                      Monorepo NestJS · Clean Architecture
