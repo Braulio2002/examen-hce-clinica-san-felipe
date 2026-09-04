@@ -16,9 +16,17 @@ import type { NextConfig } from 'next';
  * Se despliega en su propio contenedor y puede actualizarse sin reconstruir la
  * shell: ese es el beneficio concreto del enfoque de microfront frente a una
  * aplicacion monolitica.
+ *
+ * El prefijo se declara una sola vez, abajo, y se usa en dos sitios: como
+ * `basePath` de Next y como variable que lee la navegacion compartida para
+ * saber en que zona corre. Si vivieran separados podrian divergir, y el sintoma
+ * seria sutil: enlaces que apuntan a rutas inexistentes de la otra zona.
  */
+const BASE_PATH = '/inventario';
+
 const nextConfig: NextConfig = {
-  basePath: '/inventario',
+  basePath: BASE_PATH,
+  env: { NEXT_PUBLIC_BASE_PATH: BASE_PATH },
   reactStrictMode: true,
   output: 'standalone',
   outputFileTracingRoot: join(__dirname, '../../'),

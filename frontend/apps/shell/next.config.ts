@@ -30,6 +30,9 @@ import type { NextConfig } from 'next';
 const URL_ZONA_INVENTARIO = process.env.ZONA_INVENTARIO_URL ?? 'http://localhost:3001';
 
 const nextConfig: NextConfig = {
+  // La shell se sirve en la raiz: sin basePath. La navegacion compartida lee
+  // esta variable para saber que enlaces son de su propia zona.
+  env: { NEXT_PUBLIC_BASE_PATH: '' },
   reactStrictMode: true,
   // Salida autonoma: la imagen de produccion no necesita node_modules completos.
   output: 'standalone',

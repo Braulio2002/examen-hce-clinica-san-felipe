@@ -10,16 +10,47 @@ import { useSesion } from './sesion';
 /**
  * Navegacion principal, compartida por ambas zonas del microfront.
  *
- * Los enlaces hacia /inventario/* son <a> nativos y no <Link> de Next: apuntan
- * a otra aplicacion, y el enrutador del cliente no puede navegar a una zona
- * distinta sin una recarga completa. Es el compromiso conocido del patron
- * Multi-Zones: navegacion instantanea dentro de cada zona, recarga al cruzar
- * de una a otra.
+ * En Multi-Zones el enrutador del cliente no puede cruzar de una zona a otra:
+ * hace falta una recarga completa. Por eso un enlace a otra zona debe ser un
+ * <a> nativo, y uno dentro de la misma zona un <Link>, que navega al instante.
+ *
+ * QUE ZONA ES "LA OTRA" DEPENDE DE DONDE SE RENDERICE ESTE COMPONENTE, y ese
+ * era el error: la condicion estaba escrita como un dato fijo de cada enlace,
+ * desde el punto de vista de la shell. Dentro de la zona de inventario salia
+ * mal en las dos direcciones:
+ *
+ *   - Compras, Ventas y Kardex -que son de la propia zona- se servian como <a>,
+ *     asi que moverse entre ellos recargaba la aplicacion entera en vez de
+ *     navegar al instante.
+ *   - Inicio y Productos -que son de la shell- se servian como <Link>, y Next
+ *     les anteponia el basePath: el enlace a /productos apuntaba a
+ *     /inventario/productos, que no existe. Devolvia 404, y el prefetch de Next
+ *     gastaba una peticion en pedirlo.
+ *
+ * Ahora la zona se decide comparando la del enlace con la del propio
+ * despliegue, que cada aplicacion declara junto a su basePath.
  */
+
+/** Prefijo de la zona de inventario. Debe coincidir con su `basePath`. */
+const ZONA_INVENTARIO = '/inventario';
+
+/**
+ * Prefijo de la zona en la que corre este componente.
+ *
+ * Lo declara cada aplicacion en su `next.config.ts`, en el mismo sitio donde
+ * define su `basePath`, para que no puedan separarse.
+ */
+const ZONA_ACTUAL = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
+/** Devuelve el prefijo de zona al que pertenece una ruta absoluta. */
+function zonaDe(href: string): string {
+  return href === ZONA_INVENTARIO || href.startsWith(`${ZONA_INVENTARIO}/`)
+    ? ZONA_INVENTARIO
+    : '';
+}
 interface Enlace {
   href: string;
   etiqueta: string;
-  zonaExterna: boolean;
   icono: React.JSX.Element;
 }
 
@@ -27,7 +58,6 @@ const ENLACES: Enlace[] = [
   {
     href: '/',
     etiqueta: 'Inicio',
-    zonaExterna: false,
     icono: (
       <path
         strokeLinecap="round"
@@ -39,7 +69,6 @@ const ENLACES: Enlace[] = [
   {
     href: '/productos',
     etiqueta: 'Productos',
-    zonaExterna: false,
     icono: (
       <path
         strokeLinecap="round"
@@ -51,7 +80,6 @@ const ENLACES: Enlace[] = [
   {
     href: '/inventario/compras',
     etiqueta: 'Compras',
-    zonaExterna: true,
     icono: (
       <path
         strokeLinecap="round"
@@ -63,7 +91,6 @@ const ENLACES: Enlace[] = [
   {
     href: '/inventario/ventas',
     etiqueta: 'Ventas',
-    zonaExterna: true,
     icono: (
       <path
         strokeLinecap="round"
@@ -75,7 +102,6 @@ const ENLACES: Enlace[] = [
   {
     href: '/inventario/kardex',
     etiqueta: 'Kardex',
-    zonaExterna: true,
     icono: (
       <path
         strokeLinecap="round"
@@ -90,9 +116,11 @@ export function NavegacionPrincipal({
   rutaActual,
 }: Readonly<{ rutaActual?: string }>): React.JSX.Element {
   const rutaCliente = usePathname();
-  // usePathname siempre devuelve una cadena en el App Router; el respaldo solo
-  // cubre el caso en que el componente reciba la ruta por props.
-  const ruta = rutaActual ?? rutaCliente;
+  // usePathname devuelve la ruta SIN el basePath de la zona, mientras que los
+  // enlaces se declaran en absoluto. Sin recomponerla, dentro de la zona no se
+  // marcaba ningun elemento como activo: se comparaba "/kardex" contra
+  // "/inventario/kardex".
+  const ruta = rutaActual ?? `${ZONA_ACTUAL}${rutaCliente}`;
   const { usuario, cerrarSesion } = useSesion();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -153,7 +181,7 @@ export function NavegacionPrincipal({
           className="hidden flex-1 items-center gap-1 lg:flex"
         >
           {ENLACES.map((enlace) =>
-            enlace.zonaExterna ? (
+            zonaDe(enlace.href) !== ZONA_ACTUAL ? (
               <a
                 key={enlace.href}
                 href={enlace.href}
@@ -165,7 +193,7 @@ export function NavegacionPrincipal({
             ) : (
               <Link
                 key={enlace.href}
-                href={enlace.href}
+                href={enlace.href.slice(ZONA_ACTUAL.length) || '/'}
                 aria-current={esActivo(enlace.href) ? 'page' : undefined}
                 className={claseEnlace(esActivo(enlace.href))}
               >
@@ -240,16 +268,33 @@ export function NavegacionPrincipal({
           className="border-t border-slate-200 bg-white px-4 py-2 lg:hidden"
         >
           <ul className="space-y-1">
+            {/*
+              Mismo criterio que en escritorio. Aqui pesa mas: este es el menu
+              que se ve por debajo de `lg`, es decir el de las tablets, que son
+              el dispositivo de planta. Antes todos los enlaces eran <a>, asi
+              que cada cambio de pantalla recargaba la aplicacion entera.
+            */}
             {ENLACES.map((enlace) => (
               <li key={enlace.href}>
-                <a
-                  href={enlace.href}
-                  aria-current={esActivo(enlace.href) ? 'page' : undefined}
-                  className={claseEnlace(esActivo(enlace.href))}
-                  onClick={() => setMenuAbierto(false)}
-                >
-                  {contenidoEnlace(enlace)}
-                </a>
+                {zonaDe(enlace.href) === ZONA_ACTUAL ? (
+                  <Link
+                    href={enlace.href.slice(ZONA_ACTUAL.length) || '/'}
+                    aria-current={esActivo(enlace.href) ? 'page' : undefined}
+                    className={claseEnlace(esActivo(enlace.href))}
+                    onClick={() => setMenuAbierto(false)}
+                  >
+                    {contenidoEnlace(enlace)}
+                  </Link>
+                ) : (
+                  <a
+                    href={enlace.href}
+                    aria-current={esActivo(enlace.href) ? 'page' : undefined}
+                    className={claseEnlace(esActivo(enlace.href))}
+                    onClick={() => setMenuAbierto(false)}
+                  >
+                    {contenidoEnlace(enlace)}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
