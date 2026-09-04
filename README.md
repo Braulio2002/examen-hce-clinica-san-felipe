@@ -97,7 +97,7 @@ Architecture**, que se comprueba analizando los `import` del código fuente.
 Corren sin base de datos ni contenedores: es la ventaja concreta de mantener el
 dominio aislado.
 
-### Pruebas de extremo a extremo (42 verificaciones)
+### Pruebas de extremo a extremo (43 verificaciones)
 
 ```bash
 bash scripts/prueba-humo.sh
@@ -111,6 +111,12 @@ la venta y coherencia del Kardex.
 > El script es reejecutable sin re-provisionar la base: crea su producto de
 > prueba con un lote único por ejecución y absorbe las esperas del rate limit
 > que él mismo agota al verificarlo.
+>
+> Ese reintento tiene un coste que conviene conocer: durante un tiempo ocultó
+> que la API entera estaba limitada a 5 peticiones por minuto. Por eso la
+> comprobación 16b lanza su ráfaga con `curl` directo, sin pasar por el
+> envoltorio. Un reintento que absorbe el fallo que debería delatar es peor que
+> no tener la prueba.
 
 ### Pruebas del FrontEnd (29 casos)
 
@@ -256,7 +262,7 @@ Las limitaciones conocidas están declaradas en el
 ├── backend/                   Monorepo NestJS · Clean Architecture en 4 capas
 ├── frontend/                  Microfront Next.js (2 zonas + 2 paquetes)
 ├── postman/                   Colección de la API
-├── scripts/prueba-humo.sh     42 verificaciones end-to-end
+├── scripts/prueba-humo.sh     43 verificaciones end-to-end
 └── docs/                      Evaluación teórica y arquitectura
 ```
 

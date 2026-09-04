@@ -46,10 +46,15 @@ export class AuthControlador {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   /*
-   * Rate limit especifico y mucho mas estricto que el global: el login es la
-   * superficie natural de fuerza bruta y de rociado de contrasenas.
+   * Rate limit mucho mas estricto que el global: el login es la superficie
+   * natural de fuerza bruta y de rociado de contrasenas.
+   *
+   * Redefine el limitador 'default' SOLO en esta ruta. Declarar aqui un
+   * limitador con otro nombre no lo restringiria a esta ruta: NestJS aplica
+   * todos los limitadores declarados a todas las rutas, y el efecto seria
+   * limitar la API entera a 5 peticiones por minuto.
    */
-  @Throttle({ login: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Inicia sesion y emite un JWT con vigencia de 30 minutos',
     description:

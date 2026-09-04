@@ -251,6 +251,27 @@ echo "$heads" | grep -qi "content-security-policy" && { echo "OK     Content-Sec
 echo "$heads" | grep -qi "x-powered-by" && { echo "FALLA  Se filtra X-Powered-By"; FALLA=$((FALLA+1)); } || { echo "OK     No se expone X-Powered-By"; OK=$((OK+1)); }
 
 echo
+echo "== 16b. El limite general tolera el uso normal =="
+# Esta comprobacion usa curl directo, NO el envoltorio peticion(): ese espera y
+# reintenta ante un 429, y por eso oculto durante toda la vida del proyecto que
+# la API entera estaba limitada a 5 peticiones por minuto. NestJS aplica todos
+# los limitadores con nombre a todas las rutas, asi que el de login capaba el
+# resto del sistema. El panel de inicio dejaba de cargar tras unos clics.
+#
+# Se lanza una rafaga muy por encima del limite de login y muy por debajo del
+# general: si alguna devuelve 429, la configuracion volvio a romperse.
+rechazadas=0
+for _ in $(seq 1 15); do
+  codigo=$(curl -s -o /dev/null -w "%{http_code}" "$API/salud")
+  [ "$codigo" = "429" ] && rechazadas=$((rechazadas+1))
+done
+if [ "$rechazadas" -eq 0 ]; then
+  echo "OK     15 peticiones seguidas pasan sin toparse con el limite"; OK=$((OK+1))
+else
+  echo "FALLA  $rechazadas de 15 peticiones normales fueron rechazadas con 429"; FALLA=$((FALLA+1))
+fi
+
+echo
 echo "== 17b. Cabeceras de seguridad del FrontEnd =="
 # Estas comprobaciones existen porque faltaban. La seccion anterior solo mira el
 # API Gateway, y durante una auditoria se descubrio que el FrontEnd no emitia
@@ -264,7 +285,8 @@ echo "$frente" | grep -qi "x-frame-options: DENY" && { echo "OK     FrontEnd: X-
 echo
 echo "== 17c. Redireccion abierta en el login =="
 # Un enlace /login?destino=<url externa> no debe sacar al usuario del dominio.
-destino=$(peticion -s -D - -o /dev/null "$FRONT/login?destino=https://sitio-malicioso.com" | grep -i "^location:" | tr -d "")
+destino=$(peticion -s -D - -o /dev/null "$FRONT/login?destino=https://sitio-malicioso.com" | grep -i "^location:" | tr -d "
+")
 if echo "$destino" | grep -qi "sitio-malicioso"; then
   echo "FALLA  El login redirige a un destino externo"; FALLA=$((FALLA+1))
 else
@@ -274,7 +296,8 @@ fi
 echo
 echo "== 17d. La zona de inventario protege sus rutas =="
 # La zona es una app independiente: no puede depender de que la shell la cubra.
-zona=$(docker compose exec -T front-shell sh -c "wget -qS --spider http://front-inventario:3000/inventario/compras 2>&1" | grep -i "location:" | tr -d "")
+zona=$(docker compose exec -T front-shell sh -c "wget -qS --spider http://front-inventario:3000/inventario/compras 2>&1" | grep -i "location:" | tr -d "
+")
 if echo "$zona" | grep -q "/login"; then
   echo "OK     La zona redirige al login cuando no hay sesion"; OK=$((OK+1))
 else

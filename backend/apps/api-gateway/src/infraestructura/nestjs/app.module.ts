@@ -39,23 +39,28 @@ import { RolesGuardia } from '../../adaptadores/seguridad/guardias/roles.guardia
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
 
     /*
-     * Rate limiting con dos politicas:
-     *   - 'general': proteccion frente a saturacion del servicio.
-     *   - 'login'  : mucho mas estricta, contra fuerza bruta de credenciales.
+     * Rate limiting: UN solo limitador, endurecido en la ruta de login.
+     *
+     * Antes habia dos con nombre, 'general' y 'login', creyendo que cada uno
+     * cubriria lo suyo. No es asi: NestJS aplica TODOS los limitadores con
+     * nombre a TODAS las rutas, y el decorador de una ruta solo redefine el que
+     * nombra. El de login, con 5 por minuto, estaba capando la API entera a 5
+     * peticiones por minuto: el panel de inicio dejaba de cargar tras unos
+     * clics y devolvia 429.
+     *
+     * La prueba de humo no lo vio porque su envoltorio espera y reintenta ante
+     * un 429. Un reintento que oculta el fallo que deberia delatar es peor que
+     * no tener la prueba; por eso ahora hay una comprobacion de rafaga que no
+     * pasa por ese envoltorio.
      */
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         throttlers: [
           {
-            name: 'general',
+            name: 'default',
             ttl: Number(config.get<string>('RATE_LIMIT_VENTANA_SEGUNDOS', '60')) * 1000,
             limit: Number(config.get<string>('RATE_LIMIT_GENERAL', '100')),
-          },
-          {
-            name: 'login',
-            ttl: 60_000,
-            limit: Number(config.get<string>('RATE_LIMIT_LOGIN', '5')),
           },
         ],
       }),
