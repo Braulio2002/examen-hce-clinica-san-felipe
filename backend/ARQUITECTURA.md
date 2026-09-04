@@ -208,9 +208,27 @@ de los datos queda así:
 | `ms-catalogo` | `svc_hce_catalogo` | `Productos` | `vw_StockActual`, que agrega los movimientos de inventario |
 | `ms-inventario` | `svc_hce_inventario` | `CompraCab/Det`, `VentaCab/Det`, `MovimientoCab/Det` **y `Productos`** | `Productos` |
 
-La celda incómoda es la última: `usp_Compra_Registrar` hace
-`UPDATE p ... FROM hce.Productos AS p` dentro de su transacción. **ms-inventario
-escribe en la tabla de ms-catalogo.**
+La celda incómoda es la última: **ms-inventario escribe en la tabla de
+ms-catalogo**, porque registrar una compra actualiza el costo del producto.
+
+Esa escritura ya no es un `UPDATE` suelto enterrado en la transacción. Pasa por
+`hce.usp_Producto_ActualizarCostoPorCompra`, un procedimiento con nombre propio
+cuya cabecera declara que es el único punto por el que inventario puede tocar
+datos del catálogo.
+
+Conviene ser preciso sobre qué aporta ese cambio, porque es fácil venderlo de
+más. **No añade una frontera de permisos.** Lo comprobé revocando el `EXECUTE` a
+`svc_hce_inventario`: la compra siguió funcionando, porque el encadenamiento de
+propiedad también alcanza las llamadas entre procedimientos del mismo
+propietario. La concesión se mantiene igualmente, porque documenta la
+dependencia y pasaría a ser necesaria el día que ese objeto cambie de esquema.
+
+**Lo que sí aporta es una costura.** El acoplamiento deja de estar enterrado y
+pasa a ser una línea buscable. Si algún día las bases se separan, ese
+procedimiento es el punto exacto que se sustituye por una llamada remota o por
+un evento, sin tocar `usp_Compra_Registrar`. Convertir un acoplamiento implícito
+en uno declarado no lo elimina, pero es la diferencia entre poder planificar su
+retirada y descubrirlo el día que estorba.
 
 **Por qué se hizo así.** El enunciado exige que registrar una compra sea una sola
 operación indivisible: inserta CompraCab y CompraDet, actualiza `Costo` y

@@ -38,6 +38,20 @@
 
    El script es idempotente: si las cuentas existen, actualiza su contrasena y
    vuelve a aplicar los permisos.
+
+   ORDEN OBLIGATORIO
+   -----------------
+   Este script debe ejecutarse DESPUES de 03-stored-procedures.sql, y hay que
+   repetirlo cada vez que aquel se reejecute.
+
+   El motivo no es evidente: 03 elimina y vuelve a crear los tipos tabla -no
+   admiten CREATE OR ALTER-, y al eliminarlos SQL Server descarta tambien sus
+   concesiones. El sintoma es desconcertante si no se sabe: los servicios siguen
+   en pie, las lecturas funcionan, y solo fallan compra y venta con un error
+   interno. Le ocurrio a este proyecto durante el desarrollo.
+
+   run-init.sh ya respeta el orden. Si se aplican los scripts a mano, conviene
+   no olvidarlo.
    ============================================================================= */
 
 USE master;
@@ -147,7 +161,28 @@ GRANT EXECUTE ON TYPE::hce.TipoDetalleVenta  TO svc_hce_inventario;
 GO
 
 /* -----------------------------------------------------------------------------
-   6. Comprobacion
+   6. El unico contrato que cruza la frontera entre servicios
+
+   Registrar una compra actualiza el costo del producto, y Productos pertenece a
+   ms-catalogo. Esa escritura pasa por usp_Producto_ActualizarCostoPorCompra.
+
+   Sobre esta concesion hay que ser preciso: NO es lo que autoriza la operacion.
+   Se verifico revocandola, y la compra siguio funcionando, porque el
+   encadenamiento de propiedad tambien alcanza a las llamadas entre
+   procedimientos del mismo propietario.
+
+   Se mantiene por dos razones. Documenta, en la lista de permisos, el unico
+   acoplamiento del esquema que cruza la frontera entre servicios. Y pasaria a
+   ser necesaria si ese procedimiento se moviera a un esquema o a un propietario
+   distinto, que es justo el camino hacia separar las bases.
+----------------------------------------------------------------------------- */
+
+GRANT EXECUTE ON OBJECT::hce.usp_Producto_ActualizarCostoPorCompra TO svc_hce_inventario;
+GRANT EXECUTE ON TYPE::hce.TipoCostoProducto TO svc_hce_inventario;
+GO
+
+/* -----------------------------------------------------------------------------
+   7. Comprobacion
 
    Lista lo que ha quedado concedido. Sirve para revisar de un vistazo que
    ningun servicio tiene mas permisos de los que le tocan: si esta consulta

@@ -25,12 +25,24 @@ import {
  */
 describe('Formulas de importes', () => {
   describe('las constantes son las del enunciado', () => {
+    /*
+     * Se comparan como texto y no con toBe.
+     *
+     * No es un rodeo caprichoso: el analizador prohibe la igualdad exacta entre
+     * decimales, y con razon, porque 0.1 + 0.2 no es 0.3. Aqui no se compara un
+     * resultado calculado sino el literal declarado, asi que la comparacion es
+     * legitima -pero la regla no puede distinguirlo, y silenciarla por un caso
+     * abriria la puerta a los que si son errores-.
+     *
+     * Comparar la representacion textual afirma exactamente lo que interesa:
+     * que la constante dice 1.18, ni 1.180001 ni 1.2.
+     */
     it('el IGV es del 18 %', () => {
-      expect(FACTOR_IGV).toBe(1.18);
+      expect(String(FACTOR_IGV)).toBe('1.18');
     });
 
     it('el precio de venta lleva un margen de 1.35 sobre el costo', () => {
-      expect(MARGEN_PRECIO_VENTA).toBe(1.35);
+      expect(String(MARGEN_PRECIO_VENTA)).toBe('1.35');
     });
   });
 

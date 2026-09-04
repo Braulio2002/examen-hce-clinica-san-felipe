@@ -13,9 +13,7 @@ import {
 import {
   Alerta,
   Boton,
-  ContenedorTabla,
   EstadoVacio,
-  EtiquetaStock,
   MarcoAplicacion,
   useSesion,
   ResumenTotales,
@@ -25,6 +23,8 @@ import {
 import { apiHce } from '@/compartido/api';
 import { useCatalogo } from '@/compartido/use-catalogo';
 import { type LineaBase, useLineasDocumento } from '@/compartido/use-lineas-documento';
+
+import { TablaLineasVenta } from './TablaLineasVenta';
 
 /**
  * PANTALLA: REGISTRO DE VENTA (seccion 1.2.2 del enunciado)
@@ -47,7 +47,7 @@ import { type LineaBase, useLineasDocumento } from '@/compartido/use-lineas-docu
  * El precio es solo para previsualizar: al registrar se envian producto y
  * cantidad, y el importe definitivo lo calcula la base de datos.
  */
-interface LineaVenta extends LineaBase {
+export interface LineaVenta extends LineaBase {
   nroLote: string;
   precioVenta: number;
   stockDisponible: number;
@@ -233,115 +233,14 @@ export function PantallaVentas(): React.JSX.Element {
         </div>
       ) : (
         <>
-          <ContenedorTabla>
-            <table className="tabla-hce">
-              <caption className="sr-only">Detalle de la venta en curso</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Producto</th>
-                  <th scope="col" className="text-right">
-                    Precio venta
-                  </th>
-                  <th scope="col" className="text-right">
-                    Stock
-                  </th>
-                  <th scope="col" className="w-36">
-                    Cantidad
-                  </th>
-                  <th scope="col" className="text-right">
-                    Subtotal
-                  </th>
-                  <th scope="col" className="text-right">
-                    IGV
-                  </th>
-                  <th scope="col" className="text-right">
-                    Total
-                  </th>
-                  <th scope="col">
-                    <span className="sr-only">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {lineas.map((l) => {
-                  const mensajeError = validarLinea(l);
-                  const importes = calcularImportes(
-                    Number(l.cantidad) || 0,
-                    l.precioVenta,
-                  );
-                  const idError = `error-${l.idFila}`;
-
-                  return (
-                    <tr
-                      key={l.idFila}
-                      className={mensajeError ? 'bg-rose-50/60' : undefined}
-                    >
-                      <td>
-                        <p className="font-medium text-slate-900">{l.nombreProducto}</p>
-                        <p className="text-xs text-slate-500">Lote {l.nroLote}</p>
-                      </td>
-                      <td className="text-right tabular-nums">
-                        {formatearMoneda(l.precioVenta)}
-                      </td>
-                      <td className="text-right">
-                        <EtiquetaStock stock={l.stockDisponible} />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          max={l.stockDisponible}
-                          inputMode="numeric"
-                          aria-label={`Cantidad de ${l.nombreProducto}`}
-                          aria-invalid={mensajeError ? true : undefined}
-                          aria-describedby={mensajeError ? idError : undefined}
-                          value={l.cantidad}
-                          onChange={(e) =>
-                            detalle.actualizarCampo(l.idFila, 'cantidad', e.target.value)
-                          }
-                          className={[
-                            'w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset focus:ring-2',
-                            mensajeError
-                              ? 'ring-rose-400 focus:ring-rose-500'
-                              : 'ring-slate-300 focus:ring-clinica-600',
-                          ].join(' ')}
-                        />
-                        {mensajeError && (
-                          <p
-                            id={idError}
-                            role="alert"
-                            className="mt-1 text-xs text-rose-600"
-                          >
-                            {mensajeError}
-                          </p>
-                        )}
-                      </td>
-                      <td className="text-right tabular-nums">
-                        {formatearMoneda(importes.subTotal)}
-                      </td>
-                      <td className="text-right tabular-nums">
-                        {formatearMoneda(importes.igv)}
-                      </td>
-                      <td className="text-right font-medium tabular-nums text-slate-900">
-                        {formatearMoneda(importes.total)}
-                      </td>
-                      <td className="text-right">
-                        <Boton
-                          variante="fantasma"
-                          tamano="sm"
-                          onClick={() => detalle.quitar(l.idFila)}
-                          aria-label={`Quitar ${l.nombreProducto} de la venta`}
-                        >
-                          Quitar
-                        </Boton>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </ContenedorTabla>
+          <TablaLineasVenta
+            lineas={lineas}
+            validar={validarLinea}
+            onCambiarCantidad={(idFila, valor) =>
+              detalle.actualizarCampo(idFila, 'cantidad', valor)
+            }
+            onQuitar={detalle.quitar}
+          />
 
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <ResumenTotales totales={totales} />

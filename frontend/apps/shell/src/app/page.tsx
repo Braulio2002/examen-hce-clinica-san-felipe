@@ -75,9 +75,19 @@ export default function PaginaInicio(): React.JSX.Element {
 
   const requierenAtencion = [...sinStock, ...bajoStock].slice(0, 8);
 
+  /*
+   * Primer nombre para el saludo, con respaldo.
+   *
+   * `split(' ')[0]` devuelve cadena vacia si el nombre completo lo esta, y el
+   * saludo quedaria en "Hola, " a secas. Es el tipo de detalle que solo aparece
+   * con un dato mal cargado en produccion, asi que se resuelve aqui.
+   */
+  const primerNombre = usuario?.nombreCompleto.trim().split(' ')[0] ?? '';
+  const saludo = primerNombre === '' ? 'Inicio' : `Hola, ${primerNombre}`;
+
   return (
     <MarcoAplicacion
-      titulo={usuario ? `Hola, ${usuario.nombreCompleto.split(' ')[0]}` : 'Inicio'}
+      titulo={saludo}
       descripcion="Panorama del almacen de medicamentos e insumos medicos."
       acciones={
         puedeOperar ? (

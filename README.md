@@ -73,7 +73,7 @@ cd frontend && npm run quality   # formato · tipos · lint · build
 | `format:check` (Prettier) | limpio | limpio |
 | `typecheck` (`strict` completo + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
 | `lint:strict` (0 avisos permitidos) | limpio | limpio |
-| Pruebas | 122 casos | 29 casos |
+| Pruebas | 122 casos | 39 casos |
 | Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | fórmulas y depuración de rutas |
 
 El linter no es el `next lint` por defecto: es la configuración de SIGPRO PECEPE
@@ -118,16 +118,18 @@ la venta y coherencia del Kardex.
 > envoltorio. Un reintento que absorbe el fallo que debería delatar es peor que
 > no tener la prueba.
 
-### Pruebas del FrontEnd (29 casos)
+### Pruebas del FrontEnd (39 casos)
 
 ```bash
 cd frontend && npm test
 ```
 
-Cubren las dos piezas de lógica pura del cliente: las fórmulas del enunciado
-—IGV del 18 %, precio de venta a costo × 1.35, suma de líneas— y la depuración
-del destino tras autenticarse, que es lo que impide que un enlace
-`/login?destino=<url externa>` saque al usuario del dominio.
+Cubren las tres piezas de lógica pura del cliente: las fórmulas del enunciado
+—IGV del 18 %, precio de venta a costo × 1.35, suma de líneas—, la depuración
+del destino tras autenticarse —lo que impide que un enlace
+`/login?destino=<url externa>` saque al usuario del dominio— y el filtro del
+buscador de productos, que ignora mayúsculas y tildes y también encuentra por
+número de lote.
 
 No cubren componentes: para una interfaz de este tamaño, las verificaciones de
 extremo a extremo y el linter de accesibilidad dan más señal que montar el DOM.

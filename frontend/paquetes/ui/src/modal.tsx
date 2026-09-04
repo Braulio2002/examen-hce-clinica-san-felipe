@@ -46,10 +46,13 @@ export function Modal({
         const enfocables = contenedor.current.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
         );
-        if (enfocables.length === 0) return;
-
+        // Comprobar la longitud no basta para el compilador, y tiene razon:
+        // `querySelectorAll` devuelve una coleccion viva, asi que entre la
+        // comprobacion y el acceso el DOM puede haber cambiado. Con el modal es
+        // improbable, pero el codigo no deberia apoyarse en esa suerte.
         const primero = enfocables[0];
         const ultimo = enfocables[enfocables.length - 1];
+        if (!primero || !ultimo) return;
 
         if (evento.shiftKey && document.activeElement === primero) {
           evento.preventDefault();

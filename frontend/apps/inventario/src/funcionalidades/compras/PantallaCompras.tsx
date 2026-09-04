@@ -13,7 +13,6 @@ import {
 import {
   Alerta,
   Boton,
-  ContenedorTabla,
   EstadoVacio,
   MarcoAplicacion,
   useSesion,
@@ -26,6 +25,7 @@ import { useCatalogo } from '@/compartido/use-catalogo';
 import { type LineaBase, useLineasDocumento } from '@/compartido/use-lineas-documento';
 
 import { ModalNuevoProducto } from './ModalNuevoProducto';
+import { TablaLineasCompra } from './TablaLineasCompra';
 
 /**
  * PANTALLA: REGISTRO DE COMPRA (seccion 1.2.1 del enunciado)
@@ -44,7 +44,7 @@ import { ModalNuevoProducto } from './ModalNuevoProducto';
  */
 
 /** Fila del detalle mientras se edita. El costo lo teclea quien compra. */
-interface LineaCompra extends LineaBase {
+export interface LineaCompra extends LineaBase {
   nroLote: string;
   cantidad: string;
   precio: string;
@@ -239,126 +239,12 @@ export function PantallaCompras(): React.JSX.Element {
         </div>
       ) : (
         <>
-          <ContenedorTabla>
-            <table className="tabla-hce">
-              <caption className="sr-only">Detalle de la compra en curso</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Producto</th>
-                  <th scope="col" className="w-32">
-                    Cantidad
-                  </th>
-                  <th scope="col" className="w-36">
-                    Costo unitario
-                  </th>
-                  <th scope="col" className="text-right">
-                    Subtotal
-                  </th>
-                  <th scope="col" className="text-right">
-                    IGV
-                  </th>
-                  <th scope="col" className="text-right">
-                    Total
-                  </th>
-                  <th scope="col">
-                    <span className="sr-only">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {lineas.map((l) => {
-                  const importes = calcularImportes(
-                    Number(l.cantidad) || 0,
-                    Number(l.precio) || 0,
-                  );
-                  const mensajeError = validarLinea(l);
-                  const idError = `error-${l.idFila}`;
-
-                  return (
-                    <tr
-                      key={l.idFila}
-                      className={mensajeError ? 'bg-rose-50/60' : undefined}
-                    >
-                      <td>
-                        <p className="font-medium text-slate-900">{l.nombreProducto}</p>
-                        <p className="text-xs text-slate-500">Lote {l.nroLote}</p>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0.0001"
-                          step="1"
-                          inputMode="decimal"
-                          aria-label={`Cantidad de ${l.nombreProducto}`}
-                          aria-invalid={mensajeError ? true : undefined}
-                          aria-describedby={mensajeError ? idError : undefined}
-                          value={l.cantidad}
-                          onChange={(e) =>
-                            detalle.actualizarCampo(l.idFila, 'cantidad', e.target.value)
-                          }
-                          className={[
-                            'w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset focus:ring-2',
-                            mensajeError
-                              ? 'ring-rose-400 focus:ring-rose-500'
-                              : 'ring-slate-300 focus:ring-clinica-600',
-                          ].join(' ')}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.0001"
-                          inputMode="decimal"
-                          aria-label={`Costo unitario de ${l.nombreProducto}`}
-                          aria-invalid={mensajeError ? true : undefined}
-                          aria-describedby={mensajeError ? idError : undefined}
-                          value={l.precio}
-                          onChange={(e) =>
-                            detalle.actualizarCampo(l.idFila, 'precio', e.target.value)
-                          }
-                          className={[
-                            'w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset focus:ring-2',
-                            mensajeError
-                              ? 'ring-rose-400 focus:ring-rose-500'
-                              : 'ring-slate-300 focus:ring-clinica-600',
-                          ].join(' ')}
-                        />
-                        {mensajeError && (
-                          <p
-                            id={idError}
-                            role="alert"
-                            className="mt-1 text-xs text-rose-600"
-                          >
-                            {mensajeError}
-                          </p>
-                        )}
-                      </td>
-                      <td className="text-right tabular-nums">
-                        {formatearMoneda(importes.subTotal)}
-                      </td>
-                      <td className="text-right tabular-nums">
-                        {formatearMoneda(importes.igv)}
-                      </td>
-                      <td className="text-right font-medium tabular-nums text-slate-900">
-                        {formatearMoneda(importes.total)}
-                      </td>
-                      <td className="text-right">
-                        <Boton
-                          variante="fantasma"
-                          tamano="sm"
-                          onClick={() => detalle.quitar(l.idFila)}
-                          aria-label={`Quitar ${l.nombreProducto} de la compra`}
-                        >
-                          Quitar
-                        </Boton>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </ContenedorTabla>
+          <TablaLineasCompra
+            lineas={lineas}
+            validar={validarLinea}
+            onCambiarCampo={detalle.actualizarCampo}
+            onQuitar={detalle.quitar}
+          />
 
           {/* Totales y confirmacion */}
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

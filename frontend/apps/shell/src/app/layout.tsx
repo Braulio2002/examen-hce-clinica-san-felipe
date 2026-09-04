@@ -3,7 +3,7 @@ import type React from 'react';
 
 import { ProveedorSesion } from '@hce/ui';
 
-import '@/compartido/api';
+import { URL_API } from '@/compartido/api';
 
 import './globals.css';
 
@@ -57,7 +57,7 @@ export default function LayoutRaiz({
         >
           Ir al contenido principal
         </a>
-        <ProveedorSesion>{children}</ProveedorSesion>
+        <ProveedorSesion urlApi={URL_API}>{children}</ProveedorSesion>
       </body>
     </html>
   );

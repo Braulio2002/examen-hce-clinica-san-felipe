@@ -39,8 +39,10 @@ GO
 ----------------------------------------------------------------------------- */
 DROP PROCEDURE IF EXISTS hce.usp_Compra_Registrar;
 DROP PROCEDURE IF EXISTS hce.usp_Venta_Registrar;
+DROP PROCEDURE IF EXISTS hce.usp_Producto_ActualizarCostoPorCompra;
 DROP TYPE IF EXISTS hce.TipoDetalleCompra;
 DROP TYPE IF EXISTS hce.TipoDetalleVenta;
+DROP TYPE IF EXISTS hce.TipoCostoProducto;
 GO
 
 CREATE TYPE hce.TipoDetalleCompra AS TABLE
@@ -57,6 +59,65 @@ CREATE TYPE hce.TipoDetalleVenta AS TABLE
     Cantidad    DECIMAL(18,4)   NOT NULL
     /* El precio NO se recibe del cliente: se toma de hce.Productos.PrecioVenta */
 );
+GO
+
+/* Costos resultantes de una compra. Es el parametro del unico contrato por el
+   que inventario puede alterar datos del catalogo. */
+CREATE TYPE hce.TipoCostoProducto AS TABLE
+(
+    Id_producto INT             NOT NULL PRIMARY KEY,
+    Costo       DECIMAL(18,4)   NOT NULL
+);
+GO
+
+/* -----------------------------------------------------------------------------
+   CONTRATO ENTRE SERVICIOS: catalogo <- inventario
+   =============================================================================
+   Registrar una compra actualiza el costo del producto y recalcula su precio de
+   venta. Pero Productos es la tabla de ms-catalogo, no de ms-inventario.
+
+   Antes, usp_Compra_Registrar hacia un UPDATE directo sobre esa tabla. Funcionaba
+   -mismo propietario, encadenamiento de propiedad- pero el acoplamiento quedaba
+   invisible: nada en el esquema decia que inventario escribe en el catalogo, y
+   revocarlo era imposible sin romper otras cosas.
+
+   Ahora esa escritura pasa por este procedimiento. Conviene ser exacto sobre
+   que aporta y que no:
+
+   NO aporta una frontera de permisos. Se comprobo revocando el EXECUTE a
+   svc_hce_inventario: la compra siguio funcionando. El encadenamiento de
+   propiedad tambien cubre la llamada entre procedimientos del mismo propietario,
+   asi que el permiso explicito no es lo que sostiene nada. La concesion se
+   mantiene igualmente en 06-seguridad-accesos.sql, porque documenta la
+   dependencia y pasaria a ser necesaria el dia que este objeto cambie de
+   esquema o de propietario.
+
+   SI aporta una costura. El acoplamiento deja de estar enterrado dentro de una
+   transaccion de compra y pasa a tener nombre propio, buscable en una linea. Si
+   algun dia las bases se separan, este es el punto exacto que se sustituye por
+   una llamada remota o por la publicacion de un evento, sin tocar
+   usp_Compra_Registrar. Convertir un acoplamiento implicito en uno declarado no
+   lo elimina, pero es la diferencia entre poder planificar su retirada y
+   descubrirlo el dia que estorba.
+
+   Sigue ejecutandose DENTRO de la transaccion de la compra, y eso es
+   deliberado. El enunciado exige que el registro sea indivisible: si el precio
+   se actualizara despues, existiria una ventana en la que una venta concurrente
+   cobraria el precio anterior. En un sistema que factura medicamentos esa
+   ventana es un error de cobro real, no una inconsistencia teorica.
+----------------------------------------------------------------------------- */
+CREATE PROCEDURE hce.usp_Producto_ActualizarCostoPorCompra
+    @Costos hce.TipoCostoProducto READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE p
+    SET p.Costo       = c.Costo,
+        p.PrecioVenta = hce.fn_PrecioVentaDesdeCosto(c.Costo)
+    FROM hce.Productos AS p
+    INNER JOIN @Costos AS c ON c.Id_producto = p.Id_producto;
+END;
 GO
 
 /* =============================================================================
@@ -370,12 +431,15 @@ BEGIN
             SELECT @Id_CompraCab, Id_producto, Cantidad, Precio, Sub_Total, Igv, Total
             FROM @Lineas;
 
-            /* 3. Actualizacion de costo y precio de venta (Costo * 1.35) */
-            UPDATE p
-            SET p.Costo       = l.Precio,
-                p.PrecioVenta = hce.fn_PrecioVentaDesdeCosto(l.Precio)
-            FROM hce.Productos AS p
-            INNER JOIN @Lineas AS l ON l.Id_producto = p.Id_producto;
+            /* 3. Costo y precio de venta: se delega en el contrato de catalogo.
+                  Productos no es tabla de este servicio; ver la cabecera de
+                  usp_Producto_ActualizarCostoPorCompra. */
+            DECLARE @CostosNuevos hce.TipoCostoProducto;
+
+            INSERT INTO @CostosNuevos (Id_producto, Costo)
+            SELECT Id_producto, Precio FROM @Lineas;
+
+            EXEC hce.usp_Producto_ActualizarCostoPorCompra @Costos = @CostosNuevos;
 
             /* 4. Movimiento de Entrada */
             DECLARE @Id_MovimientoCab INT;

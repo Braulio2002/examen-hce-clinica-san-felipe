@@ -14,6 +14,7 @@ import {
 
 import {
   api,
+  inicializarApi,
   type PerfilUsuario,
   establecerToken,
   registrarManejadorExpiracion,
@@ -42,8 +43,26 @@ const Contexto = createContext<ContextoSesion | null>(null);
  * en lugar de repetir la comprobacion en cada pantalla.
  */
 export function ProveedorSesion({
+  urlApi,
   children,
-}: Readonly<{ children: ReactNode }>): React.JSX.Element {
+}: Readonly<{ urlApi: string; children: ReactNode }>): React.JSX.Element {
+  /*
+   * La API se inicializa aqui, y no por un import de efecto lateral en el
+   * layout.
+   *
+   * Ese patron -`import '@/compartido/api'` solo para que el modulo se
+   * ejecute- es fragil: el empaquetador puede descartar una importacion cuyo
+   * valor nadie usa, y eso fue exactamente lo que ocurrio al actualizar Next.
+   * La pantalla de login quedaba sin cliente y fallaba con "La API no ha sido
+   * inicializada", porque es la unica que no importa `apiHce` para nada mas.
+   *
+   * Este proveedor envuelve toda la aplicacion, asi que aqui la inicializacion
+   * ocurre siempre. `inicializarApi` es idempotente: conserva la instancia si
+   * ya existe, de modo que llamarla en cada render no crea clientes nuevos ni
+   * pierde el token que guarda en memoria.
+   */
+  inicializarApi(urlApi);
+
   const [usuario, setUsuario] = useState<PerfilUsuario | null>(null);
   const [cargando, setCargando] = useState(true);
   const router = useRouter();
