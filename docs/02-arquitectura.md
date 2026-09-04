@@ -565,13 +565,55 @@ examen-hce-clinica-san-felipe/
 │   └── libs/compartido/          Dominio · aplicación · adaptadores · infra
 │
 ├── frontend/                     Microfront (Next.js Multi-Zones)
-│   ├── apps/shell/               Zona anfitriona
-│   ├── apps/inventario/          Zona de inventario
-│   └── paquetes/
+│   ├── apps/shell/               Zona anfitriona · única expuesta
+│   │   └── src/
+│   │       ├── app/              Rutas: solo composición
+│   │       ├── funcionalidades/  productos/
+│   │       └── compartido/       api · navegación
+│   ├── apps/inventario/          Zona de inventario · basePath /inventario
+│   │   └── src/
+│   │       ├── app/              Rutas: solo composición
+│   │       ├── funcionalidades/  compras/ · ventas/ · kardex/
+│   │       └── compartido/       api · useCatalogo · useLineasDocumento
+│   └── paquetes/                 Lo que comparten AMBAS zonas
 │       ├── api-cliente/          Axios + interceptores + tipos
-│       └── ui/                   Componentes y chrome compartidos
+│       └── ui/                   Sistema de diseño y chrome
 │
 ├── postman/                      Colección de pruebas de la API
-├── scripts/prueba-humo.sh        36 verificaciones end-to-end
+├── scripts/prueba-humo.sh        43 verificaciones end-to-end
 └── docs/                         Esta documentación
 ```
+
+### Dónde va cada cosa en el FrontEnd
+
+Hay dos ejes, y conviene no confundirlos:
+
+| Eje | Qué decide | Cómo se materializa |
+|---|---|---|
+| **Microfront** | Fronteras de **despliegue** | `apps/*` — cada zona es un contenedor propio |
+| **Feature-based** | Fronteras de **código** | `funcionalidades/*` dentro de cada zona |
+
+De ahí sale una regla que resuelve casi todas las dudas de ubicación:
+
+- Lo que usan **varias funcionalidades de una misma zona** → `compartido/` de esa
+  zona. Es el caso de `useCatalogo` y `useLineasDocumento`, que sirven a compras
+  y a ventas pero no significan nada para la shell.
+- Lo que usan **ambas zonas** → `paquetes/`. Es una dependencia de workspace
+  declarada, que es la forma legítima de compartir en un microfront.
+- Lo que usa **una sola funcionalidad** → dentro de su carpeta. `ModalNuevoProducto`
+  vive en `funcionalidades/compras/` porque solo compras lo abre.
+
+Subir a `paquetes/` algo que solo necesita una zona rompería el aislamiento: la
+shell heredaría conceptos de inventario y dejarían de poder evolucionar por
+separado. Ese es el error que la regla evita.
+
+Las rutas de `app/` quedan reducidas a una línea de composición. El App Router
+exige un archivo por ruta, pero la pantalla vive en su funcionalidad: así todo lo
+de compras —estado, tabla, modal— está en una carpeta, y un cambio no obliga a
+recorrer el árbol entero.
+
+> **Lo que feature-based no hace por sí solo:** eliminar duplicación. Lo que hace
+> es volverla visible, porque obliga a decidir dónde vive cada cosa. Si algo
+> sirve a compras y a ventas, no cabe en ninguna de las dos carpetas — y esa
+> incomodidad es la señal de que debe subir. Fue exactamente así como salieron
+> `useCatalogo`, `useLineasDocumento` y `FormularioProducto`.

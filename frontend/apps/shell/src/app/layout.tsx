@@ -3,7 +3,7 @@ import type React from 'react';
 
 import { ProveedorSesion } from '@hce/ui';
 
-import '@/lib/api';
+import '@/compartido/api';
 
 import './globals.css';
 

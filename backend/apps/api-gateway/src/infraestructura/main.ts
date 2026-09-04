@@ -8,6 +8,17 @@ import helmet from 'helmet';
 import { cargarConfiguracion } from './configuracion/configuracion';
 import { AppModule } from './nestjs/app.module';
 
+/**
+ * CAPA 4 · INFRAESTRUCTURA — Arranque del API Gateway.
+ *
+ * Unico proceso expuesto al exterior. Aqui se monta todo lo que protege el
+ * perimetro, y el orden importa: las cabeceras de seguridad y CORS actuan antes
+ * que la validacion, y esta antes de que ningun dato alcance un caso de uso.
+ *
+ * Nada de esto es logica de negocio: es configuracion del framework, y por eso
+ * vive en la capa mas externa. El dominio no sabe que existe HTTP.
+ */
+
 async function bootstrap(): Promise<void> {
   const logger = new Logger('ApiGateway');
   const cfg = cargarConfiguracion();

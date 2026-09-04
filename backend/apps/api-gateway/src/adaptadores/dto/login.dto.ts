@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
+/**
+ * CAPA 3 · ADAPTADORES — Contrato de entrada del inicio de sesion.
+ *
+ * Valida unicamente la forma. La comprobacion de la credencial ocurre en
+ * ms-auth, y sus mensajes de error son deliberadamente identicos tanto si el
+ * usuario no existe como si la contrasena es incorrecta: distinguirlos permitiria
+ * enumerar cuentas validas.
+ */
+
 export class LoginDto {
   @ApiProperty({ example: 'admin', description: 'Nombre de usuario' })
   @IsString()

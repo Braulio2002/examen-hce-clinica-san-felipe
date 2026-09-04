@@ -14,7 +14,7 @@ import {
   useSesion,
 } from '@hce/ui';
 
-import { apiHce } from '@/lib/api';
+import { apiHce } from '@/compartido/api';
 
 /** Umbral operativo de reposicion para farmacia. */
 const STOCK_MINIMO = 20;

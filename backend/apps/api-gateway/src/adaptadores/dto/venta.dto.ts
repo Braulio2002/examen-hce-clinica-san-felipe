@@ -14,6 +14,15 @@ import {
 
 import { PaginacionDto } from '@hce/compartido';
 
+/**
+ * CAPA 3 · ADAPTADORES — Contrato de entrada del registro de venta.
+ *
+ * Solo se admiten producto y cantidad. El precio NO se acepta desde el cliente
+ * aunque el navegador lo muestre: si viajara en la peticion, cualquiera podria
+ * alterar el importe de una venta desde las herramientas del navegador. Lo
+ * resuelve el servidor a partir del catalogo.
+ */
+
 export class LineaVentaDto {
   @ApiProperty({ example: 1, description: 'Identificador del producto despachado' })
   @Type(() => Number)

@@ -14,6 +14,7 @@
  */
 export * from './boton';
 export * from './campo';
+export * from './formulario-producto';
 export * from './modal';
 export * from './paginacion';
 export * from './retroalimentacion';

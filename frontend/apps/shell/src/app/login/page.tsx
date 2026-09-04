@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { ErrorApi } from '@hce/api-cliente';
 import { Alerta, Boton, Campo, useSesion } from '@hce/ui';
 
-import { depurarDestino } from '@/lib/navegacion';
+import { depurarDestino } from '@/compartido/navegacion';
 
 /**
  * Las credenciales sembradas solo se muestran si se pide explicitamente.

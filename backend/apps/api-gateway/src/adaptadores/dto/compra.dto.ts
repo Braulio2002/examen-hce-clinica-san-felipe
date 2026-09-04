@@ -14,6 +14,19 @@ import {
 
 import { PaginacionDto } from '@hce/compartido';
 
+/**
+ * CAPA 3 · ADAPTADORES — Contrato de entrada del registro de compra.
+ *
+ * Los DTO son la frontera donde se deja de confiar en el exterior. Validan
+ * forma y rangos antes de que nada llegue al caso de uso, y documentan el
+ * endpoint en Swagger con los mismos decoradores: una sola fuente para la regla
+ * y para su documentacion.
+ *
+ * `whitelist` y `forbidNonWhitelisted` estan activos en el arranque, asi que un
+ * campo no declarado aqui no se ignora: la peticion se rechaza. Es lo que cierra
+ * la asignacion masiva de propiedades.
+ */
+
 export class LineaCompraDto {
   @ApiProperty({ example: 1, description: 'Identificador del producto comprado' })
   @Type(() => Number)

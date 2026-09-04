@@ -15,6 +15,17 @@ import {
   MovimientosProductoDto,
 } from '../dto/kardex.dto';
 
+/**
+ * CAPA 3 · ADAPTADORES — Controlador HTTP del Kardex.
+ *
+ * Expone las dos consultas del enunciado: el listado con stock, costo y precio,
+ * y los movimientos de un producto para el modal de detalle.
+ *
+ * Es de solo lectura, y por eso lo alcanza tambien el rol CONSULTA. La
+ * autorizacion se declara con el decorador de roles, no con condicionales
+ * dentro del metodo: asi el permiso se lee en la firma del endpoint.
+ */
+
 @ApiTags('Kardex')
 @ApiBearerAuth()
 @Controller('kardex')

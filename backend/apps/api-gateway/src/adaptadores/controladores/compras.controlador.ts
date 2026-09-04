@@ -32,6 +32,17 @@ import { Roles } from '../seguridad/decoradores/roles.decorador';
 import { UsuarioActual } from '../seguridad/decoradores/usuario-actual.decorador';
 import { UsuarioAutenticado } from '../seguridad/estrategias/jwt.estrategia';
 
+/**
+ * CAPA 3 · ADAPTADORES — Controlador HTTP de compras.
+ *
+ * Traduce entre HTTP y el transporte TCP de los microservicios. No decide nada
+ * del negocio: valida la forma del cuerpo con el DTO, reenvia el mensaje a
+ * ms-inventario y devuelve su respuesta.
+ *
+ * Que aqui no haya reglas es lo que permite exponer la misma operacion por otro
+ * transporte -gRPC, una cola- sin tocar el caso de uso.
+ */
+
 @ApiTags('Compras')
 @ApiBearerAuth()
 @Controller('compras')

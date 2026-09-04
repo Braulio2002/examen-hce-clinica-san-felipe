@@ -29,6 +29,15 @@ import { Roles } from '../seguridad/decoradores/roles.decorador';
 import { UsuarioActual } from '../seguridad/decoradores/usuario-actual.decorador';
 import { UsuarioAutenticado } from '../seguridad/estrategias/jwt.estrategia';
 
+/**
+ * CAPA 3 · ADAPTADORES — Controlador HTTP de ventas.
+ *
+ * Reenvia la operacion a ms-inventario, que la resuelve en una transaccion con
+ * bloqueo sobre los movimientos. El rechazo por stock insuficiente llega desde
+ * ahi como excepcion de dominio y el filtro la convierte en 422, no en 500: es
+ * una decision de negocio, no un fallo del sistema.
+ */
+
 @ApiTags('Ventas')
 @ApiBearerAuth()
 @Controller('ventas')

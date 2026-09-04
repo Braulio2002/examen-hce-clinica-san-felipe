@@ -3,6 +3,14 @@ import { IsDateString, IsOptional } from 'class-validator';
 
 import { PaginacionBusquedaDto } from '@hce/compartido';
 
+/**
+ * CAPA 3 · ADAPTADORES — Parametros de consulta del Kardex.
+ *
+ * La paginacion se acota aqui, en el borde: un `tamanoPagina` sin tope permitiria
+ * pedir la tabla entera en una llamada y convertir una consulta legitima en una
+ * denegacion de servicio.
+ */
+
 export class ListarKardexDto extends PaginacionBusquedaDto {}
 
 export class MovimientosProductoDto {
