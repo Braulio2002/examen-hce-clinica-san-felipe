@@ -1,8 +1,11 @@
 import { ErrorNoEncontrado, ErrorValidacion } from '@hce/compartido';
 
-import { ObtenerProductoPeticion, ProductoRespuesta } from '../modelos/producto.modelos';
-import { ObtenerProductoPuerto } from '../puertos/entrada/catalogo.puertos';
-import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
+import type {
+  ObtenerProductoPeticion,
+  ProductoRespuesta,
+} from '../modelos/producto.modelos';
+import type { ObtenerProductoPuerto } from '../puertos/entrada/catalogo.puertos';
+import type { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 
 /** CAPA 2 · APLICACION — Caso de uso: obtener un producto por identificador. */
 export class ObtenerProductoCasoUso implements ObtenerProductoPuerto {

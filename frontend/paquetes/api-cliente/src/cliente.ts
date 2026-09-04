@@ -1,11 +1,11 @@
 import axios, {
-  AxiosError,
-  AxiosInstance,
-  InternalAxiosRequestConfig,
-  AxiosResponse,
+  type AxiosError,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+  type AxiosResponse,
 } from 'axios';
 
-import { RespuestaError } from './tipos';
+import type { RespuestaError } from './tipos';
 
 /**
  * Cliente HTTP compartido por las zonas del microfront.
@@ -92,7 +92,10 @@ export function crearCliente(baseURL: string): AxiosInstance {
       config.headers.set('X-Requested-With', 'XMLHttpRequest');
       return config;
     },
-    (error: unknown) => Promise.reject(error),
+    (error: unknown) =>
+      // Se garantiza que el motivo del rechazo sea siempre un Error: quien lo
+      // capture puede leer `message` y `stack` sin comprobar la forma.
+      Promise.reject(error instanceof Error ? error : new Error(String(error))),
   );
 
   /* ---------------------------------------------------------------------------
@@ -102,7 +105,7 @@ export function crearCliente(baseURL: string): AxiosInstance {
      --------------------------------------------------------------------------- */
   cliente.interceptors.response.use(
     (respuesta: AxiosResponse) => respuesta,
-    (error: AxiosError<RespuestaError>) => {
+    (error: AxiosError<RespuestaError | undefined>) => {
       // Sin respuesta: el servidor no respondio o la peticion expiro.
       if (!error.response) {
         const esTimeout = error.code === 'ECONNABORTED';

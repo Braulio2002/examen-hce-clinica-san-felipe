@@ -44,15 +44,21 @@ export class Producto {
     );
   }
 
-  /** Valida los datos de alta antes de tocar la base. Falla rapido y claro. */
-  static validarAlta(nombre: string, nroLote: string, costo: number): void {
+  /**
+   * Valida los datos de alta antes de tocar la base. Falla rapido y claro.
+   *
+   * Los parametros se declaran opcionales porque esta validacion es la
+   * frontera con datos que vienen de fuera: aunque el DTO ya los exija, el
+   * dominio no puede asumir que alguien lo haya hecho antes.
+   */
+  static validarAlta(nombre?: string, nroLote?: string, costo?: number): void {
     if (!nombre?.trim()) {
       throw new RangeError('El nombre del producto es obligatorio.');
     }
     if (!nroLote?.trim()) {
       throw new RangeError('El numero de lote es obligatorio.');
     }
-    if (!Number.isFinite(costo) || costo < 0) {
+    if (costo === undefined || !Number.isFinite(costo) || costo < 0) {
       throw new RangeError('El costo no puede ser negativo.');
     }
   }

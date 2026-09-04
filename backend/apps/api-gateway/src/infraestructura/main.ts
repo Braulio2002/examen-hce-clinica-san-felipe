@@ -1,12 +1,12 @@
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
-import { AppModule } from './nestjs/app.module';
 import { cargarConfiguracion } from './configuracion/configuracion';
+import { AppModule } from './nestjs/app.module';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('ApiGateway');
@@ -31,7 +31,10 @@ async function bootstrap(): Promise<void> {
       frameguard: { action: 'deny' },
       hidePoweredBy: true,
       // HSTS solo tiene sentido sobre HTTPS.
-      hsts: cfg.entorno === 'production' ? { maxAge: 31_536_000, includeSubDomains: true } : false,
+      hsts:
+        cfg.entorno === 'production'
+          ? { maxAge: 31_536_000, includeSubDomains: true }
+          : false,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       crossOriginResourcePolicy: { policy: 'same-site' },
       /*
@@ -57,10 +60,16 @@ async function bootstrap(): Promise<void> {
 
   // Cabecera explicita, ademas de la que fija Helmet, por ser un requisito
   // literal del enunciado.
-  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    next();
-  });
+  app.use(
+    (
+      _req: unknown,
+      res: { setHeader: (k: string, v: string) => void },
+      next: () => void,
+    ) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      next();
+    },
+  );
 
   /* -------------------------------------------------------------------------
      2. CORS RESTRINGIDO
@@ -114,10 +123,7 @@ async function bootstrap(): Promise<void> {
           '`consulta / Consulta123$`.',
       )
       .setVersion('1.0')
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-        'JWT',
-      )
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
       .addCookieAuth(cfg.jwt.nombreCookie)
       .addTag('Autenticacion', 'Inicio y cierre de sesion')
       .addTag('Productos', 'Catalogo de medicamentos e insumos')
@@ -140,8 +146,12 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(cfg.puerto, '0.0.0.0');
 
-  logger.log(`API Gateway escuchando en http://localhost:${cfg.puerto}/${cfg.prefijoApi}`);
-  logger.log(`Documentacion Swagger en http://localhost:${cfg.puerto}/${cfg.prefijoApi}/docs`);
+  logger.log(
+    `API Gateway escuchando en http://localhost:${cfg.puerto}/${cfg.prefijoApi}`,
+  );
+  logger.log(
+    `Documentacion Swagger en http://localhost:${cfg.puerto}/${cfg.prefijoApi}/docs`,
+  );
   logger.log(`Origenes CORS permitidos: ${cfg.origenesPermitidos.join(', ')}`);
   logger.log(`Vigencia del JWT: ${cfg.jwt.expiracionSegundos} segundos`);
 }

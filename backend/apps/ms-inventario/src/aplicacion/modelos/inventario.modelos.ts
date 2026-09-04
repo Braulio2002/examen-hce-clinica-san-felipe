@@ -1,4 +1,8 @@
-import { LineaCompra, LineaVenta, TipoMovimiento } from '../../dominio/entidades/inventario.entidades';
+import type {
+  LineaCompra,
+  LineaVenta,
+  TipoMovimiento,
+} from '../../dominio/entidades/inventario.entidades';
 
 /**
  * CAPA 2 · APLICACION — Modelos que cruzan las fronteras del inventario.

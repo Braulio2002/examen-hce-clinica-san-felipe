@@ -10,11 +10,30 @@
   "scripts": {
     "dev": "concurrently -n shell,inventario -c cyan,magenta \"npm run dev -w @hce/shell\" \"npm run dev -w @hce/inventario\"",
     "build": "npm run build -w @hce/api-cliente && npm run build -w @hce/ui && npm run build -w @hce/shell && npm run build -w @hce/inventario",
-    "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "lint": "eslint .",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint:fix": "eslint . --fix",
+    "lint:strict": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "quality": "npm run format:check && npm run lint:strict && npm run build"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "concurrently": "^9.1.2",
-    "typescript": "^5.7.3"
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-sonarjs": "^3.0.7",
+    "eslint-plugin-unicorn": "^56.0.1",
+    "globals": "^15.15.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.69.0"
   }
 }

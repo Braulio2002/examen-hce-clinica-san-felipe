@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcryptjs';
 
-import { ServicioHashPuerto } from '../../aplicacion/puertos/salida/servicio-hash.puerto';
+import type { ServicioHashPuerto } from '../../aplicacion/puertos/salida/servicio-hash.puerto';
 
 /**
  * CAPA 3 · ADAPTADORES — Implementación del puerto de hashing con bcrypt.

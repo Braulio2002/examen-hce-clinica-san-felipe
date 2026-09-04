@@ -1,9 +1,12 @@
-import { ErrorValidacion, RegistroPuerto } from '@hce/compartido';
+import { ErrorValidacion, type RegistroPuerto } from '@hce/compartido';
 
 import { ReglasDocumento } from '../../dominio/entidades/inventario.entidades';
-import { DocumentoVenta, RegistrarVentaPeticion } from '../modelos/inventario.modelos';
-import { RegistrarVentaPuerto } from '../puertos/entrada/inventario.puertos';
-import { VentaRepositorio } from '../puertos/salida/inventario.repositorio';
+import type {
+  DocumentoVenta,
+  RegistrarVentaPeticion,
+} from '../modelos/inventario.modelos';
+import type { RegistrarVentaPuerto } from '../puertos/entrada/inventario.puertos';
+import type { VentaRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Registrar Venta (seccion 1.2.2).
@@ -29,7 +32,10 @@ export class RegistrarVentaCasoUso implements RegistrarVentaPuerto {
       throw new ErrorValidacion((error as Error).message);
     }
 
-    const venta = await this.repositorio.registrarVenta(peticion.lineas, peticion.usuarioApp);
+    const venta = await this.repositorio.registrarVenta(
+      peticion.lineas,
+      peticion.usuarioApp,
+    );
 
     this.registro.informar(
       `Venta ${venta.idVentaCab} registrada con ${venta.detalle.length} linea(s). ` +

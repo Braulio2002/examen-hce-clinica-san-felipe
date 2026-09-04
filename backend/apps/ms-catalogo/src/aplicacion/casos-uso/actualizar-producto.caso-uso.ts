@@ -1,9 +1,12 @@
 import { ErrorValidacion } from '@hce/compartido';
 
 import { Producto } from '../../dominio/entidades/producto.entidad';
-import { ActualizarProductoPeticion, ProductoRespuesta } from '../modelos/producto.modelos';
-import { ActualizarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
-import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
+import type {
+  ActualizarProductoPeticion,
+  ProductoRespuesta,
+} from '../modelos/producto.modelos';
+import type { ActualizarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
+import type { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Actualizar Producto.
@@ -37,7 +40,9 @@ export class ActualizarProductoCasoUso implements ActualizarProductoPuerto {
      */
     const precioVenta =
       peticion.precioVenta ??
-      (peticion.costo !== undefined ? Producto.precioSugerido(peticion.costo) : undefined);
+      (peticion.costo !== undefined
+        ? Producto.precioSugerido(peticion.costo)
+        : undefined);
 
     return this.repositorio.actualizar({ ...peticion, precioVenta });
   }

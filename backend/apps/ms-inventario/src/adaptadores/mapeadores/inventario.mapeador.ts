@@ -1,7 +1,6 @@
 import { ErrorInfraestructura } from '@hce/compartido';
 
-import { TipoMovimiento } from '../../dominio/entidades/inventario.entidades';
-import {
+import type {
   DocumentoCompra,
   DocumentoVenta,
   FilaKardex,
@@ -10,6 +9,7 @@ import {
   ResumenCompra,
   ResumenVenta,
 } from '../../aplicacion/modelos/inventario.modelos';
+import type { TipoMovimiento } from '../../dominio/entidades/inventario.entidades';
 
 /* --- Formas crudas que devuelven los procedimientos del esquema hce --------- */
 
@@ -79,7 +79,10 @@ export interface FilaMovimiento {
  * un importe equivocado— y así puede probarse de forma aislada.
  */
 export const InventarioMapeador = {
-  aDocumentoCompra(cabeceras: FilaCompraCab[], detalle: FilaDetalle[]): DocumentoCompra {
+  aDocumentoCompra(
+    cabeceras: FilaCompraCab[] | undefined,
+    detalle: FilaDetalle[] | undefined,
+  ): DocumentoCompra {
     const cabecera = cabeceras?.[0];
     if (!cabecera) {
       throw new ErrorInfraestructura(
@@ -90,14 +93,19 @@ export const InventarioMapeador = {
     return {
       idCompraCab: cabecera.Id_CompraCab,
       fechaRegistro: cabecera.FecRegistro,
-      subTotal: Number(cabecera.SubTotal),
-      igv: Number(cabecera.Igv),
-      total: Number(cabecera.Total),
-      detalle: (detalle ?? []).map((d) => InventarioMapeador.aLinea(d, d.Id_CompraDet ?? 0)),
+      subTotal: cabecera.SubTotal,
+      igv: cabecera.Igv,
+      total: cabecera.Total,
+      detalle: (detalle ?? []).map((d) =>
+        InventarioMapeador.aLinea(d, d.Id_CompraDet ?? 0),
+      ),
     };
   },
 
-  aDocumentoVenta(cabeceras: FilaVentaCab[], detalle: FilaDetalle[]): DocumentoVenta {
+  aDocumentoVenta(
+    cabeceras: FilaVentaCab[] | undefined,
+    detalle: FilaDetalle[] | undefined,
+  ): DocumentoVenta {
     const cabecera = cabeceras?.[0];
     if (!cabecera) {
       throw new ErrorInfraestructura(
@@ -108,10 +116,12 @@ export const InventarioMapeador = {
     return {
       idVentaCab: cabecera.Id_VentaCab,
       fechaRegistro: cabecera.fecRegistro,
-      subTotal: Number(cabecera.SubTotal),
-      igv: Number(cabecera.Igv),
-      total: Number(cabecera.Total),
-      detalle: (detalle ?? []).map((d) => InventarioMapeador.aLinea(d, d.Id_VentaDet ?? 0)),
+      subTotal: cabecera.SubTotal,
+      igv: cabecera.Igv,
+      total: cabecera.Total,
+      detalle: (detalle ?? []).map((d) =>
+        InventarioMapeador.aLinea(d, d.Id_VentaDet ?? 0),
+      ),
     };
   },
 
@@ -119,10 +129,10 @@ export const InventarioMapeador = {
     return {
       idCompraCab: fila.Id_CompraCab,
       fechaRegistro: fila.FecRegistro,
-      subTotal: Number(fila.SubTotal),
-      igv: Number(fila.Igv),
-      total: Number(fila.Total),
-      items: Number(fila.Items ?? 0),
+      subTotal: fila.SubTotal,
+      igv: fila.Igv,
+      total: fila.Total,
+      items: fila.Items ?? 0,
     };
   },
 
@@ -130,10 +140,10 @@ export const InventarioMapeador = {
     return {
       idVentaCab: fila.Id_VentaCab,
       fechaRegistro: fila.fecRegistro,
-      subTotal: Number(fila.SubTotal),
-      igv: Number(fila.Igv),
-      total: Number(fila.Total),
-      items: Number(fila.Items ?? 0),
+      subTotal: fila.SubTotal,
+      igv: fila.Igv,
+      total: fila.Total,
+      items: fila.Items ?? 0,
     };
   },
 
@@ -142,10 +152,10 @@ export const InventarioMapeador = {
       idProducto: fila.Id_producto,
       nombreProducto: fila.Nombre_producto,
       nroLote: fila.NroLote,
-      stockActual: Number(fila.Stock_actual),
-      costo: Number(fila.Costo),
-      precioVenta: Number(fila.Precio_venta),
-      valorizado: Number(fila.Valorizado),
+      stockActual: fila.Stock_actual,
+      costo: fila.Costo,
+      precioVenta: fila.Precio_venta,
+      valorizado: fila.Valorizado,
     };
   },
 
@@ -156,8 +166,8 @@ export const InventarioMapeador = {
       tipoMovimiento: fila.Tipo_movimiento,
       idTipoMovimiento: fila.Id_TipoMovimiento,
       documentoOrigen: fila.Documento_origen,
-      cantidad: Number(fila.Cantidad),
-      saldo: Number(fila.Saldo),
+      cantidad: fila.Cantidad,
+      saldo: fila.Saldo,
     };
   },
 
@@ -167,16 +177,16 @@ export const InventarioMapeador = {
       idProducto: fila.Id_producto,
       nombreProducto: fila.Nombre_producto,
       nroLote: fila.NroLote,
-      cantidad: Number(fila.Cantidad),
-      precio: Number(fila.Precio),
-      subTotal: Number(fila.Sub_Total),
-      igv: Number(fila.Igv),
-      total: Number(fila.Total),
+      cantidad: fila.Cantidad,
+      precio: fila.Precio,
+      subTotal: fila.Sub_Total,
+      igv: fila.Igv,
+      total: fila.Total,
     };
   },
 
   /** Total repetido en cada fila por COUNT(*) OVER (): se lee de la primera. */
   totalRegistros(filas: { Total_registros?: number }[]): number {
-    return Number(filas[0]?.Total_registros ?? 0);
+    return filas[0]?.Total_registros ?? 0;
   },
 };

@@ -35,12 +35,16 @@ export class InventarioControlador {
   /* --- Compras -------------------------------------------------------------- */
 
   @MessagePattern(PATRONES_INVENTARIO.REGISTRAR_COMPRA)
-  registrarCompra(@Payload() peticion: RegistrarCompraPeticion): Promise<DocumentoCompra> {
+  registrarCompra(
+    @Payload() peticion: RegistrarCompraPeticion,
+  ): Promise<DocumentoCompra> {
     return this.fachada.registrarCompra(peticion);
   }
 
   @MessagePattern(PATRONES_INVENTARIO.LISTAR_COMPRAS)
-  listarCompras(@Payload() consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenCompra>> {
+  listarCompras(
+    @Payload() consulta: ConsultaPeriodo,
+  ): Promise<ResultadoPaginado<ResumenCompra>> {
     return this.fachada.listarCompras(consulta);
   }
 
@@ -57,7 +61,9 @@ export class InventarioControlador {
   }
 
   @MessagePattern(PATRONES_INVENTARIO.LISTAR_VENTAS)
-  listarVentas(@Payload() consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenVenta>> {
+  listarVentas(
+    @Payload() consulta: ConsultaPeriodo,
+  ): Promise<ResultadoPaginado<ResumenVenta>> {
     return this.fachada.listarVentas(consulta);
   }
 
@@ -69,12 +75,16 @@ export class InventarioControlador {
   /* --- Kardex --------------------------------------------------------------- */
 
   @MessagePattern(PATRONES_INVENTARIO.LISTAR_KARDEX)
-  listarKardex(@Payload() consulta: ConsultaKardex): Promise<ResultadoPaginado<FilaKardex>> {
+  listarKardex(
+    @Payload() consulta: ConsultaKardex,
+  ): Promise<ResultadoPaginado<FilaKardex>> {
     return this.fachada.listarKardex(consulta);
   }
 
   @MessagePattern(PATRONES_INVENTARIO.MOVIMIENTOS_PRODUCTO)
-  movimientos(@Payload() peticion: MovimientosProductoPeticion): Promise<MovimientoProducto[]> {
+  movimientos(
+    @Payload() peticion: MovimientosProductoPeticion,
+  ): Promise<MovimientoProducto[]> {
     return this.fachada.movimientosDeProducto(peticion);
   }
 }

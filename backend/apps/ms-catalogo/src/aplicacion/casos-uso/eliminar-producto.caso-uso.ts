@@ -1,11 +1,11 @@
 import { ErrorValidacion } from '@hce/compartido';
 
-import {
+import type {
   EliminarProductoPeticion,
   ProductoEliminadoRespuesta,
 } from '../modelos/producto.modelos';
-import { EliminarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
-import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
+import type { EliminarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
+import type { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: eliminar producto (baja lógica).
@@ -17,7 +17,9 @@ import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 export class EliminarProductoCasoUso implements EliminarProductoPuerto {
   constructor(private readonly repositorio: ProductoRepositorio) {}
 
-  async ejecutar(peticion: EliminarProductoPeticion): Promise<ProductoEliminadoRespuesta> {
+  async ejecutar(
+    peticion: EliminarProductoPeticion,
+  ): Promise<ProductoEliminadoRespuesta> {
     if (!Number.isInteger(peticion.idProducto) || peticion.idProducto <= 0) {
       throw new ErrorValidacion('El identificador de producto no es valido.');
     }

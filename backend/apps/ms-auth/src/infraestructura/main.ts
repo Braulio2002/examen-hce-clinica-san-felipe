@@ -1,6 +1,6 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { ExcepcionRpcFiltro } from '@hce/compartido';
 
@@ -34,7 +34,9 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new ExcepcionRpcFiltro());
 
   await app.listen();
-  new Logger('MsAuth').log(`Microservicio de autenticacion escuchando en TCP ${host}:${port}`);
+  new Logger('MsAuth').log(
+    `Microservicio de autenticacion escuchando en TCP ${host}:${port}`,
+  );
 }
 
 void bootstrap();

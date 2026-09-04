@@ -1,9 +1,12 @@
 'use client';
 
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import {
   ErrorApi,
-  FilaKardex,
-  MovimientoProducto,
+  type FilaKardex,
+  type MovimientoProducto,
   formatearCantidad,
   formatearFecha,
   formatearMoneda,
@@ -12,14 +15,13 @@ import {
   Alerta,
   Boton,
   Campo,
-  Cargador,
   ContenedorTabla,
+  ContenidoAsincrono,
   EstadoVacio,
   EtiquetaStock,
   MarcoAplicacion,
   Modal,
 } from '@hce/ui';
-import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiHce } from '@/lib/api';
 
@@ -43,7 +45,9 @@ export default function PaginaKardex(): React.JSX.Element {
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [productoSeleccionado, setProductoSeleccionado] = useState<FilaKardex | null>(null);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<FilaKardex | null>(
+    null,
+  );
 
   const cargar = useCallback(async (paginaActual: number, texto: string) => {
     setCargando(true);
@@ -57,7 +61,9 @@ export default function PaginaKardex(): React.JSX.Element {
       setFilas(resultado.datos);
       setTotalPaginas(Math.max(1, resultado.meta.totalPaginas));
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el Kardex.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el Kardex.',
+      );
     } finally {
       setCargando(false);
     }
@@ -104,22 +110,22 @@ export default function PaginaKardex(): React.JSX.Element {
         </div>
       </div>
 
-      {cargando ? (
-        <div className="flex justify-center py-16 text-slate-400">
-          <Cargador className="h-7 w-7" />
-        </div>
-      ) : filas.length === 0 ? (
-        <div className="tarjeta">
-          <EstadoVacio
-            titulo="Sin productos"
-            descripcion={
-              buscar
-                ? 'Ningun producto coincide con la busqueda.'
-                : 'Todavia no hay productos en el inventario.'
-            }
-          />
-        </div>
-      ) : (
+      <ContenidoAsincrono
+        cargando={cargando}
+        hayDatos={filas.length > 0}
+        vacio={
+          <div className="tarjeta">
+            <EstadoVacio
+              titulo="Sin productos"
+              descripcion={
+                buscar
+                  ? 'Ningun producto coincide con la busqueda.'
+                  : 'Todavia no hay productos en el inventario.'
+              }
+            />
+          </div>
+        }
+      >
         <>
           <ContenedorTabla>
             <table className="tabla-hce">
@@ -128,27 +134,45 @@ export default function PaginaKardex(): React.JSX.Element {
               </caption>
               <thead>
                 <tr>
-                  <th scope="col" className="text-right">Id</th>
+                  <th scope="col" className="text-right">
+                    Id
+                  </th>
                   <th scope="col">Producto</th>
                   <th scope="col">Lote</th>
-                  <th scope="col" className="text-right">Stock actual</th>
-                  <th scope="col" className="text-right">Costo</th>
-                  <th scope="col" className="text-right">Precio venta</th>
-                  <th scope="col" className="text-right">Valorizado</th>
-                  <th scope="col" className="text-right">Movimientos</th>
+                  <th scope="col" className="text-right">
+                    Stock actual
+                  </th>
+                  <th scope="col" className="text-right">
+                    Costo
+                  </th>
+                  <th scope="col" className="text-right">
+                    Precio venta
+                  </th>
+                  <th scope="col" className="text-right">
+                    Valorizado
+                  </th>
+                  <th scope="col" className="text-right">
+                    Movimientos
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filas.map((f) => (
                   <tr key={f.idProducto}>
-                    <td className="text-right tabular-nums text-slate-400">{f.idProducto}</td>
+                    <td className="text-right tabular-nums text-slate-400">
+                      {f.idProducto}
+                    </td>
                     <td className="font-medium text-slate-900">{f.nombreProducto}</td>
                     <td className="text-slate-500">{f.nroLote}</td>
                     <td className="text-right">
                       <EtiquetaStock stock={f.stockActual} />
                     </td>
-                    <td className="text-right tabular-nums">{formatearMoneda(f.costo)}</td>
-                    <td className="text-right tabular-nums">{formatearMoneda(f.precioVenta)}</td>
+                    <td className="text-right tabular-nums">
+                      {formatearMoneda(f.costo)}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {formatearMoneda(f.precioVenta)}
+                    </td>
                     <td className="text-right tabular-nums text-slate-600">
                       {formatearMoneda(f.valorizado)}
                     </td>
@@ -169,7 +193,10 @@ export default function PaginaKardex(): React.JSX.Element {
           </ContenedorTabla>
 
           {totalPaginas > 1 && (
-            <nav aria-label="Paginacion" className="mt-4 flex items-center justify-between">
+            <nav
+              aria-label="Paginacion"
+              className="mt-4 flex items-center justify-between"
+            >
               <Boton
                 variante="secundario"
                 tamano="sm"
@@ -192,7 +219,7 @@ export default function PaginaKardex(): React.JSX.Element {
             </nav>
           )}
         </>
-      )}
+      </ContenidoAsincrono>
 
       <ModalMovimientos
         producto={productoSeleccionado}
@@ -208,10 +235,10 @@ export default function PaginaKardex(): React.JSX.Element {
 function ModalMovimientos({
   producto,
   onCerrar,
-}: {
+}: Readonly<{
   producto: FilaKardex | null;
   onCerrar: () => void;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const [movimientos, setMovimientos] = useState<MovimientoProducto[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,7 +259,9 @@ function ModalMovimientos({
       .catch((fallo: unknown) => {
         if (!cancelado) {
           setError(
-            fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudieron cargar los movimientos.',
+            fallo instanceof ErrorApi
+              ? fallo.mensaje
+              : 'No se pudieron cargar los movimientos.',
           );
         }
       })
@@ -262,18 +291,18 @@ function ModalMovimientos({
         </Boton>
       }
     >
-      {cargando ? (
-        <div className="flex justify-center py-10 text-slate-400">
-          <Cargador className="h-6 w-6" />
-        </div>
-      ) : error ? (
-        <Alerta tipo="error">{error}</Alerta>
-      ) : movimientos.length === 0 ? (
-        <EstadoVacio
-          titulo="Sin movimientos"
-          descripcion="Este producto todavia no registra entradas ni salidas."
-        />
-      ) : (
+      <ContenidoAsincrono
+        cargando={cargando}
+        error={error}
+        hayDatos={movimientos.length > 0}
+        alturaCargador="h-6 w-6"
+        vacio={
+          <EstadoVacio
+            titulo="Sin movimientos"
+            descripcion="Este producto todavia no registra entradas ni salidas."
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="tabla-hce">
             <caption className="sr-only">
@@ -283,9 +312,15 @@ function ModalMovimientos({
               <tr>
                 <th scope="col">Fecha registro</th>
                 <th scope="col">Tipo movimiento</th>
-                <th scope="col" className="text-right">Cantidad</th>
-                <th scope="col" className="text-right">Saldo</th>
-                <th scope="col" className="text-right">Documento</th>
+                <th scope="col" className="text-right">
+                  Cantidad
+                </th>
+                <th scope="col" className="text-right">
+                  Saldo
+                </th>
+                <th scope="col" className="text-right">
+                  Documento
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -339,7 +374,7 @@ function ModalMovimientos({
             </tbody>
           </table>
         </div>
-      )}
+      </ContenidoAsincrono>
     </Modal>
   );
 }

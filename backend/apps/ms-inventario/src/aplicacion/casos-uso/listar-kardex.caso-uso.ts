@@ -1,8 +1,8 @@
-import { normalizarPaginacion, ResultadoPaginado } from '@hce/compartido';
+import { normalizarPaginacion, type ResultadoPaginado } from '@hce/compartido';
 
-import { ConsultaKardex, FilaKardex } from '../modelos/inventario.modelos';
-import { ListarKardexPuerto } from '../puertos/entrada/inventario.puertos';
-import { KardexRepositorio } from '../puertos/salida/inventario.repositorio';
+import type { ConsultaKardex, FilaKardex } from '../modelos/inventario.modelos';
+import type { ListarKardexPuerto } from '../puertos/entrada/inventario.puertos';
+import type { KardexRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Listar Kardex (seccion 1.2.3).

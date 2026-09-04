@@ -31,7 +31,11 @@ export class ExcepcionDominio extends Error {
   ) {
     super(mensaje);
     this.name = new.target.name;
-    Error.captureStackTrace?.(this, new.target);
+    // captureStackTrace solo existe en V8; el encadenamiento opcional es
+    // deliberado aunque las definiciones de Node lo declaren siempre presente.
+    (
+      Error as { captureStackTrace?: (o: object, c?: unknown) => void }
+    ).captureStackTrace?.(this, new.target);
   }
 
   serializar(): ErrorSerializado {

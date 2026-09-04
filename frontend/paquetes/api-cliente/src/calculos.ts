@@ -28,7 +28,12 @@ export interface Importes {
 }
 
 export function calcularImportes(cantidad: number, precio: number): Importes {
-  if (!Number.isFinite(cantidad) || cantidad <= 0 || !Number.isFinite(precio) || precio < 0) {
+  if (
+    !Number.isFinite(cantidad) ||
+    cantidad <= 0 ||
+    !Number.isFinite(precio) ||
+    precio < 0
+  ) {
     return { subTotal: 0, igv: 0, total: 0 };
   }
 

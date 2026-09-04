@@ -1,8 +1,11 @@
 import { ErrorValidacion } from '@hce/compartido';
 
-import { MovimientoProducto, MovimientosProductoPeticion } from '../modelos/inventario.modelos';
-import { MovimientosProductoPuerto } from '../puertos/entrada/inventario.puertos';
-import { KardexRepositorio } from '../puertos/salida/inventario.repositorio';
+import type {
+  MovimientoProducto,
+  MovimientosProductoPeticion,
+} from '../modelos/inventario.modelos';
+import type { MovimientosProductoPuerto } from '../puertos/entrada/inventario.puertos';
+import type { KardexRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: movimientos de un producto.

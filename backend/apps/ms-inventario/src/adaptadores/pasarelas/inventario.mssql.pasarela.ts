@@ -1,9 +1,13 @@
 import * as sql from 'mssql';
 
-import { construirPaginado, MssqlService, ResultadoPaginado, ValorSql } from '@hce/compartido';
-
-import { LineaCompra, LineaVenta } from '../../dominio/entidades/inventario.entidades';
 import {
+  construirPaginado,
+  type MssqlService,
+  type ResultadoPaginado,
+  type ValorSql,
+} from '@hce/compartido';
+
+import type {
   ConsultaKardex,
   ConsultaPeriodo,
   DocumentoCompra,
@@ -13,13 +17,17 @@ import {
   ResumenCompra,
   ResumenVenta,
 } from '../../aplicacion/modelos/inventario.modelos';
-import { InventarioRepositorio } from '../../aplicacion/puertos/salida/inventario.repositorio';
+import type { InventarioRepositorio } from '../../aplicacion/puertos/salida/inventario.repositorio';
+import type {
+  LineaCompra,
+  LineaVenta,
+} from '../../dominio/entidades/inventario.entidades';
 import {
-  FilaCompraCab,
-  FilaDetalle,
-  FilaKardexCruda,
-  FilaMovimiento,
-  FilaVentaCab,
+  type FilaCompraCab,
+  type FilaDetalle,
+  type FilaKardexCruda,
+  type FilaMovimiento,
+  type FilaVentaCab,
   InventarioMapeador,
 } from '../mapeadores/inventario.mapeador';
 
@@ -41,30 +49,37 @@ export class InventarioMssqlPasarela implements InventarioRepositorio {
     lineas: readonly LineaCompra[],
     usuarioApp?: string,
   ): Promise<DocumentoCompra> {
-    const { conjuntos } = await this.mssql.ejecutarProcedimiento('hce.usp_Compra_Registrar', {
-      tablas: [
-        {
-          nombre: 'Detalle',
-          tipoTabla: 'hce.TipoDetalleCompra',
-          columnas: [
-            { nombre: 'Id_producto', tipo: sql.Int },
-            { nombre: 'Cantidad', tipo: sql.Decimal(18, 4) },
-            { nombre: 'Precio', tipo: sql.Decimal(18, 4) },
-          ],
-          filas: lineas.map((l): ValorSql[] => [l.idProducto, l.cantidad, l.precio]),
-        },
-      ],
-      parametros: [{ nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: usuarioApp ?? null }],
-      salidas: [{ nombre: 'Id_CompraCab', tipo: sql.Int, valor: null }],
-    });
+    const { conjuntos } = await this.mssql.ejecutarProcedimiento(
+      'hce.usp_Compra_Registrar',
+      {
+        tablas: [
+          {
+            nombre: 'Detalle',
+            tipoTabla: 'hce.TipoDetalleCompra',
+            columnas: [
+              { nombre: 'Id_producto', tipo: sql.Int },
+              { nombre: 'Cantidad', tipo: sql.Decimal(18, 4) },
+              { nombre: 'Precio', tipo: sql.Decimal(18, 4) },
+            ],
+            filas: lineas.map((l): ValorSql[] => [l.idProducto, l.cantidad, l.precio]),
+          },
+        ],
+        parametros: [
+          { nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: usuarioApp ?? null },
+        ],
+        salidas: [{ nombre: 'Id_CompraCab', tipo: sql.Int, valor: null }],
+      },
+    );
 
     return InventarioMapeador.aDocumentoCompra(
-      conjuntos[0] as unknown as FilaCompraCab[],
-      conjuntos[1] as unknown as FilaDetalle[],
+      conjuntos[0] as unknown as FilaCompraCab[] | undefined,
+      conjuntos[1] as unknown as FilaDetalle[] | undefined,
     );
   }
 
-  async listarCompras(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenCompra>> {
+  async listarCompras(
+    consulta: ConsultaPeriodo,
+  ): Promise<ResultadoPaginado<ResumenCompra>> {
     const pagina = consulta.pagina ?? 1;
     const tamanoPagina = consulta.tamanoPagina ?? 20;
 
@@ -81,16 +96,19 @@ export class InventarioMssqlPasarela implements InventarioRepositorio {
   }
 
   async obtenerCompra(idCompraCab: number): Promise<DocumentoCompra | null> {
-    const { conjuntos } = await this.mssql.ejecutarProcedimiento('hce.usp_Compra_Obtener', {
-      parametros: [{ nombre: 'Id_CompraCab', tipo: sql.Int, valor: idCompraCab }],
-    });
+    const { conjuntos } = await this.mssql.ejecutarProcedimiento(
+      'hce.usp_Compra_Obtener',
+      {
+        parametros: [{ nombre: 'Id_CompraCab', tipo: sql.Int, valor: idCompraCab }],
+      },
+    );
 
-    const cabeceras = conjuntos[0] as unknown as FilaCompraCab[];
+    const cabeceras = conjuntos[0] as unknown as FilaCompraCab[] | undefined;
     if (!cabeceras?.[0]) return null;
 
     return InventarioMapeador.aDocumentoCompra(
       cabeceras,
-      conjuntos[1] as unknown as FilaDetalle[],
+      conjuntos[1] as unknown as FilaDetalle[] | undefined,
     );
   }
 
@@ -100,29 +118,36 @@ export class InventarioMssqlPasarela implements InventarioRepositorio {
     lineas: readonly LineaVenta[],
     usuarioApp?: string,
   ): Promise<DocumentoVenta> {
-    const { conjuntos } = await this.mssql.ejecutarProcedimiento('hce.usp_Venta_Registrar', {
-      tablas: [
-        {
-          nombre: 'Detalle',
-          tipoTabla: 'hce.TipoDetalleVenta',
-          columnas: [
-            { nombre: 'Id_producto', tipo: sql.Int },
-            { nombre: 'Cantidad', tipo: sql.Decimal(18, 4) },
-          ],
-          filas: lineas.map((l): ValorSql[] => [l.idProducto, l.cantidad]),
-        },
-      ],
-      parametros: [{ nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: usuarioApp ?? null }],
-      salidas: [{ nombre: 'Id_VentaCab', tipo: sql.Int, valor: null }],
-    });
+    const { conjuntos } = await this.mssql.ejecutarProcedimiento(
+      'hce.usp_Venta_Registrar',
+      {
+        tablas: [
+          {
+            nombre: 'Detalle',
+            tipoTabla: 'hce.TipoDetalleVenta',
+            columnas: [
+              { nombre: 'Id_producto', tipo: sql.Int },
+              { nombre: 'Cantidad', tipo: sql.Decimal(18, 4) },
+            ],
+            filas: lineas.map((l): ValorSql[] => [l.idProducto, l.cantidad]),
+          },
+        ],
+        parametros: [
+          { nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: usuarioApp ?? null },
+        ],
+        salidas: [{ nombre: 'Id_VentaCab', tipo: sql.Int, valor: null }],
+      },
+    );
 
     return InventarioMapeador.aDocumentoVenta(
-      conjuntos[0] as unknown as FilaVentaCab[],
-      conjuntos[1] as unknown as FilaDetalle[],
+      conjuntos[0] as unknown as FilaVentaCab[] | undefined,
+      conjuntos[1] as unknown as FilaDetalle[] | undefined,
     );
   }
 
-  async listarVentas(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenVenta>> {
+  async listarVentas(
+    consulta: ConsultaPeriodo,
+  ): Promise<ResultadoPaginado<ResumenVenta>> {
     const pagina = consulta.pagina ?? 1;
     const tamanoPagina = consulta.tamanoPagina ?? 20;
 
@@ -139,14 +164,20 @@ export class InventarioMssqlPasarela implements InventarioRepositorio {
   }
 
   async obtenerVenta(idVentaCab: number): Promise<DocumentoVenta | null> {
-    const { conjuntos } = await this.mssql.ejecutarProcedimiento('hce.usp_Venta_Obtener', {
-      parametros: [{ nombre: 'Id_VentaCab', tipo: sql.Int, valor: idVentaCab }],
-    });
+    const { conjuntos } = await this.mssql.ejecutarProcedimiento(
+      'hce.usp_Venta_Obtener',
+      {
+        parametros: [{ nombre: 'Id_VentaCab', tipo: sql.Int, valor: idVentaCab }],
+      },
+    );
 
-    const cabeceras = conjuntos[0] as unknown as FilaVentaCab[];
+    const cabeceras = conjuntos[0] as unknown as FilaVentaCab[] | undefined;
     if (!cabeceras?.[0]) return null;
 
-    return InventarioMapeador.aDocumentoVenta(cabeceras, conjuntos[1] as unknown as FilaDetalle[]);
+    return InventarioMapeador.aDocumentoVenta(
+      cabeceras,
+      conjuntos[1] as unknown as FilaDetalle[] | undefined,
+    );
   }
 
   /* --- Kardex --------------------------------------------------------------- */
@@ -192,7 +223,11 @@ export class InventarioMssqlPasarela implements InventarioRepositorio {
 
   /* --- Utilidades privadas --------------------------------------------------- */
 
-  private parametrosPeriodo(consulta: ConsultaPeriodo, pagina: number, tamanoPagina: number) {
+  private parametrosPeriodo(
+    consulta: ConsultaPeriodo,
+    pagina: number,
+    tamanoPagina: number,
+  ) {
     return [
       { nombre: 'FechaDesde', tipo: sql.Date, valor: consulta.fechaDesde ?? null },
       { nombre: 'FechaHasta', tipo: sql.Date, valor: consulta.fechaHasta ?? null },

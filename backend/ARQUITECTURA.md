@@ -179,6 +179,40 @@ Si un cambio te obliga a tocar las cuatro capas, probablemente esté mal ubicado
 ## Comprobaciones
 
 ```bash
-npm run build     # compila los 4 servicios
-npm test          # 33 pruebas: dominio, aplicación y regla de dependencia
+npm run quality   # la cadena completa, en el orden en que conviene fallar
 ```
+
+Equivale a:
+
+```bash
+npm run format:check   # Prettier
+npm run typecheck      # tsc --noEmit, con strict completo
+npm run lint:strict    # ESLint, 0 avisos permitidos
+npm run test:cov       # 117 pruebas + umbral de cobertura
+npm run build          # compila los 4 servicios
+```
+
+### La regla de dependencia se comprueba dos veces, a propósito
+
+| Mecanismo | Cuándo avisa | Qué aporta |
+|---|---|---|
+| `eslint.architecture.mjs` | Mientras se escribe, en el editor | Corrección inmediata, con el mensaje explicando la alternativa correcta |
+| `test/regla-dependencia.spec.ts` | Al ejecutar la suite | Impide que llegue a la rama principal aunque alguien ejecute el linter permitiendo avisos |
+
+No es duplicación: son dos momentos distintos del ciclo. Un `eslint-disable`
+puede silenciar al primero —de hecho las reglas de arquitectura prohíben
+explícitamente esa cadena dentro de un servicio—, pero no al segundo.
+
+### Qué prohíbe cada capa
+
+Las reglas de `eslint.architecture.mjs` bloquean por configuración lo que la
+arquitectura ya exige:
+
+- **Dominio**: sin NestJS, sin `mssql`, sin Express, sin `class-validator`, sin
+  bcrypt, sin rxjs. Y sin importar de ninguna capa más externa.
+- **Aplicación**: lo mismo, **más la prohibición de decoradores**. Esa es la que
+  fuerza que los casos de uso sean clases planas cableadas con `useFactory`.
+- **Adaptadores**: pueden usar frameworks, pero no importar la raíz de
+  composición que los construye (sería un ciclo).
+- **Entre microservicios**: ninguno importa código de otro. Lo compartido pasa
+  por `@hce/compartido`, que es una dependencia explícita.

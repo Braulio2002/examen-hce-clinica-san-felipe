@@ -27,12 +27,12 @@ export class ExcepcionRpcFiltro implements ExceptionFilter {
     const payload = this.serializar(excepcion);
 
     if (payload.codigo === CodigoError.INFRAESTRUCTURA) {
-      this.logger.error(payload.mensaje, (excepcion as Error)?.stack);
+      this.logger.error(payload.mensaje, trazaDe(excepcion));
     } else {
       this.logger.warn(`${payload.codigo}: ${payload.mensaje}`);
     }
 
-    return throwError(() => new RpcException(payload as unknown as Record<string, unknown>));
+    return throwError(() => new RpcException(payload));
   }
 
   private serializar(excepcion: unknown): ErrorSerializado {
@@ -59,4 +59,15 @@ export class ExcepcionRpcFiltro implements ExceptionFilter {
       mensaje: 'Error interno del microservicio.',
     };
   }
+}
+
+/**
+ * Extrae la traza de una excepcion de tipo desconocido.
+ *
+ * Un `as Error` haria creer al compilador que siempre hay `stack`, y lo que
+ * llega por el filtro puede ser cualquier cosa: una cadena, un objeto plano
+ * serializado por el transporte RPC o null.
+ */
+function trazaDe(excepcion: unknown): string | undefined {
+  return excepcion instanceof Error ? excepcion.stack : undefined;
 }

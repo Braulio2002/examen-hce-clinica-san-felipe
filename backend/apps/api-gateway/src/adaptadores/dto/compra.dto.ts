@@ -48,7 +48,10 @@ export class RegistrarCompraDto {
 }
 
 export class ListarComprasDto extends PaginacionDto {
-  @ApiPropertyOptional({ example: '2026-09-01', description: 'Fecha inicial (inclusive)' })
+  @ApiPropertyOptional({
+    example: '2026-09-01',
+    description: 'Fecha inicial (inclusive)',
+  })
   @IsOptional()
   @IsDateString({}, { message: 'fechaDesde debe tener formato AAAA-MM-DD.' })
   fechaDesde?: string;

@@ -53,14 +53,40 @@ export interface LineaVenta {
  * La validación en SQL sigue siendo la autoridad final sobre el stock: ésta es
  * la primera barrera, no la única.
  */
-export class ReglasDocumento {
-  static readonly MAX_LINEAS = 200;
+const MAX_LINEAS_DOCUMENTO = 200;
 
-  static validarLineasCompra(lineas: readonly LineaCompra[]): void {
-    ReglasDocumento.validarCardinalidad(lineas.length, 'compra');
+function validarProducto(idProducto: number): void {
+  if (!Number.isInteger(idProducto) || idProducto <= 0) {
+    throw new RangeError('Cada linea debe referenciar un producto valido.');
+  }
+}
+
+function validarCardinalidad(cantidadLineas: number, documento: string): void {
+  if (cantidadLineas === 0) {
+    throw new RangeError(`La ${documento} debe contener al menos un producto.`);
+  }
+  if (cantidadLineas > MAX_LINEAS_DOCUMENTO) {
+    throw new RangeError(
+      `Una ${documento} no puede superar ${MAX_LINEAS_DOCUMENTO} lineas de detalle.`,
+    );
+  }
+}
+
+/**
+ * Se expone como objeto congelado y no como clase con miembros estaticos: una
+ * clase que nunca se instancia es un espacio de nombres disfrazado, y el
+ * `private static` no aporta encapsulacion real porque las funciones auxiliares
+ * ya son privadas al modulo. `Object.freeze` impide ademas que alguien sustituya
+ * una validacion en tiempo de ejecucion.
+ */
+export const ReglasDocumento = Object.freeze({
+  MAX_LINEAS: MAX_LINEAS_DOCUMENTO,
+
+  validarLineasCompra(lineas: readonly LineaCompra[]): void {
+    validarCardinalidad(lineas.length, 'compra');
 
     for (const linea of lineas) {
-      ReglasDocumento.validarProducto(linea.idProducto);
+      validarProducto(linea.idProducto);
 
       if (!Number.isFinite(linea.cantidad) || linea.cantidad <= 0) {
         throw new RangeError('Las cantidades de la compra deben ser mayores a cero.');
@@ -69,19 +95,19 @@ export class ReglasDocumento {
         throw new RangeError('El costo unitario no puede ser negativo.');
       }
     }
-  }
+  },
 
-  static validarLineasVenta(lineas: readonly LineaVenta[]): void {
-    ReglasDocumento.validarCardinalidad(lineas.length, 'venta');
+  validarLineasVenta(lineas: readonly LineaVenta[]): void {
+    validarCardinalidad(lineas.length, 'venta');
 
     for (const linea of lineas) {
-      ReglasDocumento.validarProducto(linea.idProducto);
+      validarProducto(linea.idProducto);
 
       if (!Number.isFinite(linea.cantidad) || linea.cantidad <= 0) {
         throw new RangeError('Las cantidades de la venta deben ser mayores a cero.');
       }
     }
-  }
+  },
 
   /**
    * Totales previstos por el dominio.
@@ -90,26 +116,13 @@ export class ReglasDocumento {
    * Sirve para verificar contra lo que devuelve la base: si divergieran, sería
    * señal de que la fórmula del código y la de SQL se desincronizaron.
    */
-  static totalesPrevistos(
-    lineas: readonly { cantidad: number; precio: number }[],
-  ): { subTotal: number; igv: number; total: number } {
-    return Importe.sumar(lineas.map((l) => Importe.calcular(l.cantidad, l.precio))).toJSON();
-  }
-
-  private static validarProducto(idProducto: number): void {
-    if (!Number.isInteger(idProducto) || idProducto <= 0) {
-      throw new RangeError('Cada linea debe referenciar un producto valido.');
-    }
-  }
-
-  private static validarCardinalidad(cantidadLineas: number, documento: string): void {
-    if (cantidadLineas === 0) {
-      throw new RangeError(`La ${documento} debe contener al menos un producto.`);
-    }
-    if (cantidadLineas > ReglasDocumento.MAX_LINEAS) {
-      throw new RangeError(
-        `Una ${documento} no puede superar ${ReglasDocumento.MAX_LINEAS} lineas de detalle.`,
-      );
-    }
-  }
-}
+  totalesPrevistos(lineas: readonly { cantidad: number; precio: number }[]): {
+    subTotal: number;
+    igv: number;
+    total: number;
+  } {
+    return Importe.sumar(
+      lineas.map((l) => Importe.calcular(l.cantidad, l.precio)),
+    ).toJSON();
+  },
+});

@@ -1,4 +1,4 @@
-import { Usuario } from '../../../dominio/entidades/usuario.entidad';
+import type { Usuario } from '../../../dominio/entidades/usuario.entidad';
 
 /**
  * CAPA 2 · APLICACION — Puerto de salida (Output Boundary).

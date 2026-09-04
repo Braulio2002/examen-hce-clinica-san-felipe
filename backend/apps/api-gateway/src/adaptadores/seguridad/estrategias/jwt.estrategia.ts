@@ -23,6 +23,22 @@ export interface UsuarioAutenticado {
   readonly expiraEn: Date;
 }
 
+/**
+ * Lee el token de la cookie de sesion.
+ *
+ * `Request.cookies` solo existe si cookie-parser esta registrado, de modo que su
+ * tipo real es opcional aunque las definiciones de Express lo declaren siempre
+ * presente. Se estrecha de forma explicita en lugar de encadenar `?.` sobre un
+ * tipo que el compilador cree no nulo.
+ */
+function extraerDeCookie(peticion: Request, nombreCookie: string): string | null {
+  const cookies: unknown = (peticion as { cookies?: unknown }).cookies;
+  if (typeof cookies !== 'object' || cookies === null) return null;
+
+  const valor = (cookies as Record<string, unknown>)[nombreCookie];
+  return typeof valor === 'string' ? valor : null;
+}
+
 @Injectable()
 export class JwtEstrategia extends PassportStrategy(Strategy, 'jwt') {
   constructor(config: ConfigService) {
@@ -39,8 +55,7 @@ export class JwtEstrategia extends PassportStrategy(Strategy, 'jwt') {
        *      Postman o Insomnia, y para clientes que no manejan cookies.
        */
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (peticion: Request): string | null =>
-          (peticion?.cookies as Record<string, string> | undefined)?.[nombreCookie] ?? null,
+        (peticion: Request): string | null => extraerDeCookie(peticion, nombreCookie),
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       // Nunca se aceptan tokens expirados: la ventana de 30 minutos es estricta.
@@ -55,7 +70,7 @@ export class JwtEstrategia extends PassportStrategy(Strategy, 'jwt') {
   }
 
   validate(payload: PayloadJwt): UsuarioAutenticado {
-    if (!payload?.sub || !payload.username) {
+    if (!payload.sub || !payload.username) {
       throw new UnauthorizedException('El token no contiene un sujeto valido.');
     }
 

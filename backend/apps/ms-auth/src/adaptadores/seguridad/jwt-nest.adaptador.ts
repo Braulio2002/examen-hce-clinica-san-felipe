@@ -1,6 +1,6 @@
-import { JwtService } from '@nestjs/jwt';
+import type { JwtService } from '@nestjs/jwt';
 
-import {
+import type {
   ContenidoToken,
   ServicioTokenPuerto,
   TokenEmitido,

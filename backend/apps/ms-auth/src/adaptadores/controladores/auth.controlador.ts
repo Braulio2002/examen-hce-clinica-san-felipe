@@ -28,7 +28,9 @@ export class AuthControlador {
   ) {}
 
   @MessagePattern(PATRONES_AUTH.INICIAR_SESION)
-  iniciarSesion(@Payload() credenciales: IniciarSesionPeticion): Promise<SesionRespuesta> {
+  iniciarSesion(
+    @Payload() credenciales: IniciarSesionPeticion,
+  ): Promise<SesionRespuesta> {
     return this.fachada.autenticar(credenciales);
   }
 

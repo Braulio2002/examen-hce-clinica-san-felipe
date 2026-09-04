@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import type React from 'react';
 
 import { Cargador } from './componentes';
 import { NavegacionPrincipal } from './navegacion';
@@ -17,22 +17,27 @@ export function MarcoAplicacion({
   descripcion,
   acciones,
   children,
-}: {
+}: Readonly<{
   titulo: string;
   descripcion?: string;
   acciones?: React.ReactNode;
   children: React.ReactNode;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const { cargando } = useSesion();
 
   return (
     <div className="min-h-screen">
       <NavegacionPrincipal />
 
-      <main id="contenido" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main
+        id="contenido"
+        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+      >
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{titulo}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {titulo}
+            </h1>
             {descripcion && <p className="mt-1 text-sm text-slate-500">{descripcion}</p>}
           </div>
           {acciones && <div className="flex shrink-0 gap-2">{acciones}</div>}

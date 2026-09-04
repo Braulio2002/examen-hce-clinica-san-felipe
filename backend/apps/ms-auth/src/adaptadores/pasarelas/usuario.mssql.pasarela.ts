@@ -1,9 +1,9 @@
 import * as sql from 'mssql';
 
-import { MssqlService } from '@hce/compartido';
+import type { MssqlService } from '@hce/compartido';
 
-import { RolUsuario, Usuario } from '../../dominio/entidades/usuario.entidad';
-import { UsuarioRepositorio } from '../../aplicacion/puertos/salida/usuario.repositorio';
+import type { UsuarioRepositorio } from '../../aplicacion/puertos/salida/usuario.repositorio';
+import { type RolUsuario, Usuario } from '../../dominio/entidades/usuario.entidad';
 
 /** Forma cruda de la fila que devuelve hce.usp_Usuario_ObtenerPorUsername. */
 interface FilaUsuario {
@@ -30,9 +30,12 @@ export class UsuarioMssqlPasarela implements UsuarioRepositorio {
   constructor(private readonly mssql: MssqlService) {}
 
   async buscarPorUsername(username: string): Promise<Usuario | null> {
-    const filas = await this.mssql.consultar<FilaUsuario>('hce.usp_Usuario_ObtenerPorUsername', {
-      parametros: [{ nombre: 'Username', tipo: sql.NVarChar(50), valor: username }],
-    });
+    const filas = await this.mssql.consultar<FilaUsuario>(
+      'hce.usp_Usuario_ObtenerPorUsername',
+      {
+        parametros: [{ nombre: 'Username', tipo: sql.NVarChar(50), valor: username }],
+      },
+    );
 
     const fila = filas[0];
     if (!fila) return null;
@@ -42,7 +45,7 @@ export class UsuarioMssqlPasarela implements UsuarioRepositorio {
       fila.Username,
       fila.NombreCompleto,
       fila.Rol,
-      Boolean(fila.Activo),
+      fila.Activo,
       fila.PasswordHash,
     );
   }

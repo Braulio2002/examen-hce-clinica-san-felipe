@@ -1,8 +1,8 @@
 import { ErrorNoEncontrado } from '@hce/compartido';
 
-import { DocumentoVenta, ObtenerVentaPeticion } from '../modelos/inventario.modelos';
-import { ObtenerVentaPuerto } from '../puertos/entrada/inventario.puertos';
-import { VentaRepositorio } from '../puertos/salida/inventario.repositorio';
+import type { DocumentoVenta, ObtenerVentaPeticion } from '../modelos/inventario.modelos';
+import type { ObtenerVentaPuerto } from '../puertos/entrada/inventario.puertos';
+import type { VentaRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /** CAPA 2 · APLICACION — Caso de uso: obtener el detalle de una venta. */
 export class ObtenerVentaCasoUso implements ObtenerVentaPuerto {

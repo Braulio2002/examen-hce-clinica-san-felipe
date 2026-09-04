@@ -1,8 +1,11 @@
 'use client';
 
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import {
   ErrorApi,
-  FilaKardex,
+  type FilaKardex,
   calcularImportes,
   formatearMoneda,
   sumarImportes,
@@ -16,7 +19,6 @@ import {
   MarcoAplicacion,
   useSesion,
 } from '@hce/ui';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiHce } from '@/lib/api';
 
@@ -62,7 +64,9 @@ export default function PaginaVentas(): React.JSX.Element {
       const resultado = await apiHce.kardex.listar({ tamanoPagina: 200 });
       setCatalogo(resultado.datos);
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el inventario.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el inventario.',
+      );
     } finally {
       setCargando(false);
     }
@@ -122,7 +126,9 @@ export default function PaginaVentas(): React.JSX.Element {
 
   const totales = useMemo(
     () =>
-      sumarImportes(lineas.map((l) => calcularImportes(Number(l.cantidad) || 0, l.precioVenta))),
+      sumarImportes(
+        lineas.map((l) => calcularImportes(Number(l.cantidad) || 0, l.precioVenta)),
+      ),
     [lineas],
   );
 
@@ -154,7 +160,9 @@ export default function PaginaVentas(): React.JSX.Element {
       setLineas([]);
       await cargarCatalogo();
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo registrar la venta.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo registrar la venta.',
+      );
       // El stock pudo cambiar por otra operacion concurrente: se refresca.
       await cargarCatalogo();
     } finally {
@@ -215,14 +223,15 @@ export default function PaginaVentas(): React.JSX.Element {
           </option>
           {catalogo.map((c) => (
             <option key={c.idProducto} value={c.idProducto} disabled={c.stockActual <= 0}>
-              {c.nombreProducto} — {formatearMoneda(c.precioVenta)} — stock {c.stockActual}
+              {c.nombreProducto} — {formatearMoneda(c.precioVenta)} — stock{' '}
+              {c.stockActual}
               {c.stockActual <= 0 ? ' (sin stock)' : ''}
             </option>
           ))}
         </select>
         <p className="mt-1.5 text-sm text-slate-500">
-          El precio y el stock provienen del servidor. El stock se calcula desde la tabla de
-          movimientos.
+          El precio y el stock provienen del servidor. El stock se calcula desde la tabla
+          de movimientos.
         </p>
       </div>
 
@@ -241,23 +250,43 @@ export default function PaginaVentas(): React.JSX.Element {
               <thead>
                 <tr>
                   <th scope="col">Producto</th>
-                  <th scope="col" className="text-right">Precio venta</th>
-                  <th scope="col" className="text-right">Stock</th>
-                  <th scope="col" className="w-36">Cantidad</th>
-                  <th scope="col" className="text-right">Subtotal</th>
-                  <th scope="col" className="text-right">IGV</th>
-                  <th scope="col" className="text-right">Total</th>
-                  <th scope="col"><span className="sr-only">Acciones</span></th>
+                  <th scope="col" className="text-right">
+                    Precio venta
+                  </th>
+                  <th scope="col" className="text-right">
+                    Stock
+                  </th>
+                  <th scope="col" className="w-36">
+                    Cantidad
+                  </th>
+                  <th scope="col" className="text-right">
+                    Subtotal
+                  </th>
+                  <th scope="col" className="text-right">
+                    IGV
+                  </th>
+                  <th scope="col" className="text-right">
+                    Total
+                  </th>
+                  <th scope="col">
+                    <span className="sr-only">Acciones</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {lineas.map((l) => {
                   const mensajeError = validarLinea(l);
-                  const importes = calcularImportes(Number(l.cantidad) || 0, l.precioVenta);
+                  const importes = calcularImportes(
+                    Number(l.cantidad) || 0,
+                    l.precioVenta,
+                  );
                   const idError = `error-${l.idFila}`;
 
                   return (
-                    <tr key={l.idFila} className={mensajeError ? 'bg-rose-50/60' : undefined}>
+                    <tr
+                      key={l.idFila}
+                      className={mensajeError ? 'bg-rose-50/60' : undefined}
+                    >
                       <td>
                         <p className="font-medium text-slate-900">{l.nombreProducto}</p>
                         <p className="text-xs text-slate-500">Lote {l.nroLote}</p>
@@ -288,7 +317,11 @@ export default function PaginaVentas(): React.JSX.Element {
                           ].join(' ')}
                         />
                         {mensajeError && (
-                          <p id={idError} role="alert" className="mt-1 text-xs text-rose-600">
+                          <p
+                            id={idError}
+                            role="alert"
+                            className="mt-1 text-xs text-rose-600"
+                          >
                             {mensajeError}
                           </p>
                         )}
@@ -296,7 +329,9 @@ export default function PaginaVentas(): React.JSX.Element {
                       <td className="text-right tabular-nums">
                         {formatearMoneda(importes.subTotal)}
                       </td>
-                      <td className="text-right tabular-nums">{formatearMoneda(importes.igv)}</td>
+                      <td className="text-right tabular-nums">
+                        {formatearMoneda(importes.igv)}
+                      </td>
                       <td className="text-right font-medium tabular-nums text-slate-900">
                         {formatearMoneda(importes.total)}
                       </td>
@@ -328,7 +363,9 @@ export default function PaginaVentas(): React.JSX.Element {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">IGV</dt>
-                  <dd className="tabular-nums text-slate-900">{formatearMoneda(totales.igv)}</dd>
+                  <dd className="tabular-nums text-slate-900">
+                    {formatearMoneda(totales.igv)}
+                  </dd>
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-1.5">
                   <dt className="font-semibold text-slate-900">Total</dt>
@@ -340,7 +377,11 @@ export default function PaginaVentas(): React.JSX.Element {
             </div>
 
             <div className="flex gap-2">
-              <Boton variante="secundario" onClick={() => setLineas([])} disabled={guardando}>
+              <Boton
+                variante="secundario"
+                onClick={() => setLineas([])}
+                disabled={guardando}
+              >
                 Vaciar
               </Boton>
               <Boton

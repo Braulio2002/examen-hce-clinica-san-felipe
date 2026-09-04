@@ -58,17 +58,44 @@ openssl rand -base64 48
 
 ## Verificación
 
-### Pruebas de dominio y arquitectura (33 casos)
+### Puerta de calidad
+
+Cada proyecto tiene una cadena que debe pasar entera antes de dar un cambio por
+terminado:
 
 ```bash
-cd backend && npm test
+cd backend  && npm run quality   # formato · tipos · lint · pruebas+cobertura · build
+cd frontend && npm run quality   # formato · tipos · lint · build
+```
+
+| Comprobación | Backend | Frontend |
+|---|---|---|
+| `format:check` (Prettier) | limpio | limpio |
+| `typecheck` (`strict` completo + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
+| `lint:strict` (0 avisos permitidos) | limpio | limpio |
+| Pruebas | 117 casos | — |
+| Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | — |
+
+El linter no es el `next lint` por defecto: es la configuración de SIGPRO PECEPE
+adaptada a este proyecto — `typescript-eslint` con reglas que usan información de
+tipos, más **SonarJS**, **unicorn**, **eslint-plugin-security**, **import-x** y,
+en el frontend, **jsx-a11y** y las reglas de React Hooks. Incluye además reglas
+de arquitectura propias que impiden por configuración lo que la prueba de
+dependencia verifica en tiempo de ejecución.
+
+### Pruebas de dominio y arquitectura (117 casos)
+
+```bash
+cd backend && npm test          # ejecuta la suite
+cd backend && npm run test:cov  # con informe de cobertura y umbral
 ```
 
 Cubren el value object `Importe` —la fórmula de importes del enunciado y el
-margen de 1.35—, las reglas del agregado de inventario y **la regla de
-dependencia de Clean Architecture**, que se comprueba analizando los `import`
-del código fuente. Corren sin base de datos ni contenedores: es la ventaja
-concreta de mantener el dominio aislado.
+margen de 1.35—, los 15 casos de uso, las excepciones de dominio con su viaje de
+ida y vuelta por el transporte RPC, y **la regla de dependencia de Clean
+Architecture**, que se comprueba analizando los `import` del código fuente.
+Corren sin base de datos ni contenedores: es la ventaja concreta de mantener el
+dominio aislado.
 
 ### Pruebas de la API (36 verificaciones end-to-end)
 

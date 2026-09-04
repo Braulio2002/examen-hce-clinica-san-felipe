@@ -27,7 +27,9 @@ export class ProductoControlador {
   }
 
   @MessagePattern(PATRONES_CATALOGO.ACTUALIZAR_PRODUCTO)
-  actualizar(@Payload() peticion: ActualizarProductoPeticion): Promise<ProductoRespuesta> {
+  actualizar(
+    @Payload() peticion: ActualizarProductoPeticion,
+  ): Promise<ProductoRespuesta> {
     return this.fachada.actualizar(peticion);
   }
 

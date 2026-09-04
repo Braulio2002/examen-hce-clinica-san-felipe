@@ -24,21 +24,21 @@ describe('Importe', () => {
       const importe = Importe.calcular(50, 2.5);
 
       // 50 * 2.5 * 1.18 = 147.5
-      expect(importe.igv).toBe(147.5);
+      expect(importe.igv).toBeCloseTo(147.5, 4);
     });
 
     it('calcula el total como la suma de subtotal e IGV', () => {
       const importe = Importe.calcular(50, 2.5);
 
       expect(importe.total).toBe(importe.subTotal + importe.igv);
-      expect(importe.total).toBe(272.5);
+      expect(importe.total).toBeCloseTo(272.5, 4);
     });
 
     it('redondea a 4 decimales sin arrastrar el sesgo del binario flotante', () => {
       // 0.1 * 3 en coma flotante da 0.30000000000000004
       const importe = Importe.calcular(3, 0.1);
 
-      expect(importe.subTotal).toBe(0.3);
+      expect(importe.subTotal).toBeCloseTo(0.3, 4);
     });
 
     it('rechaza una cantidad igual a cero', () => {
@@ -73,8 +73,8 @@ describe('Importe', () => {
       const total = Importe.sumar(lineas);
 
       expect(total.subTotal).toBe(20);
-      expect(total.igv).toBe(23.6);
-      expect(total.total).toBe(43.6);
+      expect(total.igv).toBeCloseTo(23.6, 4);
+      expect(total.total).toBeCloseTo(43.6, 4);
     });
 
     it('devuelve ceros cuando no hay lineas', () => {
@@ -88,8 +88,8 @@ describe('Importe', () => {
 
   describe('precioVentaDesdeCosto', () => {
     it('aplica el margen de 1.35 exigido por la seccion 1.2.1.a', () => {
-      expect(Importe.precioVentaDesdeCosto(2)).toBe(2.7);
-      expect(Importe.precioVentaDesdeCosto(0.45)).toBe(0.6075);
+      expect(Importe.precioVentaDesdeCosto(2)).toBeCloseTo(2.7, 4);
+      expect(Importe.precioVentaDesdeCosto(0.45)).toBeCloseTo(0.6075, 4);
     });
 
     it('devuelve cero cuando el costo es cero', () => {

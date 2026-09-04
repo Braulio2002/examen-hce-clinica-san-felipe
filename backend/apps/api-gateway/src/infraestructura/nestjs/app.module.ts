@@ -7,11 +7,11 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { CLIENTES_MICROSERVICIO, ExcepcionHttpFiltro } from '@hce/compartido';
 
-import { SaludControlador } from '../../adaptadores/controladores/salud.controlador';
 import { AuthControlador } from '../../adaptadores/controladores/auth.controlador';
 import { ComprasControlador } from '../../adaptadores/controladores/compras.controlador';
 import { KardexControlador } from '../../adaptadores/controladores/kardex.controlador';
 import { ProductosControlador } from '../../adaptadores/controladores/productos.controlador';
+import { SaludControlador } from '../../adaptadores/controladores/salud.controlador';
 import { VentasControlador } from '../../adaptadores/controladores/ventas.controlador';
 import { JwtEstrategia } from '../../adaptadores/seguridad/estrategias/jwt.estrategia';
 import { JwtAuthGuardia } from '../../adaptadores/seguridad/guardias/jwt-auth.guardia';

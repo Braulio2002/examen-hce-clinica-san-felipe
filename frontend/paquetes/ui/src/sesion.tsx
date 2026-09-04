@@ -1,21 +1,23 @@
 'use client';
 
-import {
-  api,
-  PerfilUsuario,
-  establecerToken,
-  registrarManejadorExpiracion,
-} from '@hce/api-cliente';
 import { useRouter } from 'next/navigation';
-import React, {
+import type React from 'react';
+import type { ReactNode } from 'react';
+import {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react';
+
+import {
+  api,
+  type PerfilUsuario,
+  establecerToken,
+  registrarManejadorExpiracion,
+} from '@hce/api-cliente';
 
 interface ContextoSesion {
   usuario: PerfilUsuario | null;
@@ -39,7 +41,9 @@ const Contexto = createContext<ContextoSesion | null>(null);
  * de modo que la expiracion del token redirige al login desde un unico lugar
  * en lugar de repetir la comprobacion en cada pantalla.
  */
-export function ProveedorSesion({ children }: { children: ReactNode }): React.JSX.Element {
+export function ProveedorSesion({
+  children,
+}: Readonly<{ children: ReactNode }>): React.JSX.Element {
   const [usuario, setUsuario] = useState<PerfilUsuario | null>(null);
   const [cargando, setCargando] = useState(true);
   const router = useRouter();
@@ -52,7 +56,10 @@ export function ProveedorSesion({ children }: { children: ReactNode }): React.JS
   useEffect(() => {
     registrarManejadorExpiracion(() => {
       cerrarSesionLocal();
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      if (
+        typeof window !== 'undefined' &&
+        !window.location.pathname.startsWith('/login')
+      ) {
         // El parametro expirada permite mostrar el aviso correcto en el login.
         window.location.href = '/login?expirada=1';
       }

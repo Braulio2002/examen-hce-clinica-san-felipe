@@ -3,6 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 
 import { MssqlModule, MssqlService, RegistroNest } from '@hce/compartido';
 
+import {
+  INVENTARIO_FACHADA,
+  InventarioControlador,
+} from '../../adaptadores/controladores/inventario.controlador';
+import { InventarioMssqlPasarela } from '../../adaptadores/pasarelas/inventario.mssql.pasarela';
+import { InventarioPasarelaTrazada } from '../../adaptadores/pasarelas/inventario.pasarela-trazada';
 import { ListarComprasCasoUso } from '../../aplicacion/casos-uso/listar-compras.caso-uso';
 import { ListarKardexCasoUso } from '../../aplicacion/casos-uso/listar-kardex.caso-uso';
 import { ListarVentasCasoUso } from '../../aplicacion/casos-uso/listar-ventas.caso-uso';
@@ -34,12 +40,6 @@ import {
   INVENTARIO_REPOSITORIO,
   InventarioRepositorio,
 } from '../../aplicacion/puertos/salida/inventario.repositorio';
-import {
-  INVENTARIO_FACHADA,
-  InventarioControlador,
-} from '../../adaptadores/controladores/inventario.controlador';
-import { InventarioMssqlPasarela } from '../../adaptadores/pasarelas/inventario.mssql.pasarela';
-import { InventarioPasarelaTrazada } from '../../adaptadores/pasarelas/inventario.pasarela-trazada';
 
 /**
  * CAPA 4 · INFRAESTRUCTURA — Raíz de composición del microservicio de Inventario.
@@ -74,12 +74,14 @@ import { InventarioPasarelaTrazada } from '../../adaptadores/pasarelas/inventari
     {
       provide: LISTAR_COMPRAS_PUERTO,
       inject: [INVENTARIO_REPOSITORIO],
-      useFactory: (r: InventarioRepositorio): ListarComprasPuerto => new ListarComprasCasoUso(r),
+      useFactory: (r: InventarioRepositorio): ListarComprasPuerto =>
+        new ListarComprasCasoUso(r),
     },
     {
       provide: OBTENER_COMPRA_PUERTO,
       inject: [INVENTARIO_REPOSITORIO],
-      useFactory: (r: InventarioRepositorio): ObtenerCompraPuerto => new ObtenerCompraCasoUso(r),
+      useFactory: (r: InventarioRepositorio): ObtenerCompraPuerto =>
+        new ObtenerCompraCasoUso(r),
     },
 
     /* --- Casos de uso: ventas ---------------------------------------------- */
@@ -92,19 +94,22 @@ import { InventarioPasarelaTrazada } from '../../adaptadores/pasarelas/inventari
     {
       provide: LISTAR_VENTAS_PUERTO,
       inject: [INVENTARIO_REPOSITORIO],
-      useFactory: (r: InventarioRepositorio): ListarVentasPuerto => new ListarVentasCasoUso(r),
+      useFactory: (r: InventarioRepositorio): ListarVentasPuerto =>
+        new ListarVentasCasoUso(r),
     },
     {
       provide: OBTENER_VENTA_PUERTO,
       inject: [INVENTARIO_REPOSITORIO],
-      useFactory: (r: InventarioRepositorio): ObtenerVentaPuerto => new ObtenerVentaCasoUso(r),
+      useFactory: (r: InventarioRepositorio): ObtenerVentaPuerto =>
+        new ObtenerVentaCasoUso(r),
     },
 
     /* --- Casos de uso: Kardex ---------------------------------------------- */
     {
       provide: LISTAR_KARDEX_PUERTO,
       inject: [INVENTARIO_REPOSITORIO],
-      useFactory: (r: InventarioRepositorio): ListarKardexPuerto => new ListarKardexCasoUso(r),
+      useFactory: (r: InventarioRepositorio): ListarKardexPuerto =>
+        new ListarKardexCasoUso(r),
     },
     {
       provide: MOVIMIENTOS_PRODUCTO_PUERTO,

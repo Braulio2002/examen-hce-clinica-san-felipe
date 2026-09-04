@@ -3,6 +3,15 @@ import { ConfigModule } from '@nestjs/config';
 
 import { MssqlModule, MssqlService, RegistroNest } from '@hce/compartido';
 
+import {
+  CATALOGO_FACHADA,
+  ProductoControlador,
+} from '../../adaptadores/controladores/producto.controlador';
+import { ProductoMssqlPasarela } from '../../adaptadores/pasarelas/producto.mssql.pasarela';
+import {
+  ProductoPasarelaConReintentos,
+  ProductoPasarelaTrazada,
+} from '../../adaptadores/pasarelas/producto.pasarela-decoradores';
 import { ActualizarProductoCasoUso } from '../../aplicacion/casos-uso/actualizar-producto.caso-uso';
 import { EliminarProductoCasoUso } from '../../aplicacion/casos-uso/eliminar-producto.caso-uso';
 import { ListarProductosCasoUso } from '../../aplicacion/casos-uso/listar-productos.caso-uso';
@@ -25,15 +34,6 @@ import {
   PRODUCTO_REPOSITORIO,
   ProductoRepositorio,
 } from '../../aplicacion/puertos/salida/producto.repositorio';
-import {
-  CATALOGO_FACHADA,
-  ProductoControlador,
-} from '../../adaptadores/controladores/producto.controlador';
-import { ProductoMssqlPasarela } from '../../adaptadores/pasarelas/producto.mssql.pasarela';
-import {
-  ProductoPasarelaConReintentos,
-  ProductoPasarelaTrazada,
-} from '../../adaptadores/pasarelas/producto.pasarela-decoradores';
 
 /**
  * CAPA 4 · INFRAESTRUCTURA — Raíz de composición del microservicio de Catálogo.

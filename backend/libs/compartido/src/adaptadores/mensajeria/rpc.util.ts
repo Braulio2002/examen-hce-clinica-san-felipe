@@ -1,8 +1,11 @@
 import { RequestTimeoutException } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import type { ClientProxy } from '@nestjs/microservices';
 import { catchError, firstValueFrom, throwError, timeout, TimeoutError } from 'rxjs';
 
-import { ErrorInfraestructura, ExcepcionDominio } from '../../dominio/excepciones/dominio.excepcion';
+import {
+  ErrorInfraestructura,
+  ExcepcionDominio,
+} from '../../dominio/excepciones/dominio.excepcion';
 
 /** Tiempo maximo que el Gateway espera la respuesta de un microservicio. */
 export const TIMEOUT_RPC_MS = 10_000;
@@ -17,14 +20,14 @@ export const TIMEOUT_RPC_MS = 10_000;
  *      filtro HTTP pueda devolver el status correcto en lugar de un 500 opaco.
  *   3. Un punto unico donde instrumentar trazabilidad entre servicios.
  */
-export async function enviarMensaje<TRespuesta, TPayload = unknown>(
+export async function enviarMensaje<TRespuesta>(
   cliente: ClientProxy,
   patron: string,
-  payload: TPayload,
+  payload: unknown,
   timeoutMs: number = TIMEOUT_RPC_MS,
 ): Promise<TRespuesta> {
   return firstValueFrom(
-    cliente.send<TRespuesta, TPayload>(patron, payload).pipe(
+    cliente.send<TRespuesta>(patron, payload).pipe(
       timeout(timeoutMs),
       catchError((error: unknown) => {
         if (error instanceof TimeoutError) {
@@ -54,9 +57,9 @@ export async function enviarMensaje<TRespuesta, TPayload = unknown>(
 function desenvolver(error: unknown): unknown {
   if (error && typeof error === 'object') {
     if ('codigo' in error) return error;
-    if ('error' in error) return (error as { error: unknown }).error;
-    if ('message' in error && typeof (error as { message: unknown }).message === 'object') {
-      return (error as { message: unknown }).message;
+    if ('error' in error) return error.error;
+    if ('message' in error && typeof error.message === 'object') {
+      return error.message;
     }
   }
   return error;

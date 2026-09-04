@@ -1,6 +1,6 @@
-import { ResultadoPaginado } from '@hce/compartido';
+import type { ResultadoPaginado } from '@hce/compartido';
 
-import {
+import type {
   ConsultaKardex,
   ConsultaPeriodo,
   DocumentoCompra,
@@ -15,7 +15,7 @@ import {
   ResumenCompra,
   ResumenVenta,
 } from '../modelos/inventario.modelos';
-import {
+import type {
   ListarComprasPuerto,
   ListarKardexPuerto,
   ListarVentasPuerto,
@@ -87,7 +87,9 @@ export class InventarioFachada {
     return this.listarKardexCasoUso.ejecutar(consulta);
   }
 
-  movimientosDeProducto(peticion: MovimientosProductoPeticion): Promise<MovimientoProducto[]> {
+  movimientosDeProducto(
+    peticion: MovimientosProductoPeticion,
+  ): Promise<MovimientoProducto[]> {
     return this.movimientosProductoCasoUso.ejecutar(peticion);
   }
 }

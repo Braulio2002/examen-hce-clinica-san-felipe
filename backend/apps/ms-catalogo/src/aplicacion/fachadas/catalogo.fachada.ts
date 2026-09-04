@@ -1,6 +1,6 @@
-import { ResultadoPaginado } from '@hce/compartido';
+import type { ResultadoPaginado } from '@hce/compartido';
 
-import {
+import type {
   ActualizarProductoPeticion,
   EliminarProductoPeticion,
   ListarProductosPeticion,
@@ -9,7 +9,7 @@ import {
   ProductoRespuesta,
   RegistrarProductoPeticion,
 } from '../modelos/producto.modelos';
-import {
+import type {
   ActualizarProductoPuerto,
   EliminarProductoPuerto,
   ListarProductosPuerto,
@@ -41,7 +41,9 @@ export class CatalogoFachada {
     return this.actualizarProducto.ejecutar(peticion);
   }
 
-  listar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>> {
+  listar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>> {
     return this.listarProductos.ejecutar(peticion);
   }
 

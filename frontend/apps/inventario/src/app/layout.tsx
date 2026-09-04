@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
+import type React from 'react';
+
 import { ProveedorSesion } from '@hce/ui';
-import React from 'react';
 
 import '@/lib/api';
 
@@ -27,9 +28,9 @@ export const viewport: Viewport = {
  */
 export default function LayoutInventario({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   return (
     <html lang="es-PE">
       <body>

@@ -1,8 +1,11 @@
 'use client';
 
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import {
   ErrorApi,
-  Producto,
+  type Producto,
   formatearFecha,
   formatearMoneda,
   precioVentaDesdeCosto,
@@ -11,15 +14,14 @@ import {
   Alerta,
   Boton,
   Campo,
-  Cargador,
   ContenedorTabla,
+  ContenidoAsincrono,
   EstadoVacio,
   EtiquetaStock,
   MarcoAplicacion,
   Modal,
   useSesion,
 } from '@hce/ui';
-import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 
 import { apiHce } from '@/lib/api';
 
@@ -51,7 +53,9 @@ export default function PaginaProductos(): React.JSX.Element {
       setProductos(resultado.datos);
       setTotalPaginas(Math.max(1, resultado.meta.totalPaginas));
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el catalogo.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el catalogo.',
+      );
     } finally {
       setCargando(false);
     }
@@ -118,35 +122,47 @@ export default function PaginaProductos(): React.JSX.Element {
         />
       </div>
 
-      {cargando ? (
-        <div className="flex justify-center py-16 text-slate-400">
-          <Cargador className="h-7 w-7" />
-        </div>
-      ) : productos.length === 0 ? (
-        <div className="tarjeta">
-          <EstadoVacio
-            titulo="Sin resultados"
-            descripcion={
-              buscar
-                ? 'Ningun producto coincide con la busqueda.'
-                : 'Aun no hay productos registrados en el catalogo.'
-            }
-          />
-        </div>
-      ) : (
+      <ContenidoAsincrono
+        cargando={cargando}
+        hayDatos={productos.length > 0}
+        vacio={
+          <div className="tarjeta">
+            <EstadoVacio
+              titulo="Sin resultados"
+              descripcion={
+                buscar
+                  ? 'Ningun producto coincide con la busqueda.'
+                  : 'Aun no hay productos registrados en el catalogo.'
+              }
+            />
+          </div>
+        }
+      >
         <>
           <ContenedorTabla>
             <table className="tabla-hce">
-              <caption className="sr-only">Catalogo de medicamentos e insumos medicos</caption>
+              <caption className="sr-only">
+                Catalogo de medicamentos e insumos medicos
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">Producto</th>
                   <th scope="col">Lote</th>
-                  <th scope="col" className="text-right">Costo</th>
-                  <th scope="col" className="text-right">Precio venta</th>
-                  <th scope="col" className="text-right">Stock</th>
+                  <th scope="col" className="text-right">
+                    Costo
+                  </th>
+                  <th scope="col" className="text-right">
+                    Precio venta
+                  </th>
+                  <th scope="col" className="text-right">
+                    Stock
+                  </th>
                   <th scope="col">Registrado</th>
-                  {puedeOperar && <th scope="col" className="text-right">Acciones</th>}
+                  {puedeOperar && (
+                    <th scope="col" className="text-right">
+                      Acciones
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -154,8 +170,12 @@ export default function PaginaProductos(): React.JSX.Element {
                   <tr key={p.idProducto}>
                     <td className="font-medium text-slate-900">{p.nombreProducto}</td>
                     <td className="text-slate-500">{p.nroLote}</td>
-                    <td className="text-right tabular-nums">{formatearMoneda(p.costo)}</td>
-                    <td className="text-right tabular-nums">{formatearMoneda(p.precioVenta)}</td>
+                    <td className="text-right tabular-nums">
+                      {formatearMoneda(p.costo)}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {formatearMoneda(p.precioVenta)}
+                    </td>
                     <td className="text-right">
                       <EtiquetaStock stock={p.stockActual} />
                     </td>
@@ -181,7 +201,10 @@ export default function PaginaProductos(): React.JSX.Element {
           </ContenedorTabla>
 
           {totalPaginas > 1 && (
-            <nav aria-label="Paginacion" className="mt-4 flex items-center justify-between">
+            <nav
+              aria-label="Paginacion"
+              className="mt-4 flex items-center justify-between"
+            >
               <Boton
                 variante="secundario"
                 tamano="sm"
@@ -204,7 +227,7 @@ export default function PaginaProductos(): React.JSX.Element {
             </nav>
           )}
         </>
-      )}
+      </ContenidoAsincrono>
 
       <ModalProducto
         abierto={modalAbierto}
@@ -227,12 +250,12 @@ function ModalProducto({
   producto,
   onCerrar,
   onGuardado,
-}: {
+}: Readonly<{
   abierto: boolean;
   producto: Producto | null;
   onCerrar: () => void;
   onGuardado: (mensaje: string) => void;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const [nombre, setNombre] = useState('');
   const [lote, setLote] = useState('');
   const [costo, setCosto] = useState('');
@@ -250,14 +273,21 @@ function ModalProducto({
   const costoNumero = Number(costo);
   const precioSugerido = precioVentaDesdeCosto(costoNumero);
 
-  const enviar = async (evento: FormEvent<HTMLFormElement>): Promise<void> => {
+  const enviar = async (evento: React.SyntheticEvent<HTMLFormElement>): Promise<void> => {
     evento.preventDefault();
     setError(null);
 
-    if (!nombre.trim()) return setError('El nombre del producto es obligatorio.');
-    if (!lote.trim()) return setError('El numero de lote es obligatorio.');
+    if (!nombre.trim()) {
+      setError('El nombre del producto es obligatorio.');
+      return;
+    }
+    if (!lote.trim()) {
+      setError('El numero de lote es obligatorio.');
+      return;
+    }
     if (!Number.isFinite(costoNumero) || costoNumero < 0) {
-      return setError('El costo debe ser un numero mayor o igual a cero.');
+      setError('El costo debe ser un numero mayor o igual a cero.');
+      return;
     }
 
     setGuardando(true);
@@ -278,7 +308,9 @@ function ModalProducto({
         onGuardado(`Producto "${nombre.trim()}" registrado.`);
       }
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo guardar el producto.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo guardar el producto.',
+      );
     } finally {
       setGuardando(false);
     }

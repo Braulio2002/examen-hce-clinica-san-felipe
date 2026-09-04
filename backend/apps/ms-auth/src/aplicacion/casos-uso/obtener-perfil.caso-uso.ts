@@ -1,8 +1,11 @@
 import { ErrorNoEncontrado } from '@hce/compartido';
 
-import { ObtenerPerfilPeticion, PerfilUsuarioRespuesta } from '../modelos/auth.modelos';
-import { ObtenerPerfilPuerto } from '../puertos/entrada/auth.puertos';
-import { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
+import type {
+  ObtenerPerfilPeticion,
+  PerfilUsuarioRespuesta,
+} from '../modelos/auth.modelos';
+import type { ObtenerPerfilPuerto } from '../puertos/entrada/auth.puertos';
+import type { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: obtener el perfil de un usuario.
@@ -17,7 +20,7 @@ export class ObtenerPerfilCasoUso implements ObtenerPerfilPuerto {
   async ejecutar(peticion: ObtenerPerfilPeticion): Promise<PerfilUsuarioRespuesta> {
     const usuario = await this.repositorio.buscarPorUsername(peticion.username);
 
-    if (!usuario || !usuario.activo) {
+    if (!usuario?.activo) {
       throw new ErrorNoEncontrado('Usuario', peticion.username);
     }
     return usuario.aPerfilPublico();

@@ -22,11 +22,41 @@ echo ">> Esperando a que SQL Server acepte conexiones en ${DB_HOST}:${DB_PORT}..
 for intento in $(seq 1 60); do
   if "$SQLCMD" -S "${DB_HOST},${DB_PORT}" -U "$DB_USER" -P "$DB_PASSWORD" -C -l 5 \
        -Q "SELECT 1" > /dev/null 2>&1; then
-    echo ">> SQL Server disponible (intento ${intento})."
+    echo ">> SQL Server acepta conexiones (intento ${intento})."
     break
   fi
   if [ "$intento" -eq 60 ]; then
     echo "!! SQL Server no respondio tras 60 intentos. Se aborta la inicializacion." >&2
+    exit 1
+  fi
+  sleep 2
+done
+
+# -----------------------------------------------------------------------------
+# Que el motor acepte conexiones NO significa que las bases esten disponibles.
+#
+# Cuando el volumen ya contiene HCE_Insumos, SQL Server sigue recuperandola
+# despues de aceptar la primera conexion, y cualquier ALTER DATABASE contra ella
+# falla con "Database N cannot be autostarted during server shutdown or
+# startup". Ese fallo aparecio al reiniciar el compose sobre datos existentes, y
+# dejaba todo el ecosistema abajo porque los microservicios esperan a que este
+# contenedor termine con exito.
+#
+# Se espera a que ninguna base quede fuera de estado ONLINE antes de continuar.
+# -----------------------------------------------------------------------------
+echo ">> Esperando a que las bases de datos terminen de recuperarse..."
+
+for intento in $(seq 1 60); do
+  pendientes=$("$SQLCMD" -S "${DB_HOST},${DB_PORT}" -U "$DB_USER" -P "$DB_PASSWORD" -C -h -1 -W \
+    -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM sys.databases WHERE state_desc <> 'ONLINE';" \
+    2>/dev/null | tr -d '[:space:]')
+
+  if [ "$pendientes" = "0" ]; then
+    echo ">> Todas las bases estan en linea (intento ${intento})."
+    break
+  fi
+  if [ "$intento" -eq 60 ]; then
+    echo "!! Hay bases que no llegaron a estado ONLINE. Se aborta la inicializacion." >&2
     exit 1
   fi
   sleep 2

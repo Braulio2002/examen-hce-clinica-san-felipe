@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import React from 'react';
+import type React from 'react';
 
 import { ProveedorSesion } from '@hce/ui';
 
@@ -26,9 +26,9 @@ export const viewport: Viewport = {
 
 export default function LayoutRaiz({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   return (
     <html lang="es-PE">
       <body>

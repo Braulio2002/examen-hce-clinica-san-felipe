@@ -21,17 +21,21 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CLIENTES_MICROSERVICIO, enviarMensaje, PATRONES_CATALOGO } from '@hce/compartido';
+import {
+  CLIENTES_MICROSERVICIO,
+  enviarMensaje,
+  PATRONES_CATALOGO,
+} from '@hce/compartido';
 
-import { Roles } from '../seguridad/decoradores/roles.decorador';
-import { UsuarioActual } from '../seguridad/decoradores/usuario-actual.decorador';
-import { UsuarioAutenticado } from '../seguridad/estrategias/jwt.estrategia';
 import {
   ActualizarProductoDto,
   CrearProductoDto,
   ListarProductosDto,
   ProductoRespuestaDto,
 } from '../dto/producto.dto';
+import { Roles } from '../seguridad/decoradores/roles.decorador';
+import { UsuarioActual } from '../seguridad/decoradores/usuario-actual.decorador';
+import { UsuarioAutenticado } from '../seguridad/estrategias/jwt.estrategia';
 
 /**
  * Enrutamiento HTTP del catalogo de insumos medicos.
@@ -45,7 +49,8 @@ import {
 @Controller('productos')
 export class ProductosControlador {
   constructor(
-    @Inject(CLIENTES_MICROSERVICIO.CATALOGO) private readonly clienteCatalogo: ClientProxy,
+    @Inject(CLIENTES_MICROSERVICIO.CATALOGO)
+    private readonly clienteCatalogo: ClientProxy,
   ) {}
 
   @Post()
@@ -58,13 +63,24 @@ export class ProductosControlador {
       'de la pantalla de compras.',
   })
   @ApiCreatedResponse({ type: ProductoRespuestaDto })
-  @ApiConflictResponse({ description: 'Ya existe un producto con el mismo nombre y lote' })
+  @ApiConflictResponse({
+    description: 'Ya existe un producto con el mismo nombre y lote',
+  })
   registrar(
     @Body() datos: CrearProductoDto,
     @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<ProductoRespuestaDto> {
+    /*
+     * Los campos se enumeran en lugar de difundir el DTO con `...datos`:
+     * difundir una instancia de clase copia solo sus propiedades propias y
+     * pierde lo que aporte el prototipo, y ademas oculta que campo viaja al
+     * microservicio. Enumerarlos hace explicito el contrato del mensaje.
+     */
     return enviarMensaje(this.clienteCatalogo, PATRONES_CATALOGO.REGISTRAR_PRODUCTO, {
-      ...datos,
+      nombreProducto: datos.nombreProducto,
+      nroLote: datos.nroLote,
+      costo: datos.costo,
+      precioVenta: datos.precioVenta,
       usuarioApp: usuario.username,
     });
   }
@@ -86,7 +102,10 @@ export class ProductosControlador {
   ): Promise<ProductoRespuestaDto> {
     return enviarMensaje(this.clienteCatalogo, PATRONES_CATALOGO.ACTUALIZAR_PRODUCTO, {
       idProducto,
-      ...datos,
+      nombreProducto: datos.nombreProducto,
+      nroLote: datos.nroLote,
+      costo: datos.costo,
+      precioVenta: datos.precioVenta,
       usuarioApp: usuario.username,
     });
   }
@@ -99,7 +118,11 @@ export class ProductosControlador {
       'calculado desde la tabla de movimientos.',
   })
   listar(@Query() criterios: ListarProductosDto) {
-    return enviarMensaje(this.clienteCatalogo, PATRONES_CATALOGO.LISTAR_PRODUCTOS, criterios);
+    return enviarMensaje(
+      this.clienteCatalogo,
+      PATRONES_CATALOGO.LISTAR_PRODUCTOS,
+      criterios,
+    );
   }
 
   @Get(':id')

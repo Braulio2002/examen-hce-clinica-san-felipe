@@ -1,7 +1,10 @@
-import { medirTiempo, RegistroPuerto, ResultadoPaginado } from '@hce/compartido';
-
-import { LineaCompra, LineaVenta } from '../../dominio/entidades/inventario.entidades';
 import {
+  medirTiempo,
+  type RegistroPuerto,
+  type ResultadoPaginado,
+} from '@hce/compartido';
+
+import type {
   ConsultaKardex,
   ConsultaPeriodo,
   DocumentoCompra,
@@ -11,7 +14,11 @@ import {
   ResumenCompra,
   ResumenVenta,
 } from '../../aplicacion/modelos/inventario.modelos';
-import { InventarioRepositorio } from '../../aplicacion/puertos/salida/inventario.repositorio';
+import type { InventarioRepositorio } from '../../aplicacion/puertos/salida/inventario.repositorio';
+import type {
+  LineaCompra,
+  LineaVenta,
+} from '../../dominio/entidades/inventario.entidades';
 
 /**
  * CAPA 3 · ADAPTADORES — PATRON DECORATOR sobre la pasarela de inventario.
@@ -40,7 +47,10 @@ export class InventarioPasarelaTrazada implements InventarioRepositorio {
 
   /* --- Compras -------------------------------------------------------------- */
 
-  registrarCompra(lineas: readonly LineaCompra[], usuarioApp?: string): Promise<DocumentoCompra> {
+  registrarCompra(
+    lineas: readonly LineaCompra[],
+    usuarioApp?: string,
+  ): Promise<DocumentoCompra> {
     return medirTiempo(
       this.registro,
       `registrarCompra(${lineas.length} lineas, usuario=${usuarioApp ?? '-'})`,
@@ -50,8 +60,10 @@ export class InventarioPasarelaTrazada implements InventarioRepositorio {
   }
 
   listarCompras(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenCompra>> {
-    return medirTiempo(this.registro, `listarCompras(pagina=${consulta.pagina ?? 1})`, () =>
-      this.interno.listarCompras(consulta),
+    return medirTiempo(
+      this.registro,
+      `listarCompras(pagina=${consulta.pagina ?? 1})`,
+      () => this.interno.listarCompras(consulta),
     );
   }
 
@@ -63,7 +75,10 @@ export class InventarioPasarelaTrazada implements InventarioRepositorio {
 
   /* --- Ventas --------------------------------------------------------------- */
 
-  registrarVenta(lineas: readonly LineaVenta[], usuarioApp?: string): Promise<DocumentoVenta> {
+  registrarVenta(
+    lineas: readonly LineaVenta[],
+    usuarioApp?: string,
+  ): Promise<DocumentoVenta> {
     return medirTiempo(
       this.registro,
       `registrarVenta(${lineas.length} lineas, usuario=${usuarioApp ?? '-'})`,
@@ -73,8 +88,10 @@ export class InventarioPasarelaTrazada implements InventarioRepositorio {
   }
 
   listarVentas(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenVenta>> {
-    return medirTiempo(this.registro, `listarVentas(pagina=${consulta.pagina ?? 1})`, () =>
-      this.interno.listarVentas(consulta),
+    return medirTiempo(
+      this.registro,
+      `listarVentas(pagina=${consulta.pagina ?? 1})`,
+      () => this.interno.listarVentas(consulta),
     );
   }
 
@@ -87,8 +104,10 @@ export class InventarioPasarelaTrazada implements InventarioRepositorio {
   /* --- Kardex --------------------------------------------------------------- */
 
   listarKardex(consulta: ConsultaKardex): Promise<ResultadoPaginado<FilaKardex>> {
-    return medirTiempo(this.registro, `listarKardex(pagina=${consulta.pagina ?? 1})`, () =>
-      this.interno.listarKardex(consulta),
+    return medirTiempo(
+      this.registro,
+      `listarKardex(pagina=${consulta.pagina ?? 1})`,
+      () => this.interno.listarKardex(consulta),
     );
   }
 

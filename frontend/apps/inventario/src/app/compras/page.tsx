@@ -1,26 +1,25 @@
 'use client';
 
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import {
   ErrorApi,
-  Producto,
+  type Producto,
   calcularImportes,
   formatearMoneda,
-  precioVentaDesdeCosto,
   sumarImportes,
 } from '@hce/api-cliente';
 import {
   Alerta,
   Boton,
-  Campo,
-  Cargador,
   ContenedorTabla,
   EstadoVacio,
   MarcoAplicacion,
-  Modal,
   useSesion,
 } from '@hce/ui';
-import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { ModalNuevoProducto } from '@/componentes/ModalNuevoProducto';
 import { apiHce } from '@/lib/api';
 
 /**
@@ -67,7 +66,9 @@ export default function PaginaCompras(): React.JSX.Element {
       const resultado = await apiHce.productos.listar({ tamanoPagina: 200 });
       setProductos(resultado.datos);
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el catalogo.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el catalogo.',
+      );
     } finally {
       setCargandoCatalogo(false);
     }
@@ -98,7 +99,11 @@ export default function PaginaCompras(): React.JSX.Element {
     setSeleccion('');
   };
 
-  const actualizarLinea = (idFila: string, campo: 'cantidad' | 'precio', valor: string): void => {
+  const actualizarLinea = (
+    idFila: string,
+    campo: 'cantidad' | 'precio',
+    valor: string,
+  ): void => {
     setLineas((actuales) =>
       actuales.map((l) => (l.idFila === idFila ? { ...l, [campo]: valor } : l)),
     );
@@ -111,14 +116,30 @@ export default function PaginaCompras(): React.JSX.Element {
   const totales = useMemo(
     () =>
       sumarImportes(
-        lineas.map((l) => calcularImportes(Number(l.cantidad) || 0, Number(l.precio) || 0)),
+        lineas.map((l) =>
+          calcularImportes(Number(l.cantidad) || 0, Number(l.precio) || 0),
+        ),
       ),
     [lineas],
   );
 
-  const hayLineasInvalidas = lineas.some(
-    (l) => !(Number(l.cantidad) > 0) || !(Number(l.precio) >= 0) || l.precio === '',
-  );
+  /*
+   * Se comprueba con Number.isFinite y no con `!(x > 0)`: un campo vacio o con
+   * texto produce NaN, y `NaN <= 0` es false, de modo que la forma invertida
+   * dejaria pasar una linea invalida. La comprobacion explicita cubre los tres
+   * casos: no numerico, no positivo y costo sin escribir.
+   */
+  const hayLineasInvalidas = lineas.some((l) => {
+    const cantidad = Number(l.cantidad);
+    const precio = Number(l.precio);
+    return (
+      !Number.isFinite(cantidad) ||
+      cantidad <= 0 ||
+      !Number.isFinite(precio) ||
+      precio < 0 ||
+      l.precio === ''
+    );
+  });
 
   const registrar = async (): Promise<void> => {
     setError(null);
@@ -129,7 +150,9 @@ export default function PaginaCompras(): React.JSX.Element {
       return;
     }
     if (hayLineasInvalidas) {
-      setError('Revise las cantidades y los costos: deben ser numeros validos y mayores a cero.');
+      setError(
+        'Revise las cantidades y los costos: deben ser numeros validos y mayores a cero.',
+      );
       return;
     }
 
@@ -150,7 +173,9 @@ export default function PaginaCompras(): React.JSX.Element {
       // El catalogo cambio (costo y precio): se recarga para reflejarlo.
       await cargarCatalogo();
     } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo registrar la compra.');
+      setError(
+        fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo registrar la compra.',
+      );
     } finally {
       setGuardando(false);
     }
@@ -160,8 +185,8 @@ export default function PaginaCompras(): React.JSX.Element {
     return (
       <MarcoAplicacion titulo="Registrar compra">
         <Alerta tipo="aviso" titulo="Acceso restringido">
-          Su rol permite consultar informacion, pero no registrar compras. Solicite acceso al
-          administrador del sistema.
+          Su rol permite consultar informacion, pero no registrar compras. Solicite acceso
+          al administrador del sistema.
         </Alerta>
       </MarcoAplicacion>
     );
@@ -242,17 +267,32 @@ export default function PaginaCompras(): React.JSX.Element {
               <thead>
                 <tr>
                   <th scope="col">Producto</th>
-                  <th scope="col" className="w-32">Cantidad</th>
-                  <th scope="col" className="w-36">Costo unitario</th>
-                  <th scope="col" className="text-right">Subtotal</th>
-                  <th scope="col" className="text-right">IGV</th>
-                  <th scope="col" className="text-right">Total</th>
-                  <th scope="col"><span className="sr-only">Acciones</span></th>
+                  <th scope="col" className="w-32">
+                    Cantidad
+                  </th>
+                  <th scope="col" className="w-36">
+                    Costo unitario
+                  </th>
+                  <th scope="col" className="text-right">
+                    Subtotal
+                  </th>
+                  <th scope="col" className="text-right">
+                    IGV
+                  </th>
+                  <th scope="col" className="text-right">
+                    Total
+                  </th>
+                  <th scope="col">
+                    <span className="sr-only">Acciones</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {lineas.map((l) => {
-                  const importes = calcularImportes(Number(l.cantidad) || 0, Number(l.precio) || 0);
+                  const importes = calcularImportes(
+                    Number(l.cantidad) || 0,
+                    Number(l.precio) || 0,
+                  );
                   return (
                     <tr key={l.idFila}>
                       <td>
@@ -267,7 +307,9 @@ export default function PaginaCompras(): React.JSX.Element {
                           inputMode="decimal"
                           aria-label={`Cantidad de ${l.nombreProducto}`}
                           value={l.cantidad}
-                          onChange={(e) => actualizarLinea(l.idFila, 'cantidad', e.target.value)}
+                          onChange={(e) =>
+                            actualizarLinea(l.idFila, 'cantidad', e.target.value)
+                          }
                           className="w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-clinica-600"
                         />
                       </td>
@@ -279,14 +321,18 @@ export default function PaginaCompras(): React.JSX.Element {
                           inputMode="decimal"
                           aria-label={`Costo unitario de ${l.nombreProducto}`}
                           value={l.precio}
-                          onChange={(e) => actualizarLinea(l.idFila, 'precio', e.target.value)}
+                          onChange={(e) =>
+                            actualizarLinea(l.idFila, 'precio', e.target.value)
+                          }
                           className="w-full min-h-[40px] rounded-lg border-0 px-2 py-1.5 text-right tabular-nums ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-clinica-600"
                         />
                       </td>
                       <td className="text-right tabular-nums">
                         {formatearMoneda(importes.subTotal)}
                       </td>
-                      <td className="text-right tabular-nums">{formatearMoneda(importes.igv)}</td>
+                      <td className="text-right tabular-nums">
+                        {formatearMoneda(importes.igv)}
+                      </td>
                       <td className="text-right font-medium tabular-nums text-slate-900">
                         {formatearMoneda(importes.total)}
                       </td>
@@ -319,7 +365,9 @@ export default function PaginaCompras(): React.JSX.Element {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">IGV</dt>
-                  <dd className="tabular-nums text-slate-900">{formatearMoneda(totales.igv)}</dd>
+                  <dd className="tabular-nums text-slate-900">
+                    {formatearMoneda(totales.igv)}
+                  </dd>
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-1.5">
                   <dt className="font-semibold text-slate-900">Total</dt>
@@ -331,7 +379,11 @@ export default function PaginaCompras(): React.JSX.Element {
             </div>
 
             <div className="flex gap-2">
-              <Boton variante="secundario" onClick={() => setLineas([])} disabled={guardando}>
+              <Boton
+                variante="secundario"
+                onClick={() => setLineas([])}
+                disabled={guardando}
+              >
                 Vaciar
               </Boton>
               <Boton tamano="lg" onClick={() => void registrar()} cargando={guardando}>
@@ -352,117 +404,5 @@ export default function PaginaCompras(): React.JSX.Element {
         }}
       />
     </MarcoAplicacion>
-  );
-}
-
-/* -----------------------------------------------------------------------------
-   Modal de alta rapida de producto, invocado desde la compra
-   -------------------------------------------------------------------------- */
-function ModalNuevoProducto({
-  abierto,
-  onCerrar,
-  onCreado,
-}: {
-  abierto: boolean;
-  onCerrar: () => void;
-  onCreado: (producto: Producto) => void;
-}): React.JSX.Element {
-  const [nombre, setNombre] = useState('');
-  const [lote, setLote] = useState('');
-  const [costo, setCosto] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-
-  useEffect(() => {
-    if (abierto) {
-      setNombre('');
-      setLote('');
-      setCosto('');
-      setError(null);
-    }
-  }, [abierto]);
-
-  const costoNumero = Number(costo);
-
-  const enviar = async (evento: FormEvent<HTMLFormElement>): Promise<void> => {
-    evento.preventDefault();
-    setError(null);
-
-    if (!nombre.trim()) return setError('El nombre del producto es obligatorio.');
-    if (!lote.trim()) return setError('El numero de lote es obligatorio.');
-    if (!Number.isFinite(costoNumero) || costoNumero < 0) {
-      return setError('El costo debe ser un numero mayor o igual a cero.');
-    }
-
-    setGuardando(true);
-    try {
-      const producto = await apiHce.productos.registrar({
-        nombreProducto: nombre.trim(),
-        nroLote: lote.trim(),
-        costo: costoNumero,
-      });
-      onCreado(producto);
-    } catch (fallo) {
-      setError(fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo registrar el producto.');
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  return (
-    <Modal
-      abierto={abierto}
-      titulo="Registrar producto"
-      descripcion="El producto se agrega al catalogo y se anade a la compra en curso."
-      onCerrar={onCerrar}
-      ancho="md"
-      pie={
-        <>
-          <Boton variante="secundario" onClick={onCerrar} disabled={guardando}>
-            Cancelar
-          </Boton>
-          <Boton type="submit" form="formulario-nuevo-producto" cargando={guardando}>
-            Registrar y agregar
-          </Boton>
-        </>
-      }
-    >
-      <form id="formulario-nuevo-producto" onSubmit={enviar} noValidate className="space-y-4">
-        {error && <Alerta tipo="error">{error}</Alerta>}
-
-        <Campo
-          etiqueta="Nombre del producto"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder="Ketorolaco 30 mg Ampolla"
-          maxLength={150}
-          disabled={guardando}
-        />
-        <Campo
-          etiqueta="Numero de lote"
-          value={lote}
-          onChange={(e) => setLote(e.target.value)}
-          placeholder="LT-2026-0013"
-          maxLength={50}
-          disabled={guardando}
-        />
-        <Campo
-          etiqueta="Costo unitario"
-          type="number"
-          inputMode="decimal"
-          step="0.0001"
-          min="0"
-          value={costo}
-          onChange={(e) => setCosto(e.target.value)}
-          placeholder="0.45"
-          disabled={guardando}
-          ayuda={
-            costo && Number.isFinite(costoNumero) && costoNumero >= 0
-              ? `Precio de venta inicial: ${formatearMoneda(precioVentaDesdeCosto(costoNumero))} (costo x 1.35)`
-              : 'El precio de venta se calcula como costo x 1.35'
-          }
-        />
-      </form>
-    </Modal>
   );
 }

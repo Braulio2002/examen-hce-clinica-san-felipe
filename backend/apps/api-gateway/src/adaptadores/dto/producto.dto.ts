@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform, type TransformFnParams, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsNotEmpty,
@@ -12,19 +12,31 @@ import {
 
 import { PaginacionBusquedaDto } from '@hce/compartido';
 
+/**
+ * Recorta los espacios de un campo de texto antes de validarlo.
+ *
+ * Se declara como funcion con tipos explicitos en lugar de una lambda en linea
+ * porque `TransformFnParams.value` es `any`: devolverlo directamente propaga ese
+ * `any` al DTO y anula el tipado estricto justo en la frontera por donde entra
+ * la informacion del exterior, que es donde mas importa.
+ */
+function recortarTexto({ value }: TransformFnParams): unknown {
+  return typeof value === 'string' ? value.trim() : value;
+}
+
 export class CrearProductoDto {
   @ApiProperty({ example: 'Paracetamol 500 mg Tableta', maxLength: 150 })
   @IsString()
   @IsNotEmpty({ message: 'El nombre del producto es obligatorio.' })
   @MaxLength(150)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(recortarTexto)
   nombreProducto!: string;
 
   @ApiProperty({ example: 'LT-2026-0001', maxLength: 50 })
   @IsString()
   @IsNotEmpty({ message: 'El numero de lote es obligatorio.' })
   @MaxLength(50)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(recortarTexto)
   nroLote!: string;
 
   @ApiProperty({ example: 0.45, description: 'Costo unitario de adquisicion' })
@@ -50,7 +62,7 @@ export class ActualizarProductoDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre no puede quedar vacio.' })
   @MaxLength(150)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(recortarTexto)
   nombreProducto?: string;
 
   @ApiPropertyOptional({ maxLength: 50 })
@@ -58,7 +70,7 @@ export class ActualizarProductoDto {
   @IsString()
   @IsNotEmpty({ message: 'El numero de lote no puede quedar vacio.' })
   @MaxLength(50)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(recortarTexto)
   nroLote?: string;
 
   @ApiPropertyOptional({ example: 0.52 })

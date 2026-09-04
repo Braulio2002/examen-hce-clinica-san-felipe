@@ -1,8 +1,8 @@
-import { normalizarPaginacion, ResultadoPaginado } from '@hce/compartido';
+import { normalizarPaginacion, type ResultadoPaginado } from '@hce/compartido';
 
-import { ConsultaPeriodo, ResumenCompra } from '../modelos/inventario.modelos';
-import { ListarComprasPuerto } from '../puertos/entrada/inventario.puertos';
-import { CompraRepositorio } from '../puertos/salida/inventario.repositorio';
+import type { ConsultaPeriodo, ResumenCompra } from '../modelos/inventario.modelos';
+import type { ListarComprasPuerto } from '../puertos/entrada/inventario.puertos';
+import type { CompraRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Listar Compra.

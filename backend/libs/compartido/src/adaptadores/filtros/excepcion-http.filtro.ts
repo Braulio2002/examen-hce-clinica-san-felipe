@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { CodigoError, ExcepcionDominio } from '../../dominio/excepciones/dominio.excepcion';
+import {
+  CodigoError,
+  ExcepcionDominio,
+} from '../../dominio/excepciones/dominio.excepcion';
 
 /** Cuerpo de error uniforme que devuelve la API a cualquier cliente. */
 export interface RespuestaError {
@@ -52,7 +55,7 @@ export class ExcepcionHttpFiltro implements ExceptionFilter {
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
         `${peticion.method} ${peticion.url} -> ${status} ${mensaje}`,
-        (excepcion as Error)?.stack,
+        trazaDe(excepcion),
       );
     } else {
       this.logger.warn(`${peticion.method} ${peticion.url} -> ${status} ${mensaje}`);
@@ -102,19 +105,15 @@ export class ExcepcionHttpFiltro implements ExceptionFilter {
           ? respuesta
           : ((respuesta as { message?: string | string[] }).message ?? excepcion.message);
 
-      const status = excepcion.getStatus();
+      // Se tipa como HttpStatus y no como number: comparar un number suelto
+      // contra miembros del enum es exactamente lo que detecta la regla
+      // no-unsafe-enum-comparison, y esconde errores cuando el enum cambia.
+      const status: HttpStatus = excepcion.getStatus();
 
       return {
         status,
         codigo: this.codigoDesdeStatus(status),
-        // El mensaje crudo del throttler ("ThrottlerException: Too Many
-        // Requests") no le dice nada al usuario final.
-        mensaje:
-          status === HttpStatus.TOO_MANY_REQUESTS
-            ? 'Ha superado el limite de peticiones permitido. Intente nuevamente en unos segundos.'
-            : Array.isArray(mensaje)
-              ? mensaje.join(' | ')
-              : mensaje,
+        mensaje: this.mensajePresentable(status, mensaje),
         detalles: Array.isArray(mensaje) ? { errores: mensaje } : undefined,
       };
     }
@@ -129,34 +128,66 @@ export class ExcepcionHttpFiltro implements ExceptionFilter {
 
   /** Los errores RPC llegan como el objeto plano que serializo el microservicio. */
   private extraerPayload(excepcion: unknown): unknown {
-    if (excepcion && typeof excepcion === 'object' && 'codigo' in excepcion) return excepcion;
+    if (excepcion && typeof excepcion === 'object' && 'codigo' in excepcion)
+      return excepcion;
     if (excepcion && typeof excepcion === 'object' && 'error' in excepcion) {
-      return (excepcion as { error: unknown }).error;
+      return excepcion.error;
     }
     return excepcion;
   }
 
-  private codigoDesdeStatus(status: number): string {
-    switch (status) {
-      case HttpStatus.BAD_REQUEST:
-        return CodigoError.VALIDACION;
-      case HttpStatus.UNAUTHORIZED:
-        return CodigoError.NO_AUTORIZADO;
-      case HttpStatus.FORBIDDEN:
-        return CodigoError.PROHIBIDO;
-      case HttpStatus.NOT_FOUND:
-        return CodigoError.NO_ENCONTRADO;
-      case HttpStatus.CONFLICT:
-        return CodigoError.CONFLICTO;
-      case HttpStatus.UNPROCESSABLE_ENTITY:
-        return CodigoError.STOCK_INSUFICIENTE;
-      case HttpStatus.TOO_MANY_REQUESTS:
-        // No es un error de dominio ni de infraestructura: es el rate limit
-        // actuando. El FrontEnd lo usa para mostrar "espere un momento" en
-        // lugar de "error interno".
-        return 'LIMITE_PETICIONES';
-      default:
-        return CodigoError.INFRAESTRUCTURA;
+  /**
+   * Mensaje que se muestra al usuario final.
+   *
+   * El texto crudo del throttler ("ThrottlerException: Too Many Requests") no le
+   * dice nada a quien esta usando la aplicacion; el resto de mensajes ya vienen
+   * redactados por el ValidationPipe o por el dominio.
+   */
+  private mensajePresentable(status: HttpStatus, mensaje: string | string[]): string {
+    if (status === HttpStatus.TOO_MANY_REQUESTS) {
+      return 'Ha superado el limite de peticiones permitido. Intente nuevamente en unos segundos.';
     }
+    return Array.isArray(mensaje) ? mensaje.join(' | ') : mensaje;
   }
+
+  /**
+   * Traduce el status HTTP al codigo estable que consume el cliente.
+   *
+   * Se expresa como tabla y no como `switch` porque un `switch` sobre un enum
+   * con mas de sesenta miembros nunca es exhaustivo, y la regla
+   * switch-exhaustiveness-check lo senala con razon: obligaria a enumerar
+   * decenas de casos que jamas se producen. La tabla solo declara los que este
+   * sistema emite, y el resto cae en el valor por defecto.
+   */
+  private codigoDesdeStatus(status: HttpStatus): string {
+    return CODIGO_POR_STATUS[status] ?? CodigoError.INFRAESTRUCTURA;
+  }
+}
+
+/**
+ * Codigos de dominio que corresponden a cada status HTTP emitido por la API.
+ *
+ * `LIMITE_PETICIONES` no es un error de dominio ni de infraestructura: es el
+ * rate limit actuando. El FrontEnd lo usa para mostrar "espere un momento" en
+ * lugar de "error interno".
+ */
+const CODIGO_POR_STATUS: Readonly<Partial<Record<HttpStatus, string>>> = {
+  [HttpStatus.BAD_REQUEST]: CodigoError.VALIDACION,
+  [HttpStatus.UNAUTHORIZED]: CodigoError.NO_AUTORIZADO,
+  [HttpStatus.FORBIDDEN]: CodigoError.PROHIBIDO,
+  [HttpStatus.NOT_FOUND]: CodigoError.NO_ENCONTRADO,
+  [HttpStatus.CONFLICT]: CodigoError.CONFLICTO,
+  [HttpStatus.UNPROCESSABLE_ENTITY]: CodigoError.STOCK_INSUFICIENTE,
+  [HttpStatus.TOO_MANY_REQUESTS]: 'LIMITE_PETICIONES',
+};
+
+/**
+ * Extrae la traza de una excepcion de tipo desconocido.
+ *
+ * Un `as Error` haria creer al compilador que siempre hay `stack`, y lo que
+ * llega por el filtro puede ser cualquier cosa: una cadena, un objeto plano
+ * serializado por el transporte RPC o null.
+ */
+function trazaDe(excepcion: unknown): string | undefined {
+  return excepcion instanceof Error ? excepcion.stack : undefined;
 }

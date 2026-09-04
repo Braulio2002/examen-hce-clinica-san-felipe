@@ -71,10 +71,17 @@ export const LIMITES_PAGINACION = {
  * Normaliza una consulta paginada aplicando los límites.
  * Evita que un cliente pida cien mil registros de una vez y sature la base.
  */
-export function normalizarPaginacion(consulta: Partial<ConsultaPaginada>): ConsultaPaginada {
-  const pagina = Math.max(LIMITES_PAGINACION.PAGINA_MINIMA, Math.trunc(consulta.pagina ?? 1) || 1);
+export function normalizarPaginacion(
+  consulta: Partial<ConsultaPaginada>,
+): ConsultaPaginada {
+  const pagina = Math.max(
+    LIMITES_PAGINACION.PAGINA_MINIMA,
+    Math.trunc(consulta.pagina ?? 1) || 1,
+  );
 
-  const solicitado = Math.trunc(consulta.tamanoPagina ?? LIMITES_PAGINACION.TAMANO_POR_DEFECTO);
+  const solicitado = Math.trunc(
+    consulta.tamanoPagina ?? LIMITES_PAGINACION.TAMANO_POR_DEFECTO,
+  );
   const tamanoPagina =
     solicitado < 1
       ? LIMITES_PAGINACION.TAMANO_POR_DEFECTO

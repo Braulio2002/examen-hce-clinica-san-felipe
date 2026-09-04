@@ -85,7 +85,9 @@ export class Importe {
 
   equals(otro: Importe): boolean {
     return (
-      this.subTotal === otro.subTotal && this.igv === otro.igv && this.total === otro.total
+      this.subTotal === otro.subTotal &&
+      this.igv === otro.igv &&
+      this.total === otro.total
     );
   }
 

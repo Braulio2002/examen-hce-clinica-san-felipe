@@ -1,6 +1,6 @@
-import { ResultadoPaginado } from '@hce/compartido';
+import type { ResultadoPaginado } from '@hce/compartido';
 
-import {
+import type {
   ActualizarProductoPeticion,
   ListarProductosPeticion,
   ProductoRespuesta,
@@ -17,7 +17,9 @@ import {
 export interface ProductoRepositorio {
   registrar(peticion: RegistrarProductoPeticion): Promise<ProductoRespuesta>;
   actualizar(peticion: ActualizarProductoPeticion): Promise<ProductoRespuesta>;
-  listar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>>;
+  listar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>>;
   obtener(idProducto: number): Promise<ProductoRespuesta | null>;
   eliminar(idProducto: number, usuarioApp?: string): Promise<void>;
 }

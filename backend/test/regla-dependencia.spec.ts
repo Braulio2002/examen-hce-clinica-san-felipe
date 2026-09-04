@@ -67,11 +67,23 @@ function listarFuentes(directorio: string): string[] {
 /** Extrae los especificadores de todos los `import ... from '...'` del archivo. */
 function extraerImports(contenido: string): string[] {
   const especificadores: string[] = [];
-  const patron = /(?:^|\n)\s*import\s[^;]*?from\s+['"]([^'"]+)['"]/g;
 
-  let coincidencia: RegExpExecArray | null;
-  while ((coincidencia = patron.exec(contenido)) !== null) {
-    especificadores.push(coincidencia[1]);
+  /*
+   * Se recorre linea a linea en lugar de aplicar un patron global sobre todo el
+   * archivo. Una expresion del tipo `import[^;]*?from` tiene retroceso
+   * super-lineal: el motor reevalua cada posicion y una entrada construida a
+   * proposito la dispara (ReDoS). Filtrar primero por linea y aplicar despues un
+   * patron sin cuantificadores anidados es lineal por construccion.
+   */
+  const patron = /from ['"]([^'"]+)['"]/;
+
+  for (const linea of contenido.split('\n')) {
+    const recortada = linea.trimStart();
+    if (!recortada.startsWith('import')) continue;
+
+    // Con noUncheckedIndexedAccess el grupo de captura es string | undefined.
+    const especificador = patron.exec(recortada)?.[1];
+    if (especificador) especificadores.push(especificador);
   }
   return especificadores;
 }
@@ -79,7 +91,9 @@ function extraerImports(contenido: string): string[] {
 /** Determina a qué capa pertenece una ruta de archivo, si es que pertenece a alguna. */
 function capaDe(rutaRelativa: string): Capa | null {
   const segmentos = rutaRelativa.split(sep);
-  return (ORDEN_CAPAS.find((capa) => segmentos.includes(capa)) as Capa) ?? null;
+  // `find` devuelve undefined cuando el archivo no pertenece a ninguna capa
+  // (por ejemplo main.ts en la raiz): se normaliza a null.
+  return ORDEN_CAPAS.find((capa) => segmentos.includes(capa)) ?? null;
 }
 
 /**
@@ -102,7 +116,12 @@ interface Violacion {
 }
 
 describe('Regla de dependencia de Clean Architecture', () => {
-  const modulos = ['libs/compartido/src', 'apps/ms-auth/src', 'apps/ms-catalogo/src', 'apps/ms-inventario/src'];
+  const modulos = [
+    'libs/compartido/src',
+    'apps/ms-auth/src',
+    'apps/ms-catalogo/src',
+    'apps/ms-inventario/src',
+  ];
 
   const archivos = modulos.flatMap((modulo) => listarFuentes(join(RAIZ, modulo)));
 

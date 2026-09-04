@@ -1,8 +1,11 @@
-import { normalizarPaginacion, ResultadoPaginado } from '@hce/compartido';
+import { normalizarPaginacion, type ResultadoPaginado } from '@hce/compartido';
 
-import { ListarProductosPeticion, ProductoRespuesta } from '../modelos/producto.modelos';
-import { ListarProductosPuerto } from '../puertos/entrada/catalogo.puertos';
-import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
+import type {
+  ListarProductosPeticion,
+  ProductoRespuesta,
+} from '../modelos/producto.modelos';
+import type { ListarProductosPuerto } from '../puertos/entrada/catalogo.puertos';
+import type { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Listar Producto.
@@ -14,7 +17,9 @@ import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 export class ListarProductosCasoUso implements ListarProductosPuerto {
   constructor(private readonly repositorio: ProductoRepositorio) {}
 
-  ejecutar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>> {
+  ejecutar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>> {
     const { pagina, tamanoPagina } = normalizarPaginacion(peticion);
     return this.repositorio.listar({ ...peticion, pagina, tamanoPagina });
   }

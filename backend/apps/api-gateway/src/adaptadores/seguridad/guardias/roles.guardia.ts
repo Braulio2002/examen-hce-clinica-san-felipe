@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 import { CLAVE_ROLES, Rol } from '../decoradores/roles.decorador';
@@ -16,10 +21,13 @@ export class RolesGuardia implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(contexto: ExecutionContext): boolean {
-    const rolesRequeridos = this.reflector.getAllAndOverride<Rol[]>(CLAVE_ROLES, [
-      contexto.getHandler(),
-      contexto.getClass(),
-    ]);
+    // El generico incluye `undefined` porque un endpoint sin @Roles() no tiene
+    // esa metadata: declararlo como `Rol[]` a secas hace creer al compilador
+    // que siempre existe y convierte la comprobacion siguiente en codigo muerto.
+    const rolesRequeridos = this.reflector.getAllAndOverride<Rol[] | undefined>(
+      CLAVE_ROLES,
+      [contexto.getHandler(), contexto.getClass()],
+    );
 
     if (!rolesRequeridos?.length) return true;
 

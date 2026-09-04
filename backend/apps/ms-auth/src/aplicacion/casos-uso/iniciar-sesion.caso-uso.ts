@@ -1,10 +1,10 @@
-import { ErrorNoAutorizado, RegistroPuerto } from '@hce/compartido';
+import { ErrorNoAutorizado, type RegistroPuerto } from '@hce/compartido';
 
-import { IniciarSesionPeticion, SesionRespuesta } from '../modelos/auth.modelos';
-import { IniciarSesionPuerto } from '../puertos/entrada/auth.puertos';
-import { ServicioHashPuerto } from '../puertos/salida/servicio-hash.puerto';
-import { ServicioTokenPuerto } from '../puertos/salida/servicio-token.puerto';
-import { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
+import type { IniciarSesionPeticion, SesionRespuesta } from '../modelos/auth.modelos';
+import type { IniciarSesionPuerto } from '../puertos/entrada/auth.puertos';
+import type { ServicioHashPuerto } from '../puertos/salida/servicio-hash.puerto';
+import type { ServicioTokenPuerto } from '../puertos/salida/servicio-token.puerto';
+import type { UsuarioRepositorio } from '../puertos/salida/usuario.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: iniciar sesión.
@@ -61,7 +61,9 @@ export class IniciarSesionCasoUso implements IniciarSesionPuerto {
       rol: perfil.rol,
     });
 
-    this.registro.informar(`Sesion iniciada por "${perfil.username}" (rol ${perfil.rol}).`);
+    this.registro.informar(
+      `Sesion iniciada por "${perfil.username}" (rol ${perfil.rol}).`,
+    );
 
     return {
       accessToken: emitido.token,

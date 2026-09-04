@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+# La documentacion se escribe a mano y su formato es deliberado: Prettier
+# reflowaria tablas y bloques de codigo que estan alineados a proposito.
+*.md

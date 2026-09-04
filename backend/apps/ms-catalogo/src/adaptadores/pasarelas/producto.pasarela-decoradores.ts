@@ -2,17 +2,17 @@ import {
   CodigoError,
   ExcepcionDominio,
   medirTiempo,
-  RegistroPuerto,
-  ResultadoPaginado,
+  type RegistroPuerto,
+  type ResultadoPaginado,
 } from '@hce/compartido';
 
-import {
+import type {
   ActualizarProductoPeticion,
   ListarProductosPeticion,
   ProductoRespuesta,
   RegistrarProductoPeticion,
 } from '../../aplicacion/modelos/producto.modelos';
-import { ProductoRepositorio } from '../../aplicacion/puertos/salida/producto.repositorio';
+import type { ProductoRepositorio } from '../../aplicacion/puertos/salida/producto.repositorio';
 
 /**
  * CAPA 3 · ADAPTADORES — PATRON DECORATOR sobre la pasarela del catálogo.
@@ -71,7 +71,9 @@ export class ProductoPasarelaTrazada implements ProductoRepositorio {
     );
   }
 
-  listar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>> {
+  listar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>> {
     return medirTiempo(
       this.registro,
       `listar(pagina=${peticion.pagina ?? 1}, buscar=${peticion.buscar ?? '-'})`,
@@ -131,15 +133,22 @@ export class ProductoPasarelaConReintentos implements ProductoRepositorio {
 
   // --- Lecturas: con reintento ante fallo transitorio ------------------------
 
-  listar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>> {
+  listar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>> {
     return this.conReintentos('listar', () => this.interno.listar(peticion));
   }
 
   obtener(idProducto: number): Promise<ProductoRespuesta | null> {
-    return this.conReintentos(`obtener(${idProducto})`, () => this.interno.obtener(idProducto));
+    return this.conReintentos(`obtener(${idProducto})`, () =>
+      this.interno.obtener(idProducto),
+    );
   }
 
-  private async conReintentos<T>(operacion: string, ejecutar: () => Promise<T>): Promise<T> {
+  private async conReintentos<T>(
+    operacion: string,
+    ejecutar: () => Promise<T>,
+  ): Promise<T> {
     let ultimoError: unknown;
 
     for (let intento = 1; intento <= this.maxIntentos; intento += 1) {
@@ -149,7 +158,8 @@ export class ProductoPasarelaConReintentos implements ProductoRepositorio {
         ultimoError = error;
 
         const esTransitorio =
-          error instanceof ExcepcionDominio && error.codigo === CodigoError.INFRAESTRUCTURA;
+          error instanceof ExcepcionDominio &&
+          error.codigo === CodigoError.INFRAESTRUCTURA;
 
         if (!esTransitorio || intento === this.maxIntentos) break;
 

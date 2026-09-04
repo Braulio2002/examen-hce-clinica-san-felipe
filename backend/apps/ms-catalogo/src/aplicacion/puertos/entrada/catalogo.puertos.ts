@@ -1,6 +1,6 @@
-import { CasoUso, ResultadoPaginado } from '@hce/compartido';
+import type { CasoUso, ResultadoPaginado } from '@hce/compartido';
 
-import {
+import type {
   ActualizarProductoPeticion,
   EliminarProductoPeticion,
   ListarProductosPeticion,
@@ -16,10 +16,16 @@ import {
  * Un puerto por cada uno de los servicios que exige el enunciado. La fachada y
  * el controlador dependen de estas fronteras, no de las clases concretas.
  */
-export type RegistrarProductoPuerto = CasoUso<RegistrarProductoPeticion, ProductoRespuesta>;
+export type RegistrarProductoPuerto = CasoUso<
+  RegistrarProductoPeticion,
+  ProductoRespuesta
+>;
 export const REGISTRAR_PRODUCTO_PUERTO = Symbol('REGISTRAR_PRODUCTO_PUERTO');
 
-export type ActualizarProductoPuerto = CasoUso<ActualizarProductoPeticion, ProductoRespuesta>;
+export type ActualizarProductoPuerto = CasoUso<
+  ActualizarProductoPeticion,
+  ProductoRespuesta
+>;
 export const ACTUALIZAR_PRODUCTO_PUERTO = Symbol('ACTUALIZAR_PRODUCTO_PUERTO');
 
 export type ListarProductosPuerto = CasoUso<

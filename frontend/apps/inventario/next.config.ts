@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import type { NextConfig } from 'next';
 
 /**
@@ -19,7 +21,7 @@ const nextConfig: NextConfig = {
   basePath: '/inventario',
   reactStrictMode: true,
   output: 'standalone',
-  outputFileTracingRoot: require('path').join(__dirname, '../../'),
+  outputFileTracingRoot: join(__dirname, '../../'),
   transpilePackages: ['@hce/ui', '@hce/api-cliente'],
   poweredByHeader: false,
 

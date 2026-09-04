@@ -2,7 +2,11 @@ import { Controller, Get, Inject, Param, ParseIntPipe, Query } from '@nestjs/com
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { CLIENTES_MICROSERVICIO, enviarMensaje, PATRONES_INVENTARIO } from '@hce/compartido';
+import {
+  CLIENTES_MICROSERVICIO,
+  enviarMensaje,
+  PATRONES_INVENTARIO,
+} from '@hce/compartido';
 
 import {
   FilaKardexDto,
@@ -16,7 +20,8 @@ import {
 @Controller('kardex')
 export class KardexControlador {
   constructor(
-    @Inject(CLIENTES_MICROSERVICIO.INVENTARIO) private readonly clienteInventario: ClientProxy,
+    @Inject(CLIENTES_MICROSERVICIO.INVENTARIO)
+    private readonly clienteInventario: ClientProxy,
   ) {}
 
   @Get()
@@ -29,7 +34,11 @@ export class KardexControlador {
   })
   @ApiOkResponse({ type: [FilaKardexDto] })
   listar(@Query() criterios: ListarKardexDto) {
-    return enviarMensaje(this.clienteInventario, PATRONES_INVENTARIO.LISTAR_KARDEX, criterios);
+    return enviarMensaje(
+      this.clienteInventario,
+      PATRONES_INVENTARIO.LISTAR_KARDEX,
+      criterios,
+    );
   }
 
   @Get('producto/:id/movimientos')
@@ -44,10 +53,14 @@ export class KardexControlador {
     @Param('id', ParseIntPipe) idProducto: number,
     @Query() filtro: MovimientosProductoDto,
   ) {
-    return enviarMensaje(this.clienteInventario, PATRONES_INVENTARIO.MOVIMIENTOS_PRODUCTO, {
-      idProducto,
-      fechaDesde: filtro.fechaDesde,
-      fechaHasta: filtro.fechaHasta,
-    });
+    return enviarMensaje(
+      this.clienteInventario,
+      PATRONES_INVENTARIO.MOVIMIENTOS_PRODUCTO,
+      {
+        idProducto,
+        fechaDesde: filtro.fechaDesde,
+        fechaHasta: filtro.fechaHasta,
+      },
+    );
   }
 }

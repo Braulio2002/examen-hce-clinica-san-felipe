@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 
-import { RegistroPuerto } from '../../aplicacion/puertos/registro.puerto';
+import type { RegistroPuerto } from '../../aplicacion/puertos/registro.puerto';
 
 /**
  * CAPA 3 · ADAPTADORES — Implementación del puerto de registro con NestJS.

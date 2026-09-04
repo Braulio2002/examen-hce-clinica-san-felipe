@@ -1,13 +1,8 @@
 'use client';
 
-import React, {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  useEffect,
-  useId,
-  useRef,
-} from 'react';
+import type React from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 /**
  * Componentes de interfaz compartidos por las zonas del microfront.
@@ -32,8 +27,10 @@ const ESTILOS_VARIANTE: Record<VarianteBoton, string> = {
     'bg-clinica-600 text-white hover:bg-clinica-700 focus-visible:outline-clinica-600 shadow-sm',
   secundario:
     'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400',
-  peligro: 'bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600 shadow-sm',
-  fantasma: 'bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:outline-slate-400',
+  peligro:
+    'bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600 shadow-sm',
+  fantasma:
+    'bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:outline-slate-400',
 };
 
 const ESTILOS_TAMANO: Record<TamanoBoton, string> = {
@@ -59,11 +56,11 @@ export function Boton({
   className = '',
   disabled,
   ...resto
-}: PropsBoton): React.JSX.Element {
+}: Readonly<PropsBoton>): React.JSX.Element {
   return (
     <button
       type="button"
-      disabled={disabled || cargando}
+      disabled={(disabled ?? false) || cargando}
       aria-busy={cargando || undefined}
       className={[
         'inline-flex items-center justify-center rounded-lg font-medium transition-colors',
@@ -97,22 +94,37 @@ export function Campo({
   className = '',
   id,
   ...resto
-}: PropsCampo): React.JSX.Element {
+}: Readonly<PropsCampo>): React.JSX.Element {
   const idGenerado = useId();
   const idCampo = id ?? idGenerado;
   const idError = `${idCampo}-error`;
   const idAyuda = `${idCampo}-ayuda`;
 
+  /*
+   * El texto de apoyo se resuelve antes del JSX en lugar de encadenar dos
+   * ternarios dentro del marcado: `error ? idError : ayuda ? idAyuda : undefined`
+   * obliga a leer tres ramas en una linea justo donde importa la accesibilidad.
+   */
+  let idDescripcion: string | undefined;
+  if (error) {
+    idDescripcion = idError;
+  } else if (ayuda) {
+    idDescripcion = idAyuda;
+  }
+
   return (
     <div className="w-full">
-      <label htmlFor={idCampo} className="mb-1.5 block text-sm font-medium text-slate-700">
+      <label
+        htmlFor={idCampo}
+        className="mb-1.5 block text-sm font-medium text-slate-700"
+      >
         {etiqueta}
       </label>
       <input
         id={idCampo}
         // Enlaza el mensaje de error con el campo para los lectores de pantalla.
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? idError : ayuda ? idAyuda : undefined}
+        aria-describedby={idDescripcion}
         className={[
           'block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 shadow-sm',
           'ring-1 ring-inset placeholder:text-slate-400',
@@ -123,15 +135,16 @@ export function Campo({
         ].join(' ')}
         {...resto}
       />
-      {error ? (
+      {error && (
         <p id={idError} role="alert" className="mt-1.5 text-sm text-rose-600">
           {error}
         </p>
-      ) : ayuda ? (
+      )}
+      {!error && ayuda && (
         <p id={idAyuda} className="mt-1.5 text-sm text-slate-500">
           {ayuda}
         </p>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -157,7 +170,7 @@ export function Modal({
   children,
   pie,
   ancho = 'lg',
-}: PropsModal): React.JSX.Element | null {
+}: Readonly<PropsModal>): React.JSX.Element | null {
   const contenedor = useRef<HTMLDivElement>(null);
   const idTitulo = useId();
 
@@ -236,7 +249,9 @@ export function Modal({
               <h2 id={idTitulo} className="text-lg font-semibold text-slate-900">
                 {titulo}
               </h2>
-              {descripcion && <p className="mt-0.5 text-sm text-slate-500">{descripcion}</p>}
+              {descripcion && (
+                <p className="mt-0.5 text-sm text-slate-500">{descripcion}</p>
+              )}
             </div>
             <button
               type="button"
@@ -244,7 +259,12 @@ export function Modal({
               aria-label="Cerrar"
               className="-mr-1 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
               </svg>
             </button>
@@ -271,12 +291,12 @@ export function Alerta({
   titulo,
   children,
   onCerrar,
-}: {
+}: Readonly<{
   tipo?: 'error' | 'exito' | 'aviso' | 'info';
   titulo?: string;
   children: ReactNode;
   onCerrar?: () => void;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const estilos = {
     error: 'bg-rose-50 text-rose-800 ring-rose-200',
     exito: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
@@ -301,7 +321,12 @@ export function Alerta({
           aria-label="Descartar mensaje"
           className="shrink-0 opacity-60 hover:opacity-100"
         >
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
             <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
           </svg>
         </button>
@@ -310,10 +335,20 @@ export function Alerta({
   );
 }
 
-export function Cargador({ className = 'h-5 w-5' }: { className?: string }): React.JSX.Element {
+export function Cargador({
+  className = 'h-5 w-5',
+}: Readonly<{ className?: string }>): React.JSX.Element {
   return (
     <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" aria-hidden="true">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+        fill="none"
+      />
       <path
         className="opacity-75"
         fill="currentColor"
@@ -327,33 +362,67 @@ export function EstadoVacio({
   titulo,
   descripcion,
   accion,
-}: {
+}: Readonly<{
   titulo: string;
   descripcion?: string;
   accion?: ReactNode;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
       <div className="mb-3 rounded-full bg-slate-100 p-3">
-        <svg className="h-6 w-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5 12 3 3.75 7.5m16.5 0L12 12m8.25-4.5v9L12 21m0-9L3.75 7.5M12 12v9m-8.25-13.5v9" />
+        <svg
+          className="h-6 w-6 text-slate-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M20.25 7.5 12 3 3.75 7.5m16.5 0L12 12m8.25-4.5v9L12 21m0-9L3.75 7.5M12 12v9m-8.25-13.5v9"
+          />
         </svg>
       </div>
       <p className="text-sm font-medium text-slate-900">{titulo}</p>
-      {descripcion && <p className="mt-1 max-w-sm text-sm text-slate-500">{descripcion}</p>}
+      {descripcion && (
+        <p className="mt-1 max-w-sm text-sm text-slate-500">{descripcion}</p>
+      )}
       {accion && <div className="mt-4">{accion}</div>}
     </div>
   );
 }
 
 /** Etiqueta de estado del stock, con semantica de color para farmacia. */
-export function EtiquetaStock({ stock }: { stock: number }): React.JSX.Element {
-  const { texto, clases } =
-    stock <= 0
-      ? { texto: 'Sin stock', clases: 'bg-rose-50 text-rose-700 ring-rose-600/20' }
-      : stock <= 20
-        ? { texto: `${stock} (bajo)`, clases: 'bg-amber-50 text-amber-800 ring-amber-600/20' }
-        : { texto: String(stock), clases: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' };
+/** Umbral operativo por debajo del cual farmacia debe reponer. */
+const STOCK_BAJO = 20;
+
+/**
+ * Estado visual del stock.
+ *
+ * Se expresa como funcion con salidas tempranas y no como ternario anidado: los
+ * tres tramos son una regla operativa de farmacia, y leerlos en vertical hace
+ * evidente donde esta cada umbral.
+ */
+function estadoDelStock(stock: number): { texto: string; clases: string } {
+  if (stock <= 0) {
+    return { texto: 'Sin stock', clases: 'bg-rose-50 text-rose-700 ring-rose-600/20' };
+  }
+  if (stock <= STOCK_BAJO) {
+    return {
+      texto: `${stock} (bajo)`,
+      clases: 'bg-amber-50 text-amber-800 ring-amber-600/20',
+    };
+  }
+  return {
+    texto: String(stock),
+    clases: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  };
+}
+
+export function EtiquetaStock({ stock }: Readonly<{ stock: number }>): React.JSX.Element {
+  const { texto, clases } = estadoDelStock(stock);
 
   return (
     <span
@@ -368,10 +437,65 @@ export function EtiquetaStock({ stock }: { stock: number }): React.JSX.Element {
  * Contenedor de tabla con desplazamiento horizontal propio.
  * Evita que la pagina completa se desplace en horizontal en tablet.
  */
-export function ContenedorTabla({ children }: { children: ReactNode }): React.JSX.Element {
+export function ContenedorTabla({
+  children,
+}: Readonly<{ children: ReactNode }>): React.JSX.Element {
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
       <div className="overflow-x-auto">{children}</div>
     </div>
   );
+}
+
+/**
+ * Contenido que depende de una carga asincrona.
+ *
+ * Resuelve en un solo lugar el patron "cargando / error / vacio / datos" que
+ * aparece en las cuatro pantallas del sistema. Sustituye a las cadenas de
+ * ternarios anidados dentro del JSX, que obligan a leer cuatro ramas en una
+ * expresion y son la fuente habitual de estados imposibles: mostrar la tabla
+ * vacia mientras aun se esta cargando, o el mensaje de "sin resultados" cuando
+ * en realidad hubo un error.
+ *
+ * El orden de las comprobaciones es deliberado: primero el error, porque un
+ * fallo de red con lista vacia debe decir que fallo, no que no hay datos.
+ */
+export function ContenidoAsincrono({
+  cargando,
+  error,
+  hayDatos,
+  vacio,
+  children,
+  alturaCargador = 'h-7 w-7',
+}: Readonly<{
+  cargando: boolean;
+  error?: string | null;
+  hayDatos: boolean;
+  /*
+   * `vacio` y `children` se declaran como elementos y no como ReactNode para que
+   * las cuatro ramas devuelvan el mismo tipo. Devolver a veces un elemento y a
+   * veces una cadena obliga a quien consume el componente a comprobar la forma,
+   * y no hay ningun sitio donde haga falta pasar texto suelto.
+   */
+  vacio: React.JSX.Element;
+  children: React.JSX.Element;
+  alturaCargador?: string;
+}>): React.JSX.Element {
+  if (cargando) {
+    return (
+      <div className="flex justify-center py-16 text-slate-400">
+        <Cargador className={alturaCargador} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <Alerta tipo="error">{error}</Alerta>;
+  }
+
+  if (!hayDatos) {
+    return vacio;
+  }
+
+  return children;
 }

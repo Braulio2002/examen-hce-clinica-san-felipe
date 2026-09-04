@@ -1,9 +1,11 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import type React from 'react';
+import { Suspense, useEffect, useState } from 'react';
+
 import { ErrorApi } from '@hce/api-cliente';
 import { Alerta, Boton, Campo, useSesion } from '@hce/ui';
-import { useRouter, useSearchParams } from 'next/navigation';
-import React, { FormEvent, Suspense, useEffect, useState } from 'react';
 
 function FormularioLogin(): React.JSX.Element {
   const router = useRouter();
@@ -23,7 +25,7 @@ function FormularioLogin(): React.JSX.Element {
     if (usuario) router.replace(destino);
   }, [usuario, router, destino]);
 
-  const enviar = async (evento: FormEvent<HTMLFormElement>): Promise<void> => {
+  const enviar = async (evento: React.SyntheticEvent<HTMLFormElement>): Promise<void> => {
     evento.preventDefault();
     setError(null);
 
@@ -56,11 +58,18 @@ function FormularioLogin(): React.JSX.Element {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-clinica-600 text-white shadow-lg shadow-clinica-600/20">
-            <svg className="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <svg
+              className="h-7 w-7"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
               <path d="M10 2h4v6h6v4h-6v6h-4v-6H4V8h6V2Z" />
             </svg>
           </span>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">HCE Insumos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            HCE Insumos
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
             Gestion de medicamentos e insumos medicos
           </p>
@@ -88,7 +97,6 @@ function FormularioLogin(): React.JSX.Element {
               etiqueta="Usuario"
               name="username"
               autoComplete="username"
-              autoFocus
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
@@ -116,17 +124,20 @@ function FormularioLogin(): React.JSX.Element {
                 <code className="text-slate-700">admin / Admin123$</code> — acceso total
               </li>
               <li>
-                <code className="text-slate-700">farmacia / Farmacia123$</code> — compras y ventas
+                <code className="text-slate-700">farmacia / Farmacia123$</code> — compras
+                y ventas
               </li>
               <li>
-                <code className="text-slate-700">consulta / Consulta123$</code> — solo lectura
+                <code className="text-slate-700">consulta / Consulta123$</code> — solo
+                lectura
               </li>
             </ul>
           </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          La sesion se protege con un token JWT de 30 minutos almacenado en una cookie HttpOnly.
+          La sesion se protege con un token JWT de 30 minutos almacenado en una cookie
+          HttpOnly.
         </p>
       </div>
     </main>

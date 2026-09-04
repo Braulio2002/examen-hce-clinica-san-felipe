@@ -1,4 +1,4 @@
-import { RolUsuario } from '../../../dominio/entidades/usuario.entidad';
+import type { RolUsuario } from '../../../dominio/entidades/usuario.entidad';
 
 /**
  * CAPA 2 · APLICACION — Puerto de salida para la emisión de tokens.

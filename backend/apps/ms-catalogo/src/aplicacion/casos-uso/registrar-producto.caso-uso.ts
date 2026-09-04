@@ -1,9 +1,12 @@
 import { ErrorValidacion } from '@hce/compartido';
 
 import { Producto } from '../../dominio/entidades/producto.entidad';
-import { ProductoRespuesta, RegistrarProductoPeticion } from '../modelos/producto.modelos';
-import { RegistrarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
-import { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
+import type {
+  ProductoRespuesta,
+  RegistrarProductoPeticion,
+} from '../modelos/producto.modelos';
+import type { RegistrarProductoPuerto } from '../puertos/entrada/catalogo.puertos';
+import type { ProductoRepositorio } from '../puertos/salida/producto.repositorio';
 
 /**
  * CAPA 2 · APLICACION — Caso de uso: Registrar Producto.

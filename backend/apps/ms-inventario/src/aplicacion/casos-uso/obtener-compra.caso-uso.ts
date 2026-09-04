@@ -1,8 +1,11 @@
 import { ErrorNoEncontrado } from '@hce/compartido';
 
-import { DocumentoCompra, ObtenerCompraPeticion } from '../modelos/inventario.modelos';
-import { ObtenerCompraPuerto } from '../puertos/entrada/inventario.puertos';
-import { CompraRepositorio } from '../puertos/salida/inventario.repositorio';
+import type {
+  DocumentoCompra,
+  ObtenerCompraPeticion,
+} from '../modelos/inventario.modelos';
+import type { ObtenerCompraPuerto } from '../puertos/entrada/inventario.puertos';
+import type { CompraRepositorio } from '../puertos/salida/inventario.repositorio';
 
 /** CAPA 2 · APLICACION — Caso de uso: obtener el detalle de una compra. */
 export class ObtenerCompraCasoUso implements ObtenerCompraPuerto {

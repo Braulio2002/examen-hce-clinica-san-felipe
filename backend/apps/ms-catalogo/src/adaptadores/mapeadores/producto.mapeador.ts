@@ -1,4 +1,4 @@
-import { ProductoRespuesta } from '../../aplicacion/modelos/producto.modelos';
+import type { ProductoRespuesta } from '../../aplicacion/modelos/producto.modelos';
 
 /** Forma cruda de la fila que devuelven los procedimientos del esquema hce. */
 export interface FilaProducto {
@@ -29,9 +29,9 @@ export const ProductoMapeador = {
       nombreProducto: fila.Nombre_producto,
       nroLote: fila.NroLote,
       fechaRegistro: fila.Fec_registro,
-      costo: Number(fila.Costo),
-      precioVenta: Number(fila.PrecioVenta),
-      stockActual: Number(fila.Stock_actual ?? 0),
+      costo: fila.Costo,
+      precioVenta: fila.PrecioVenta,
+      stockActual: fila.Stock_actual ?? 0,
     };
   },
 
@@ -45,6 +45,6 @@ export const ProductoMapeador = {
    * listado y su total viajan en una sola ida a la base en lugar de dos.
    */
   totalRegistros(filas: FilaProducto[]): number {
-    return Number(filas[0]?.Total_registros ?? 0);
+    return filas[0]?.Total_registros ?? 0;
   },
 };

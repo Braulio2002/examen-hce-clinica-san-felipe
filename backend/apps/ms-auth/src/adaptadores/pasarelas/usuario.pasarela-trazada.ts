@@ -1,7 +1,7 @@
-import { medirTiempo, RegistroPuerto } from '@hce/compartido';
+import { medirTiempo, type RegistroPuerto } from '@hce/compartido';
 
-import { Usuario } from '../../dominio/entidades/usuario.entidad';
-import { UsuarioRepositorio } from '../../aplicacion/puertos/salida/usuario.repositorio';
+import type { UsuarioRepositorio } from '../../aplicacion/puertos/salida/usuario.repositorio';
+import type { Usuario } from '../../dominio/entidades/usuario.entidad';
 
 /**
  * CAPA 3 · ADAPTADORES — PATRON DECORATOR.

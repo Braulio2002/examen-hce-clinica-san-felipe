@@ -1,10 +1,13 @@
-import {
+import type {
   IniciarSesionPeticion,
   ObtenerPerfilPeticion,
   PerfilUsuarioRespuesta,
   SesionRespuesta,
 } from '../modelos/auth.modelos';
-import { IniciarSesionPuerto, ObtenerPerfilPuerto } from '../puertos/entrada/auth.puertos';
+import type {
+  IniciarSesionPuerto,
+  ObtenerPerfilPuerto,
+} from '../puertos/entrada/auth.puertos';
 
 /**
  * CAPA 2 · APLICACION — PATRON FACADE.

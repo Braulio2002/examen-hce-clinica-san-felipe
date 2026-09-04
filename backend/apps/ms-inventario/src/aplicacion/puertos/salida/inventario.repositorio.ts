@@ -1,7 +1,10 @@
-import { ResultadoPaginado } from '@hce/compartido';
+import type { ResultadoPaginado } from '@hce/compartido';
 
-import { LineaCompra, LineaVenta } from '../../../dominio/entidades/inventario.entidades';
-import {
+import type {
+  LineaCompra,
+  LineaVenta,
+} from '../../../dominio/entidades/inventario.entidades';
+import type {
   ConsultaKardex,
   ConsultaPeriodo,
   DocumentoCompra,
@@ -22,13 +25,19 @@ import {
  */
 
 export interface CompraRepositorio {
-  registrarCompra(lineas: readonly LineaCompra[], usuarioApp?: string): Promise<DocumentoCompra>;
+  registrarCompra(
+    lineas: readonly LineaCompra[],
+    usuarioApp?: string,
+  ): Promise<DocumentoCompra>;
   listarCompras(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenCompra>>;
   obtenerCompra(idCompraCab: number): Promise<DocumentoCompra | null>;
 }
 
 export interface VentaRepositorio {
-  registrarVenta(lineas: readonly LineaVenta[], usuarioApp?: string): Promise<DocumentoVenta>;
+  registrarVenta(
+    lineas: readonly LineaVenta[],
+    usuarioApp?: string,
+  ): Promise<DocumentoVenta>;
   listarVentas(consulta: ConsultaPeriodo): Promise<ResultadoPaginado<ResumenVenta>>;
   obtenerVenta(idVentaCab: number): Promise<DocumentoVenta | null>;
 }
@@ -43,6 +52,8 @@ export interface KardexRepositorio {
 }
 
 /** Contrato completo que satisface la pasarela de SQL Server. */
-export type InventarioRepositorio = CompraRepositorio & VentaRepositorio & KardexRepositorio;
+export type InventarioRepositorio = CompraRepositorio &
+  VentaRepositorio &
+  KardexRepositorio;
 
 export const INVENTARIO_REPOSITORIO = Symbol('INVENTARIO_REPOSITORIO');

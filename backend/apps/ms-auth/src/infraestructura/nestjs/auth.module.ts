@@ -4,18 +4,6 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 
 import { MssqlModule, MssqlService, RegistroNest } from '@hce/compartido';
 
-import { AutenticacionFachada } from '../../aplicacion/fachadas/autenticacion.fachada';
-import { IniciarSesionCasoUso } from '../../aplicacion/casos-uso/iniciar-sesion.caso-uso';
-import { ObtenerPerfilCasoUso } from '../../aplicacion/casos-uso/obtener-perfil.caso-uso';
-import {
-  INICIAR_SESION_PUERTO,
-  IniciarSesionPuerto,
-  OBTENER_PERFIL_PUERTO,
-  ObtenerPerfilPuerto,
-} from '../../aplicacion/puertos/entrada/auth.puertos';
-import { SERVICIO_HASH, ServicioHashPuerto } from '../../aplicacion/puertos/salida/servicio-hash.puerto';
-import { SERVICIO_TOKEN, ServicioTokenPuerto } from '../../aplicacion/puertos/salida/servicio-token.puerto';
-import { USUARIO_REPOSITORIO, UsuarioRepositorio } from '../../aplicacion/puertos/salida/usuario.repositorio';
 import {
   AUTENTICACION_FACHADA,
   AuthControlador,
@@ -24,6 +12,27 @@ import { UsuarioMssqlPasarela } from '../../adaptadores/pasarelas/usuario.mssql.
 import { UsuarioPasarelaTrazada } from '../../adaptadores/pasarelas/usuario.pasarela-trazada';
 import { BcryptAdaptador } from '../../adaptadores/seguridad/bcrypt.adaptador';
 import { JwtNestAdaptador } from '../../adaptadores/seguridad/jwt-nest.adaptador';
+import { IniciarSesionCasoUso } from '../../aplicacion/casos-uso/iniciar-sesion.caso-uso';
+import { ObtenerPerfilCasoUso } from '../../aplicacion/casos-uso/obtener-perfil.caso-uso';
+import { AutenticacionFachada } from '../../aplicacion/fachadas/autenticacion.fachada';
+import {
+  INICIAR_SESION_PUERTO,
+  IniciarSesionPuerto,
+  OBTENER_PERFIL_PUERTO,
+  ObtenerPerfilPuerto,
+} from '../../aplicacion/puertos/entrada/auth.puertos';
+import {
+  SERVICIO_HASH,
+  ServicioHashPuerto,
+} from '../../aplicacion/puertos/salida/servicio-hash.puerto';
+import {
+  SERVICIO_TOKEN,
+  ServicioTokenPuerto,
+} from '../../aplicacion/puertos/salida/servicio-token.puerto';
+import {
+  USUARIO_REPOSITORIO,
+  UsuarioRepositorio,
+} from '../../aplicacion/puertos/salida/usuario.repositorio';
 
 /**
  * CAPA 4 · INFRAESTRUCTURA — Raíz de composición (Composition Root).
@@ -85,7 +94,10 @@ import { JwtNestAdaptador } from '../../adaptadores/seguridad/jwt-nest.adaptador
       inject: [JwtService, ConfigService],
       useFactory: (jwt: JwtService, config: ConfigService): ServicioTokenPuerto =>
         // Vigencia estricta de 30 minutos exigida por el enunciado.
-        new JwtNestAdaptador(jwt, Number(config.get<string>('JWT_EXPIRACION_SEGUNDOS', '1800'))),
+        new JwtNestAdaptador(
+          jwt,
+          Number(config.get<string>('JWT_EXPIRACION_SEGUNDOS', '1800')),
+        ),
     },
 
     /* --- Puertos de entrada: casos de uso ---------------------------------- */
@@ -97,7 +109,12 @@ import { JwtNestAdaptador } from '../../adaptadores/seguridad/jwt-nest.adaptador
         hash: ServicioHashPuerto,
         token: ServicioTokenPuerto,
       ): IniciarSesionPuerto =>
-        new IniciarSesionCasoUso(repositorio, hash, token, new RegistroNest('IniciarSesion')),
+        new IniciarSesionCasoUso(
+          repositorio,
+          hash,
+          token,
+          new RegistroNest('IniciarSesion'),
+        ),
     },
     {
       provide: OBTENER_PERFIL_PUERTO,

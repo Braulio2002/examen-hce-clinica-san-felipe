@@ -1,6 +1,6 @@
-import { CasoUso } from '@hce/compartido';
+import type { CasoUso } from '@hce/compartido';
 
-import {
+import type {
   IniciarSesionPeticion,
   ObtenerPerfilPeticion,
   PerfilUsuarioRespuesta,

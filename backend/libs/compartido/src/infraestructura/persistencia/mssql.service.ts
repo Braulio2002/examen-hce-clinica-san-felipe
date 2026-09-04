@@ -27,8 +27,20 @@ export interface ParametroTabla {
   readonly nombre: string;
   /** Nombre del tipo tabla en SQL Server, por ejemplo hce.TipoDetalleCompra. */
   readonly tipoTabla: string;
-  readonly columnas: ReadonlyArray<{ nombre: string; tipo: sql.ISqlType | (() => sql.ISqlType) }>;
-  readonly filas: ReadonlyArray<ReadonlyArray<ValorSql>>;
+  readonly columnas: readonly {
+    nombre: string;
+    tipo: sql.ISqlType | (() => sql.ISqlType);
+  }[];
+  readonly filas: readonly (readonly ValorSql[])[];
+}
+
+/** Fila cruda tal como la entrega el driver, antes de mapearla al dominio. */
+export type FilaCruda = Record<string, unknown>;
+
+/** Resultado completo de un procedimiento: sus conjuntos y sus parametros de salida. */
+export interface ResultadoProcedimiento {
+  readonly conjuntos: FilaCruda[][];
+  readonly salidas: Record<string, unknown>;
 }
 
 export interface OpcionesEjecucion {
@@ -76,7 +88,9 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
         idleTimeoutMillis: 30_000,
       },
       requestTimeout: Number(this.config.get<string>('DB_REQUEST_TIMEOUT', '30000')),
-      connectionTimeout: Number(this.config.get<string>('DB_CONNECTION_TIMEOUT', '15000')),
+      connectionTimeout: Number(
+        this.config.get<string>('DB_CONNECTION_TIMEOUT', '15000'),
+      ),
     };
 
     await this.conectarConReintentos(configuracion);
@@ -91,14 +105,14 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
    * Ejecuta un procedimiento almacenado y devuelve todos sus conjuntos de
    * resultados junto con los parametros de salida.
    */
-  async ejecutarProcedimiento<T = Record<string, unknown>>(
+  async ejecutarProcedimiento(
     procedimiento: string,
     opciones: OpcionesEjecucion = {},
-  ): Promise<{ conjuntos: T[][]; salidas: Record<string, unknown> }> {
+  ): Promise<ResultadoProcedimiento> {
     const request = this.obtenerPool().request();
 
     for (const p of opciones.parametros ?? []) {
-      request.input(p.nombre, p.tipo as sql.ISqlType, p.valor ?? null);
+      request.input(p.nombre, p.tipo, p.valor ?? null);
     }
 
     for (const t of opciones.tablas ?? []) {
@@ -106,14 +120,14 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
     }
 
     for (const s of opciones.salidas ?? []) {
-      request.output(s.nombre, s.tipo as sql.ISqlType, s.valor ?? null);
+      request.output(s.nombre, s.tipo, s.valor ?? null);
     }
 
     try {
       const resultado = await request.execute(procedimiento);
       return {
-        conjuntos: (resultado.recordsets as unknown as T[][]) ?? [],
-        salidas: resultado.output ?? {},
+        conjuntos: resultado.recordsets as unknown as FilaCruda[][],
+        salidas: resultado.output,
       };
     } catch (error) {
       throw this.traducirError(error, procedimiento);
@@ -121,12 +135,12 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Atajo para los procedimientos que devuelven un unico conjunto de filas. */
-  async consultar<T = Record<string, unknown>>(
+  async consultar<T = FilaCruda>(
     procedimiento: string,
     opciones: OpcionesEjecucion = {},
   ): Promise<T[]> {
-    const { conjuntos } = await this.ejecutarProcedimiento<T>(procedimiento, opciones);
-    return conjuntos[0] ?? [];
+    const { conjuntos } = await this.ejecutarProcedimiento(procedimiento, opciones);
+    return (conjuntos[0] ?? []) as T[];
   }
 
   /** Verificacion de disponibilidad usada por el endpoint de salud. */
@@ -151,7 +165,7 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
     tabla.create = false;
 
     for (const columna of definicion.columnas) {
-      tabla.columns.add(columna.nombre, columna.tipo as sql.ISqlType, { nullable: false });
+      tabla.columns.add(columna.nombre, columna.tipo, { nullable: false });
     }
     for (const fila of definicion.filas) {
       tabla.rows.add(...(fila as ValorSql[]));
@@ -171,9 +185,12 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
     for (let intento = 1; intento <= maxIntentos; intento += 1) {
       try {
         this.pool = await new sql.ConnectionPool(configuracion).connect();
-        this.pool.on('error', (err) => this.logger.error(`Error del pool: ${err.message}`));
+        this.pool.on('error', (err: Error) => {
+          this.logger.error(`Error del pool: ${err.message}`);
+        });
         this.logger.log(
-          `Conectado a SQL Server ${configuracion.server}:${configuracion.port}/${configuracion.database}`,
+          `Conectado a SQL Server ${configuracion.server}:` +
+            `${configuracion.port ?? '-'}/${configuracion.database ?? '-'}`,
         );
         return;
       } catch (error) {
@@ -203,54 +220,86 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
     if (error instanceof ExcepcionDominio) return error;
 
     const numero = (error as sql.RequestError | undefined)?.number;
-    const mensaje =
-      (error as { originalError?: { info?: { message?: string } }; message?: string })
-        ?.originalError?.info?.message ??
-      (error as Error)?.message ??
-      'Error desconocido de base de datos.';
+    const mensaje = MssqlService.extraerMensaje(error);
 
-    switch (numero) {
-      // Stock insuficiente: 54004 lo lanza el procedimiento, 51001 el trigger.
-      case 51001:
-      case 54004:
-        return new ErrorStockInsuficiente(mensaje);
+    const construir = numero === undefined ? undefined : TRADUCCION_ERRORES_SQL[numero];
 
-      // Bitacora de auditoria inmutable.
-      case 51002:
-        return new ErrorProhibido(mensaje);
+    if (construir) return construir(mensaje);
 
-      // Validaciones de entrada.
-      case 52001:
-      case 52002:
-      case 52003:
-      case 53001:
-      case 53002:
-      case 53003:
-      case 53004:
-      case 54001:
-      case 54002:
-      case 54003:
-        return new ErrorValidacion(mensaje);
+    // Error no contemplado: se registra completo en el servidor y al cliente se
+    // le devuelve un mensaje generico. Filtrar el detalle del motor al exterior
+    // es una fuga de informacion (OWASP A05: Security Misconfiguration).
+    this.logger.error(`Fallo en ${contexto} (numero ${numero ?? 'n/d'}): ${mensaje}`);
+    return new ErrorInfraestructura(
+      'Ocurrio un error al acceder a la base de datos. Intente nuevamente.',
+    );
+  }
 
-      // Duplicados y conflictos de estado.
-      case 52004:
-      case 52006:
-        return new ErrorConflicto(mensaje);
-
-      // Recurso inexistente.
-      case 52005:
-        return new ErrorNoEncontrado('Recurso');
-
-      // Violacion de restriccion UNIQUE en el motor.
-      case 2601:
-      case 2627:
-        return new ErrorConflicto('Ya existe un registro con los mismos datos identificatorios.');
-
-      default:
-        this.logger.error(`Fallo en ${contexto} (numero ${numero ?? 'n/d'}): ${mensaje}`);
-        return new ErrorInfraestructura(
-          'Ocurrio un error al acceder a la base de datos. Intente nuevamente.',
-        );
+  /**
+   * El driver anida el mensaje real del motor a distinta profundidad segun el
+   * tipo de fallo. Se extrae con estrechamiento explicito en lugar de encadenar
+   * aserciones de tipo.
+   */
+  private static extraerMensaje(error: unknown): string {
+    if (typeof error !== 'object' || error === null) {
+      return 'Error desconocido de base de datos.';
     }
+
+    const original = (error as { originalError?: { info?: { message?: unknown } } })
+      .originalError;
+    if (typeof original?.info?.message === 'string') return original.info.message;
+
+    const propio = (error as { message?: unknown }).message;
+    if (typeof propio === 'string') return propio;
+
+    return 'Error desconocido de base de datos.';
   }
 }
+
+/**
+ * Traduccion de codigo de error de SQL Server a excepcion de dominio.
+ *
+ * Los numeros los definen los scripts 02-triggers-auditoria.sql y
+ * 03-stored-procedures.sql; 2601 y 2627 son del propio motor (violacion de
+ * restriccion UNIQUE).
+ *
+ * Se expresa como tabla y no como `switch` por dos razones: la complejidad
+ * ciclomatica del metodo baja de 28 a 3, y anadir un codigo nuevo es anadir una
+ * fila, no una rama. Mantener el mapeo en un unico lugar evita que cada
+ * repositorio invente su propia interpretacion del mismo error.
+ */
+const TRADUCCION_ERRORES_SQL: Readonly<
+  Record<number, (mensaje: string) => ExcepcionDominio>
+> = {
+  // Stock insuficiente: 54004 lo lanza el procedimiento, 51001 el trigger.
+  51001: (m) => new ErrorStockInsuficiente(m),
+  54004: (m) => new ErrorStockInsuficiente(m),
+
+  // Bitacora de auditoria inmutable.
+  51002: (m) => new ErrorProhibido(m),
+
+  // Validaciones de entrada.
+  52001: (m) => new ErrorValidacion(m),
+  52002: (m) => new ErrorValidacion(m),
+  52003: (m) => new ErrorValidacion(m),
+  53001: (m) => new ErrorValidacion(m),
+  53002: (m) => new ErrorValidacion(m),
+  53003: (m) => new ErrorValidacion(m),
+  53004: (m) => new ErrorValidacion(m),
+  54001: (m) => new ErrorValidacion(m),
+  54002: (m) => new ErrorValidacion(m),
+  54003: (m) => new ErrorValidacion(m),
+
+  // Duplicados y conflictos de estado.
+  52004: (m) => new ErrorConflicto(m),
+  52006: (m) => new ErrorConflicto(m),
+
+  // Recurso inexistente.
+  52005: () => new ErrorNoEncontrado('Recurso'),
+
+  // Violacion de restriccion UNIQUE en el motor.
+  2601: () =>
+    new ErrorConflicto('Ya existe un registro con los mismos datos identificatorios.'),
+  2627: () =>
+    new ErrorConflicto('Ya existe un registro con los mismos datos identificatorios.'),
+};

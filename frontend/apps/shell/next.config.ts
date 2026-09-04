@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import type { NextConfig } from 'next';
 
 /**
@@ -33,7 +35,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // El monorepo con workspaces vive un nivel arriba; Next necesita saberlo para
   // trazar correctamente los archivos de la salida standalone.
-  outputFileTracingRoot: require('path').join(__dirname, '../../'),
+  outputFileTracingRoot: join(__dirname, '../../'),
   transpilePackages: ['@hce/ui', '@hce/api-cliente'],
   poweredByHeader: false,
 
@@ -58,7 +60,10 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
         ],
       },
     ];

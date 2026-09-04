@@ -1,4 +1,4 @@
-import { RegistroPuerto } from '../../aplicacion/puertos/registro.puerto';
+import type { RegistroPuerto } from '../../aplicacion/puertos/registro.puerto';
 
 /**
  * CAPA 3 · ADAPTADORES — Medición de duración de operaciones.
@@ -22,7 +22,9 @@ export async function medirTiempo<T>(
     const ms = Number(process.hrtime.bigint() - inicio) / 1_000_000;
 
     if (ms >= umbralLentoMs) {
-      registro.advertir(`${operacion} completado en ${ms.toFixed(1)} ms (operacion lenta)`);
+      registro.advertir(
+        `${operacion} completado en ${ms.toFixed(1)} ms (operacion lenta)`,
+      );
     } else {
       registro.depurar(`${operacion} completado en ${ms.toFixed(1)} ms`);
     }

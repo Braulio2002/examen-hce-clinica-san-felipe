@@ -1,6 +1,6 @@
 'use client';
 
-import { Api, inicializarApi } from '@hce/api-cliente';
+import { type Api, inicializarApi } from '@hce/api-cliente';
 
 /**
  * Inicializacion de la API para la zona shell.

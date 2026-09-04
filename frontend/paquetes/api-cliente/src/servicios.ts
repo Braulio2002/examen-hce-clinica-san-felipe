@@ -1,6 +1,6 @@
-import { AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
 
-import {
+import type {
   AltaProducto,
   Compra,
   FilaKardex,
@@ -27,7 +27,10 @@ import {
 export function crearServicioAuth(http: AxiosInstance) {
   return {
     async iniciarSesion(username: string, password: string): Promise<RespuestaLogin> {
-      const { data } = await http.post<RespuestaLogin>('/auth/login', { username, password });
+      const { data } = await http.post<RespuestaLogin>('/auth/login', {
+        username,
+        password,
+      });
       return data;
     },
 
@@ -44,12 +47,14 @@ export function crearServicioAuth(http: AxiosInstance) {
 
 export function crearServicioProductos(http: AxiosInstance) {
   return {
-    async listar(parametros: {
-      buscar?: string;
-      soloConStock?: boolean;
-      pagina?: number;
-      tamanoPagina?: number;
-    } = {}): Promise<ResultadoPaginado<Producto>> {
+    async listar(
+      parametros: {
+        buscar?: string;
+        soloConStock?: boolean;
+        pagina?: number;
+        tamanoPagina?: number;
+      } = {},
+    ): Promise<ResultadoPaginado<Producto>> {
       const { data } = await http.get<ResultadoPaginado<Producto>>('/productos', {
         params: parametros,
       });
@@ -66,7 +71,10 @@ export function crearServicioProductos(http: AxiosInstance) {
       return data;
     },
 
-    async actualizar(idProducto: number, payload: Partial<AltaProducto>): Promise<Producto> {
+    async actualizar(
+      idProducto: number,
+      payload: Partial<AltaProducto>,
+    ): Promise<Producto> {
       const { data } = await http.patch<Producto>(`/productos/${idProducto}`, payload);
       return data;
     },
@@ -80,12 +88,14 @@ export function crearServicioCompras(http: AxiosInstance) {
       return data;
     },
 
-    async listar(parametros: {
-      fechaDesde?: string;
-      fechaHasta?: string;
-      pagina?: number;
-      tamanoPagina?: number;
-    } = {}): Promise<ResultadoPaginado<ResumenCompra>> {
+    async listar(
+      parametros: {
+        fechaDesde?: string;
+        fechaHasta?: string;
+        pagina?: number;
+        tamanoPagina?: number;
+      } = {},
+    ): Promise<ResultadoPaginado<ResumenCompra>> {
       const { data } = await http.get<ResultadoPaginado<ResumenCompra>>('/compras', {
         params: parametros,
       });
@@ -106,12 +116,14 @@ export function crearServicioVentas(http: AxiosInstance) {
       return data;
     },
 
-    async listar(parametros: {
-      fechaDesde?: string;
-      fechaHasta?: string;
-      pagina?: number;
-      tamanoPagina?: number;
-    } = {}): Promise<ResultadoPaginado<ResumenVenta>> {
+    async listar(
+      parametros: {
+        fechaDesde?: string;
+        fechaHasta?: string;
+        pagina?: number;
+        tamanoPagina?: number;
+      } = {},
+    ): Promise<ResultadoPaginado<ResumenVenta>> {
       const { data } = await http.get<ResultadoPaginado<ResumenVenta>>('/ventas', {
         params: parametros,
       });
@@ -127,11 +139,13 @@ export function crearServicioVentas(http: AxiosInstance) {
 
 export function crearServicioKardex(http: AxiosInstance) {
   return {
-    async listar(parametros: {
-      buscar?: string;
-      pagina?: number;
-      tamanoPagina?: number;
-    } = {}): Promise<ResultadoPaginado<FilaKardex>> {
+    async listar(
+      parametros: {
+        buscar?: string;
+        pagina?: number;
+        tamanoPagina?: number;
+      } = {},
+    ): Promise<ResultadoPaginado<FilaKardex>> {
       const { data } = await http.get<ResultadoPaginado<FilaKardex>>('/kardex', {
         params: parametros,
       });

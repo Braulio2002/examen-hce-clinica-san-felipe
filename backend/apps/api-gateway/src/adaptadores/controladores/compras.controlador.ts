@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
   ApiBearerAuth,
@@ -8,19 +17,28 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CLIENTES_MICROSERVICIO, enviarMensaje, PATRONES_INVENTARIO } from '@hce/compartido';
+import {
+  CLIENTES_MICROSERVICIO,
+  enviarMensaje,
+  PATRONES_INVENTARIO,
+} from '@hce/compartido';
 
+import {
+  CompraRespuestaDto,
+  ListarComprasDto,
+  RegistrarCompraDto,
+} from '../dto/compra.dto';
 import { Roles } from '../seguridad/decoradores/roles.decorador';
 import { UsuarioActual } from '../seguridad/decoradores/usuario-actual.decorador';
 import { UsuarioAutenticado } from '../seguridad/estrategias/jwt.estrategia';
-import { CompraRespuestaDto, ListarComprasDto, RegistrarCompraDto } from '../dto/compra.dto';
 
 @ApiTags('Compras')
 @ApiBearerAuth()
 @Controller('compras')
 export class ComprasControlador {
   constructor(
-    @Inject(CLIENTES_MICROSERVICIO.INVENTARIO) private readonly clienteInventario: ClientProxy,
+    @Inject(CLIENTES_MICROSERVICIO.INVENTARIO)
+    private readonly clienteInventario: ClientProxy,
   ) {}
 
   @Post()
@@ -44,9 +62,16 @@ export class ComprasControlador {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar Compra', description: 'Listado paginado por rango de fechas.' })
+  @ApiOperation({
+    summary: 'Listar Compra',
+    description: 'Listado paginado por rango de fechas.',
+  })
   listar(@Query() filtro: ListarComprasDto) {
-    return enviarMensaje(this.clienteInventario, PATRONES_INVENTARIO.LISTAR_COMPRAS, filtro);
+    return enviarMensaje(
+      this.clienteInventario,
+      PATRONES_INVENTARIO.LISTAR_COMPRAS,
+      filtro,
+    );
   }
 
   @Get(':id')

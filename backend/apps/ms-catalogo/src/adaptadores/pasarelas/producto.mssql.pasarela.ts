@@ -1,15 +1,19 @@
 import * as sql from 'mssql';
 
-import { construirPaginado, MssqlService, ResultadoPaginado } from '@hce/compartido';
-
 import {
+  construirPaginado,
+  type MssqlService,
+  type ResultadoPaginado,
+} from '@hce/compartido';
+
+import type {
   ActualizarProductoPeticion,
   ListarProductosPeticion,
   ProductoRespuesta,
   RegistrarProductoPeticion,
 } from '../../aplicacion/modelos/producto.modelos';
-import { ProductoRepositorio } from '../../aplicacion/puertos/salida/producto.repositorio';
-import { FilaProducto, ProductoMapeador } from '../mapeadores/producto.mapeador';
+import type { ProductoRepositorio } from '../../aplicacion/puertos/salida/producto.repositorio';
+import { type FilaProducto, ProductoMapeador } from '../mapeadores/producto.mapeador';
 
 /**
  * CAPA 3 · ADAPTADORES — Pasarela (Gateway) del catálogo contra SQL Server.
@@ -27,11 +31,23 @@ export class ProductoMssqlPasarela implements ProductoRepositorio {
   async registrar(peticion: RegistrarProductoPeticion): Promise<ProductoRespuesta> {
     const filas = await this.mssql.consultar<FilaProducto>('hce.usp_Producto_Registrar', {
       parametros: [
-        { nombre: 'Nombre_producto', tipo: sql.NVarChar(150), valor: peticion.nombreProducto },
+        {
+          nombre: 'Nombre_producto',
+          tipo: sql.NVarChar(150),
+          valor: peticion.nombreProducto,
+        },
         { nombre: 'NroLote', tipo: sql.NVarChar(50), valor: peticion.nroLote },
         { nombre: 'Costo', tipo: sql.Decimal(18, 4), valor: peticion.costo },
-        { nombre: 'PrecioVenta', tipo: sql.Decimal(18, 4), valor: peticion.precioVenta ?? null },
-        { nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: peticion.usuarioApp ?? null },
+        {
+          nombre: 'PrecioVenta',
+          tipo: sql.Decimal(18, 4),
+          valor: peticion.precioVenta ?? null,
+        },
+        {
+          nombre: 'UsuarioApp',
+          tipo: sql.NVarChar(100),
+          valor: peticion.usuarioApp ?? null,
+        },
       ],
     });
 
@@ -39,25 +55,38 @@ export class ProductoMssqlPasarela implements ProductoRepositorio {
   }
 
   async actualizar(peticion: ActualizarProductoPeticion): Promise<ProductoRespuesta> {
-    const filas = await this.mssql.consultar<FilaProducto>('hce.usp_Producto_Actualizar', {
-      parametros: [
-        { nombre: 'Id_producto', tipo: sql.Int, valor: peticion.idProducto },
-        {
-          nombre: 'Nombre_producto',
-          tipo: sql.NVarChar(150),
-          valor: peticion.nombreProducto ?? null,
-        },
-        { nombre: 'NroLote', tipo: sql.NVarChar(50), valor: peticion.nroLote ?? null },
-        { nombre: 'Costo', tipo: sql.Decimal(18, 4), valor: peticion.costo ?? null },
-        { nombre: 'PrecioVenta', tipo: sql.Decimal(18, 4), valor: peticion.precioVenta ?? null },
-        { nombre: 'UsuarioApp', tipo: sql.NVarChar(100), valor: peticion.usuarioApp ?? null },
-      ],
-    });
+    const filas = await this.mssql.consultar<FilaProducto>(
+      'hce.usp_Producto_Actualizar',
+      {
+        parametros: [
+          { nombre: 'Id_producto', tipo: sql.Int, valor: peticion.idProducto },
+          {
+            nombre: 'Nombre_producto',
+            tipo: sql.NVarChar(150),
+            valor: peticion.nombreProducto ?? null,
+          },
+          { nombre: 'NroLote', tipo: sql.NVarChar(50), valor: peticion.nroLote ?? null },
+          { nombre: 'Costo', tipo: sql.Decimal(18, 4), valor: peticion.costo ?? null },
+          {
+            nombre: 'PrecioVenta',
+            tipo: sql.Decimal(18, 4),
+            valor: peticion.precioVenta ?? null,
+          },
+          {
+            nombre: 'UsuarioApp',
+            tipo: sql.NVarChar(100),
+            valor: peticion.usuarioApp ?? null,
+          },
+        ],
+      },
+    );
 
     return ProductoMapeador.aRespuesta(this.primeraFila(filas, 'actualizar'));
   }
 
-  async listar(peticion: ListarProductosPeticion): Promise<ResultadoPaginado<ProductoRespuesta>> {
+  async listar(
+    peticion: ListarProductosPeticion,
+  ): Promise<ResultadoPaginado<ProductoRespuesta>> {
     const pagina = peticion.pagina ?? 1;
     const tamanoPagina = peticion.tamanoPagina ?? 20;
 

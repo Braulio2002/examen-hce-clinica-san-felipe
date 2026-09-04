@@ -31,7 +31,8 @@ export class FilaKardexDto {
 export class MovimientoRespuestaDto {
   @ApiProperty() idMovimientoDet!: number;
   @ApiProperty({ example: '2026-09-03T08:46:53.000Z' }) fechaRegistro!: Date;
-  @ApiProperty({ example: 'Entrada', enum: ['Entrada', 'Salida'] }) tipoMovimiento!: string;
+  @ApiProperty({ example: 'Entrada', enum: ['Entrada', 'Salida'] })
+  tipoMovimiento!: string;
   @ApiProperty({ example: 1, description: '(1) Entrada, (2) Salida' })
   idTipoMovimiento!: number;
   @ApiProperty({ description: 'Id_CompraCab o Id_VentaCab segun el tipo' })

@@ -56,7 +56,9 @@ export function cargarConfiguracion(): ConfiguracionGateway {
     .filter(Boolean);
 
   if (origenesPermitidos.includes('*')) {
-    throw new Error('CORS_ORIGENES no admite el comodin "*". Declare los origenes explicitamente.');
+    throw new Error(
+      'CORS_ORIGENES no admite el comodin "*". Declare los origenes explicitamente.',
+    );
   }
 
   return {
@@ -65,7 +67,8 @@ export function cargarConfiguracion(): ConfiguracionGateway {
     entorno,
     origenesPermitidos,
     // En produccion la cookie viaja solo por HTTPS.
-    cookieSegura: (process.env.COOKIE_SEGURA ?? String(entorno === 'production')) === 'true',
+    cookieSegura:
+      (process.env.COOKIE_SEGURA ?? String(entorno === 'production')) === 'true',
     jwt: {
       secreto,
       // El enunciado exige una duracion estricta de 30 minutos = 1800 segundos.
