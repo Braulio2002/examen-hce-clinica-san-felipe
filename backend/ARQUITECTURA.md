@@ -203,6 +203,26 @@ No es duplicación: son dos momentos distintos del ciclo. Un `eslint-disable`
 puede silenciar al primero —de hecho las reglas de arquitectura prohíben
 explícitamente esa cadena dentro de un servicio—, pero no al segundo.
 
+### Límites de tamaño
+
+| Ámbito | Límite | Por qué |
+|---|---|---|
+| Cualquier archivo | **400 líneas** | Un archivo más largo deja de leerse de una sentada |
+| Un caso de uso | **120 líneas** | Representa UNA operación de negocio; si no cabe, son dos |
+| Una función de caso de uso | **60 líneas** | Un `ejecutar` más largo son varias operaciones disfrazadas de una |
+
+Las líneas en blanco y los comentarios **no cuentan**: documentar una decisión de
+diseño no debe penalizar.
+
+El límite de los casos de uso es holgado a propósito. El más grande del sistema
+—`iniciar-sesion`, que incluye la defensa contra enumeración por temporización—
+ocupa 74 líneas, y el resto van de 15 a 49. Que sobre margen es la señal de que
+la regla mide bien: no obliga a comprimir código legible, solo impide que un caso
+de uso crezca hasta convertirse en un servicio con tres responsabilidades.
+
+Cuando un caso de uso se acerque al límite, la salida correcta **no es partir el
+archivo**: es partir la operación en dos casos de uso que la fachada componga.
+
 ### Qué prohíbe cada capa
 
 Las reglas de `eslint.architecture.mjs` bloquean por configuración lo que la

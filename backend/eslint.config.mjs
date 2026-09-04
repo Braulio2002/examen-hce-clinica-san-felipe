@@ -318,6 +318,39 @@ export default defineConfig([
   ...configuracionesCleanArchitecture,
 
   // ===========================================================================
+  // Un caso de uso no pasa de 120 lineas.
+  //
+  // El limite general del proyecto son 400 lineas por archivo. Aqui se aprieta a
+  // 120 por una razon concreta: un caso de uso representa UNA operacion del
+  // negocio. Si no cabe en 120 lineas es que esta haciendo mas de una cosa, y lo
+  // correcto no es dividir el archivo sino dividir la operacion en dos casos de
+  // uso que la fachada componga.
+  //
+  // El limite es holgado a proposito: el caso de uso mas grande del sistema
+  // -iniciar sesion, que incluye la defensa contra enumeracion por
+  // temporizacion- ocupa 74 lineas. Que sobre margen es la senal de que la
+  // regla mide bien: no obliga a comprimir codigo legible, solo impide que un
+  // caso de uso crezca hasta convertirse en un servicio con tres
+  // responsabilidades.
+  //
+  // Las lineas en blanco y los comentarios no cuentan: documentar una decision
+  // de diseno no debe penalizar.
+  // ===========================================================================
+  {
+    files: ['apps/*/src/aplicacion/casos-uso/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      'max-lines': ['error', { max: 120, skipBlankLines: true, skipComments: true }],
+      // Un metodo `ejecutar` de mas de 60 lineas tiene el mismo problema que un
+      // archivo de mas de 120: son varias operaciones disfrazadas de una.
+      'max-lines-per-function': [
+        'error',
+        { max: 60, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+
+  // ===========================================================================
   // Puntos de entrada del proceso.
   //
   // `main.ts` arranca el servicio y su salida por consola es la unica traza que
