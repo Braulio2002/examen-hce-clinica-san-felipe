@@ -389,7 +389,7 @@ export default defineConfig([
       'apps/api-gateway/src/adaptadores/seguridad/decoradores/usuario-actual.decorador.ts',
       'apps/api-gateway/src/adaptadores/seguridad/estrategias/jwt.estrategia.ts',
       'libs/compartido/src/adaptadores/filtros/excepcion-http.filtro.ts',
-      'libs/compartido/src/infraestructura/persistencia/mssql.service.ts',
+      'libs/compartido/src/adaptadores/persistencia/mssql.service.ts',
     ],
     rules: { 'security/detect-object-injection': 'off' },
   },

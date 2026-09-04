@@ -32,14 +32,36 @@ puede conocer a las más internas que ella.
                     Las flechas de import van  ←←←
 ```
 
-**Esta regla no es una convención escrita: está verificada.** La prueba
+**Esta regla no es una convención escrita: está verificada.** Dos pruebas la
+comprueban, y hacen falta las dos.
+
 [`test/regla-dependencia.spec.ts`](test/regla-dependencia.spec.ts) recorre el
 código fuente, analiza cada `import` y falla si una capa mira hacia afuera o si
 el dominio toca un framework.
 
+[`test/superficie-compartida.spec.ts`](test/superficie-compartida.spec.ts) cierra
+el hueco que dejaba la anterior. La primera prueba acepta `@hce/compartido`
+entero desde cualquier capa —tiene que hacerlo: el paquete exporta símbolos de
+las cuatro—, así que un caso de uso podía escribir
+`import { MssqlService } from '@hce/compartido'` sin que nada avisara. La
+segunda clasifica **cada símbolo exportado** por su capa y verifica los imports
+uno a uno.
+
 ```bash
-npm test -- regla-dependencia
+npm test -- regla-dependencia superficie-compartida
 ```
+
+> Esa segunda prueba no es teórica: al escribirla destapó una violación real.
+> `MssqlService` estaba en `infraestructura/`, mientras las pasarelas que lo usan
+> son capa 3 —tres microservicios importando hacia afuera—. Se corrigió moviendo
+> el adaptador a `adaptadores/persistencia/`, que es su sitio: traduce entre lo
+> que la aplicación pide y lo que el driver ofrece, y convierte códigos de error
+> del motor en excepciones de dominio. El detalle de framework es el paquete
+> `mssql` que envuelve, no el envoltorio. En capa 4 queda `MssqlModule`, que solo
+> declara cómo construirlo.
+>
+> Se corrigió el código, no la regla. Es la diferencia entre una prueba de
+> arquitectura y una que documenta lo que ya se hacía.
 
 ---
 
@@ -157,6 +179,72 @@ apps/ms-inventario/src/
 El API Gateway solo tiene las capas 3 y 4, y es correcto: **no posee lógica de
 negocio propia**. Es un BFF que traduce HTTP a mensajes RPC y concentra la
 seguridad. Sus casos de uso viven en los microservicios.
+
+---
+
+## Hasta dónde llegan los microservicios (y dónde no)
+
+Conviene decirlo sin adornos, porque un revisor lo va a mirar.
+
+**Lo que sí cumple el estándar:**
+
+| Criterio | Estado | Cómo se comprueba |
+|---|---|---|
+| Un proceso y un contenedor por servicio | Sí | 4 servicios en `docker-compose.yml`, con healthcheck propio |
+| Cero código compartido entre servicios | Sí, verificado | `regla-dependencia.spec.ts` falla si un servicio importa de otro; lo común pasa por `@hce/compartido`, que es una dependencia declarada |
+| Despliegue y escalado independientes | Sí | Cada uno se construye y arranca por separado |
+| Comunicación solo por contrato | Sí | Transporte TCP con patrones de mensaje; ningún servicio llama a las funciones de otro |
+| Fallo aislado | Sí | El Gateway aplica timeout y reintento por llamada |
+
+**Lo que no cumple el estándar, y es una decisión consciente:**
+
+Los tres servicios apuntan a la **misma base de datos** `HCE_Insumos` y al mismo
+esquema `hce`. Eso es *shared database*, no *database per service*. La propiedad
+de los datos queda así:
+
+| Servicio | Escribe | Lee de otro servicio |
+|---|---|---|
+| `ms-auth` | `Usuarios` | — |
+| `ms-catalogo` | `Productos` | `vw_StockActual`, que agrega los movimientos de inventario |
+| `ms-inventario` | `CompraCab/Det`, `VentaCab/Det`, `MovimientoCab/Det` **y `Productos`** | `Productos` |
+
+La celda incómoda es la última: `usp_Compra_Registrar` hace
+`UPDATE p ... FROM hce.Productos AS p` dentro de su transacción. **ms-inventario
+escribe en la tabla de ms-catalogo.**
+
+**Por qué se hizo así.** El enunciado exige que registrar una compra sea una sola
+operación indivisible: inserta CompraCab y CompraDet, actualiza `Costo` y
+`PrecioVenta = Costo * 1.35`, y genera el movimiento de Entrada. Con la base
+partida, esas cuatro escrituras caen en dos servicios y la atomicidad se pierde:
+haría falta una saga con compensación, y el estado intermedio —una compra
+registrada con el precio de venta todavía viejo— sería visible para cualquier
+venta concurrente. En un sistema que factura medicamentos, ese intervalo es un
+error de cobro real.
+
+Lo mismo con el stock: la venta valida existencias con `UPDLOCK, HOLDLOCK` sobre
+los movimientos en la misma transacción que los inserta. Es lo que impide vender
+dos veces la última unidad. Con la tabla en otro servicio, esa garantía
+desaparece y se sustituye por sobreventa más compensación.
+
+**El precio que se paga.** El esquema es un contrato acoplado: un `ALTER TABLE`
+sobre `Productos` obliga a revisar dos servicios, no uno. Está mitigado —pero no
+resuelto— porque **ningún servicio emite SQL**: todos pasan por procedimientos
+almacenados, así que la superficie compartida es el contrato de los
+procedimientos, no el de las tablas. Cambiar una columna sin cambiar la firma del
+procedimiento no rompe a nadie.
+
+**Qué haría falta para cerrarlo de verdad**, si el sistema creciera:
+
+1. Un esquema por servicio (`auth`, `catalogo`, `inventario`) con permisos
+   separados —hoy todos usan el mismo login, que es la deuda más fácil de saldar.
+2. Mover el precio de venta a inventario, o publicar `CompraRegistrada` y que
+   catálogo recalcule su propio precio.
+3. Aceptar consistencia eventual en el precio, con la regla de negocio explícita
+   de qué precio aplica a una venta que llega en mitad de la ventana.
+
+Los tres son cambios de diseño de producto, no refactors. Por eso el sistema se
+entrega con la base compartida y el motivo escrito, en vez de con una saga a
+medio hacer.
 
 ---
 

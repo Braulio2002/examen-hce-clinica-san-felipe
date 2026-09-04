@@ -50,7 +50,20 @@ export interface OpcionesEjecucion {
 }
 
 /**
- * Adaptador de persistencia sobre SQL Server.
+ * CAPA 3 · ADAPTADORES — Adaptador de persistencia sobre SQL Server.
+ *
+ * Vivio primero en `infraestructura/`, y era un error que destapo la auditoria
+ * de la regla de dependencia: las pasarelas de los microservicios son capa 3, y
+ * si este servicio fuera capa 4 estarian importando hacia afuera.
+ *
+ * Su sitio es la capa de adaptadores porque eso es lo que hace: traduce entre
+ * lo que la aplicacion necesita -ejecutar un procedimiento con parametros
+ * tipados- y lo que el driver ofrece, y convierte los codigos de error del
+ * motor en excepciones de dominio. El detalle de framework es el paquete
+ * `mssql` que envuelve, no el envoltorio.
+ *
+ * Lo que si queda en capa 4 es `MssqlModule`: ese archivo solo declara como
+ * NestJS debe construir esta clase, y eso es cableado, no traduccion.
  *
  * Responsabilidad unica: administrar el pool de conexiones y ejecutar
  * procedimientos almacenados de forma parametrizada. No conoce entidades ni

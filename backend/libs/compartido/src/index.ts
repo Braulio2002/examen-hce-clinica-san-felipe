@@ -32,7 +32,7 @@ export * from './adaptadores/mensajeria/patrones-mensaje';
 export * from './adaptadores/mensajeria/rpc.util';
 export * from './adaptadores/observabilidad/cronometro';
 export * from './adaptadores/observabilidad/registro-nest.adaptador';
+export * from './adaptadores/persistencia/mssql.service';
 
 /* --- Capa 4 · Infraestructura ---------------------------------------------- */
-export * from './infraestructura/persistencia/mssql.service';
 export * from './infraestructura/persistencia/mssql.module';
