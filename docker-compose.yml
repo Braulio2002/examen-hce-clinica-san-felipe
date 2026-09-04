@@ -36,7 +36,16 @@ services:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       MSSQL_PID: Developer
     ports:
-      - "${SQLSERVER_PUERTO_HOST:-14330}:1433"
+      # Atado a la interfaz local a proposito.
+      #
+      # La base no necesita ser alcanzable desde la red: los microservicios la
+      # ven por la red interna de Docker, y las pruebas SQL se ejecutan con
+      # `docker compose exec`. Publicar el puerto en 0.0.0.0 la exponia a
+      # cualquier equipo de la misma red con la contrasena del .env.example, que
+      # esta en un repositorio publico.
+      #
+      # Solo se expone para poder conectar un cliente SQL desde este equipo.
+      - "127.0.0.1:${SQLSERVER_PUERTO_HOST:-14330}:1433"
     volumes:
       - datos-sqlserver:/var/opt/mssql
       # Los scripts se montan tambien aqui (solo lectura) para poder ejecutar la
