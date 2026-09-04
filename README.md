@@ -73,7 +73,7 @@ cd frontend && npm run quality   # formato · tipos · lint · build
 | `format:check` (Prettier) | limpio | limpio |
 | `typecheck` (`strict` completo + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
 | `lint:strict` (0 avisos permitidos) | limpio | limpio |
-| Pruebas | 117 casos | — |
+| Pruebas | 122 casos | — |
 | Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | — |
 
 El linter no es el `next lint` por defecto: es la configuración de SIGPRO PECEPE
@@ -83,7 +83,7 @@ en el frontend, **jsx-a11y** y las reglas de React Hooks. Incluye además reglas
 de arquitectura propias que impiden por configuración lo que la prueba de
 dependencia verifica en tiempo de ejecución.
 
-### Pruebas de dominio y arquitectura (117 casos)
+### Pruebas de dominio y arquitectura (122 casos)
 
 ```bash
 cd backend && npm test          # ejecuta la suite

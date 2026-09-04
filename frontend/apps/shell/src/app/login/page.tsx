@@ -7,6 +7,41 @@ import { Suspense, useEffect, useState } from 'react';
 import { ErrorApi } from '@hce/api-cliente';
 import { Alerta, Boton, Campo, useSesion } from '@hce/ui';
 
+/**
+ * Depura el destino al que se vuelve tras autenticarse.
+ *
+ * El middleware construye este parametro a partir de la ruta que el usuario
+ * pidio, y en ese camino es de fiar. Pero /login es publica y cualquiera puede
+ * teclear el parametro: sin depurar, un enlace como
+ * `/login?destino=https://sitio-malicioso` redirige a la victima nada mas
+ * abrirlo si ya tiene sesion, porque la redireccion es automatica. Es una
+ * situacion normal en personal clinico que deja la sesion abierta.
+ *
+ * Se exige una ruta interna: una sola barra inicial. Rechazar la doble barra
+ * importa porque `//sitio-malicioso` es una URL valida que hereda el protocolo
+ * actual, y a simple vista parece una ruta relativa.
+ */
+const RUTA_PREDETERMINADA = '/';
+
+function depurarDestino(valor: string | null): string {
+  if (valor === null) return RUTA_PREDETERMINADA;
+  if (!valor.startsWith('/')) return RUTA_PREDETERMINADA;
+  if (valor.startsWith('//')) return RUTA_PREDETERMINADA;
+  // `\` se normaliza a `/` en algunos navegadores, asi que `/\host` colaria.
+  if (valor.startsWith('/\\')) return RUTA_PREDETERMINADA;
+  return valor;
+}
+
+/**
+ * Las credenciales sembradas solo se muestran si se pide explicitamente.
+ *
+ * Estan en el README y en el script de seed, asi que ensenarlas aqui no revela
+ * nada nuevo: es una comodidad para quien evalua. Lo que no puede pasar es que
+ * viajen a un despliegue real por no haber interruptor. Por eso la variable se
+ * lee en tiempo de compilacion y hay que activarla a proposito.
+ */
+const MOSTRAR_CREDENCIALES = process.env.NEXT_PUBLIC_MOSTRAR_CREDENCIALES_DEMO === 'true';
+
 function FormularioLogin(): React.JSX.Element {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -18,7 +53,7 @@ function FormularioLogin(): React.JSX.Element {
   const [enviando, setEnviando] = useState(false);
 
   const sesionExpirada = parametros.get('expirada') === '1';
-  const destino = parametros.get('destino') ?? '/';
+  const destino = depurarDestino(parametros.get('destino'));
 
   // Si ya hay sesion valida, no tiene sentido mostrar el formulario.
   useEffect(() => {
@@ -117,22 +152,24 @@ function FormularioLogin(): React.JSX.Element {
             </Boton>
           </form>
 
-          <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-            <p className="mb-1 font-medium text-slate-600">Usuarios de demostracion</p>
-            <ul className="space-y-0.5">
-              <li>
-                <code className="text-slate-700">admin / Admin123$</code> — acceso total
-              </li>
-              <li>
-                <code className="text-slate-700">farmacia / Farmacia123$</code> — compras
-                y ventas
-              </li>
-              <li>
-                <code className="text-slate-700">consulta / Consulta123$</code> — solo
-                lectura
-              </li>
-            </ul>
-          </div>
+          {MOSTRAR_CREDENCIALES && (
+            <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+              <p className="mb-1 font-medium text-slate-600">Usuarios de demostracion</p>
+              <ul className="space-y-0.5">
+                <li>
+                  <code className="text-slate-700">admin / Admin123$</code> — acceso total
+                </li>
+                <li>
+                  <code className="text-slate-700">farmacia / Farmacia123$</code> —
+                  compras y ventas
+                </li>
+                <li>
+                  <code className="text-slate-700">consulta / Consulta123$</code> — solo
+                  lectura
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">

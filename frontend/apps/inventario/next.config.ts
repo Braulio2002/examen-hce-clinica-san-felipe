@@ -25,13 +25,34 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@hce/ui', '@hce/api-cliente'],
   poweredByHeader: false,
 
+  /**
+   * Cabeceras estaticas de la zona.
+   *
+   * Son las mismas que emite la shell, y eso es deliberado. Antes esta zona
+   * declaraba solo dos: al ser una aplicacion con su propio contenedor, si
+   * llegara a ser alcanzable de forma directa sus pantallas de compras, ventas
+   * y kardex quedaban sin proteccion frente a clickjacking. Una unidad
+   * desplegable por separado no puede apoyarse en las cabeceras de otra.
+   *
+   * La Content-Security-Policy no esta aqui: necesita un nonce por peticion y
+   * se emite desde `src/middleware.ts`.
+   */
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
         ],
       },
     ];

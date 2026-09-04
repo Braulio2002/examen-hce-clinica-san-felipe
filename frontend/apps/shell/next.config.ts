@@ -52,6 +52,18 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  /**
+   * Cabeceras estaticas.
+   *
+   * La Content-Security-Policy no esta aqui: necesita un nonce distinto en cada
+   * peticion y se emite desde `src/middleware.ts`.
+   *
+   * HSTS se anuncia aunque el despliegue local sea HTTP. El navegador ignora la
+   * cabecera si la conexion no es segura, de modo que no estorba en desarrollo
+   * y queda lista para el dia que haya TLS delante. Sin `preload`: pedir la
+   * inclusion en la lista de los navegadores es una decision con marcha atras
+   * lenta, y no corresponde tomarla desde un archivo de configuracion.
+   */
   async headers() {
     return [
       {
@@ -63,6 +75,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
           },
         ],
       },

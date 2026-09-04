@@ -308,7 +308,7 @@ Equivale a:
 npm run format:check   # Prettier
 npm run typecheck      # tsc --noEmit, con strict completo
 npm run lint:strict    # ESLint, 0 avisos permitidos
-npm run test:cov       # 117 pruebas + umbral de cobertura
+npm run test:cov       # 122 pruebas + umbral de cobertura
 npm run build          # compila los 4 servicios
 ```
 

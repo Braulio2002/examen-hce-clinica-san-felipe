@@ -27,6 +27,7 @@
 #     haciendo su trabajo.
 # =============================================================================
 API="http://localhost:4000/api/v1"
+FRONT="${FRONT:-http://localhost:3000}"
 OK=0; FALLA=0
 
 # Lote unico por ejecucion: el script debe poder correrse varias veces seguidas
@@ -248,6 +249,37 @@ echo "$heads" | grep -qi "x-content-type-options: nosniff" && { echo "OK     X-C
 echo "$heads" | grep -qi "x-frame-options: DENY" && { echo "OK     X-Frame-Options: DENY"; OK=$((OK+1)); } || { echo "FALLA  Falta X-Frame-Options"; FALLA=$((FALLA+1)); }
 echo "$heads" | grep -qi "content-security-policy" && { echo "OK     Content-Security-Policy presente"; OK=$((OK+1)); } || { echo "FALLA  Falta CSP"; FALLA=$((FALLA+1)); }
 echo "$heads" | grep -qi "x-powered-by" && { echo "FALLA  Se filtra X-Powered-By"; FALLA=$((FALLA+1)); } || { echo "OK     No se expone X-Powered-By"; OK=$((OK+1)); }
+
+echo
+echo "== 17b. Cabeceras de seguridad del FrontEnd =="
+# Estas comprobaciones existen porque faltaban. La seccion anterior solo mira el
+# API Gateway, y durante una auditoria se descubrio que el FrontEnd no emitia
+# Content-Security-Policy: la suite daba 36/36 sin haber mirado nunca esa parte.
+frente=$(peticion -s -D - -o /dev/null "$FRONT/login")
+echo "$frente" | grep -qi "content-security-policy" && { echo "OK     FrontEnd: Content-Security-Policy presente"; OK=$((OK+1)); } || { echo "FALLA  FrontEnd: falta CSP"; FALLA=$((FALLA+1)); }
+echo "$frente" | grep -qi "nonce-" && { echo "OK     FrontEnd: la CSP usa nonce, no unsafe-inline"; OK=$((OK+1)); } || { echo "FALLA  FrontEnd: la CSP no usa nonce"; FALLA=$((FALLA+1)); }
+echo "$frente" | grep -qi "strict-transport-security" && { echo "OK     FrontEnd: Strict-Transport-Security"; OK=$((OK+1)); } || { echo "FALLA  FrontEnd: falta HSTS"; FALLA=$((FALLA+1)); }
+echo "$frente" | grep -qi "x-frame-options: DENY" && { echo "OK     FrontEnd: X-Frame-Options DENY"; OK=$((OK+1)); } || { echo "FALLA  FrontEnd: falta X-Frame-Options"; FALLA=$((FALLA+1)); }
+
+echo
+echo "== 17c. Redireccion abierta en el login =="
+# Un enlace /login?destino=<url externa> no debe sacar al usuario del dominio.
+destino=$(peticion -s -D - -o /dev/null "$FRONT/login?destino=https://sitio-malicioso.com" | grep -i "^location:" | tr -d "")
+if echo "$destino" | grep -qi "sitio-malicioso"; then
+  echo "FALLA  El login redirige a un destino externo"; FALLA=$((FALLA+1))
+else
+  echo "OK     El login no redirige a un destino externo"; OK=$((OK+1))
+fi
+
+echo
+echo "== 17d. La zona de inventario protege sus rutas =="
+# La zona es una app independiente: no puede depender de que la shell la cubra.
+zona=$(docker compose exec -T front-shell sh -c "wget -qS --spider http://front-inventario:3000/inventario/compras 2>&1" | grep -i "location:" | tr -d "")
+if echo "$zona" | grep -q "/login"; then
+  echo "OK     La zona redirige al login cuando no hay sesion"; OK=$((OK+1))
+else
+  echo "FALLA  La zona sirve sus paginas sin comprobar la sesion"; FALLA=$((FALLA+1))
+fi
 
 echo
 echo "== 18. CORS restringido =="

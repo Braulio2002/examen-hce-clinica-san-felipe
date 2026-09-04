@@ -243,6 +243,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+      JWT_COOKIE: ${JWT_COOKIE:-hce_access_token}
       PORT: "3000"
     networks:
       - hce-red
@@ -261,6 +262,10 @@ services:
       args:
         APP: shell
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+        # Interruptor del bloque de credenciales sembradas en la pantalla de
+        # login. Es build arg porque las variables NEXT_PUBLIC_* se congelan al
+        # compilar. Apagado salvo que se active a proposito.
+        NEXT_PUBLIC_MOSTRAR_CREDENCIALES_DEMO: ${MOSTRAR_CREDENCIALES_DEMO:-false}
         # Debe pasarse como build arg: Next congela las reescrituras al compilar.
         ZONA_INVENTARIO_URL: http://front-inventario:3000
     image: hce/front-shell:1.0.0

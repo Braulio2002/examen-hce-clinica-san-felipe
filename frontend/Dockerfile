@@ -47,6 +47,12 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ARG ZONA_INVENTARIO_URL=http://front-inventario:3000
 ENV ZONA_INVENTARIO_URL=${ZONA_INVENTARIO_URL}
 
+# Interruptor del bloque de credenciales sembradas en la pantalla de login.
+# El valor por defecto es "false" a proposito: si alguien construye la imagen
+# sin pasar nada, las credenciales NO viajan dentro. Hay que pedirlas.
+ARG NEXT_PUBLIC_MOSTRAR_CREDENCIALES_DEMO=false
+ENV NEXT_PUBLIC_MOSTRAR_CREDENCIALES_DEMO=${NEXT_PUBLIC_MOSTRAR_CREDENCIALES_DEMO}
+
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # npm workspaces eleva todas las dependencias al node_modules de la raiz y crea
