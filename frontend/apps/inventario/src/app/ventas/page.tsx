@@ -19,6 +19,7 @@ import {
   MarcoAplicacion,
   useSesion,
   ResumenTotales,
+  SelectorBuscable,
 } from '@hce/ui';
 
 import { apiHce } from '@/lib/api';
@@ -56,7 +57,6 @@ export default function PaginaVentas(): React.JSX.Element {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
-  const [seleccion, setSeleccion] = useState('');
 
   const cargarCatalogo = useCallback(async () => {
     setCargando(true);
@@ -99,7 +99,6 @@ export default function PaginaVentas(): React.JSX.Element {
         cantidad: '1',
       },
     ]);
-    setSeleccion('');
   };
 
   const cambiarCantidad = (idFila: string, valor: string): void => {
@@ -208,32 +207,29 @@ export default function PaginaVentas(): React.JSX.Element {
         >
           Agregar producto
         </label>
-        <select
-          id="selector-venta"
-          value={seleccion}
-          disabled={cargando}
-          onChange={(e) => {
-            const id = Number(e.target.value);
+        <SelectorBuscable
+          etiqueta="Agregar producto"
+          cargando={cargando}
+          marcador="Escriba nombre o numero de lote..."
+          ayuda="El precio y el stock provienen del servidor. El stock se calcula desde la tabla de movimientos."
+          sinResultados="Ningun producto del inventario coincide con la busqueda."
+          opciones={catalogo.map((c) => ({
+            id: c.idProducto,
+            etiqueta: c.nombreProducto,
+            terminosExtra: c.nroLote,
+            // Sin existencias se muestra, pero no se puede elegir: ocultarlo
+            // haria pensar que el producto no existe.
+            deshabilitada: c.stockActual <= 0,
+            nota:
+              c.stockActual <= 0
+                ? 'sin stock'
+                : `${formatearMoneda(c.precioVenta)} · stock ${String(c.stockActual)}`,
+          }))}
+          onSeleccionar={(id) => {
             const fila = catalogo.find((c) => c.idProducto === id);
             if (fila) agregarLinea(fila);
           }}
-          className="block min-h-[44px] w-full rounded-lg border-0 px-3 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-clinica-600"
-        >
-          <option value="">
-            {cargando ? 'Cargando inventario...' : 'Seleccione un producto'}
-          </option>
-          {catalogo.map((c) => (
-            <option key={c.idProducto} value={c.idProducto} disabled={c.stockActual <= 0}>
-              {c.nombreProducto} — {formatearMoneda(c.precioVenta)} — stock{' '}
-              {c.stockActual}
-              {c.stockActual <= 0 ? ' (sin stock)' : ''}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1.5 text-sm text-slate-500">
-          El precio y el stock provienen del servidor. El stock se calcula desde la tabla
-          de movimientos.
-        </p>
+        />
       </div>
 
       {lineas.length === 0 ? (

@@ -9,6 +9,7 @@ import {
   formatearFecha,
   formatearMoneda,
   precioVentaDesdeCosto,
+  type MetaPaginacion,
 } from '@hce/api-cliente';
 import {
   Alerta,
@@ -21,17 +22,24 @@ import {
   MarcoAplicacion,
   Modal,
   useSesion,
+  Paginacion,
 } from '@hce/ui';
 
 import { apiHce } from '@/lib/api';
 
-const TAMANO_PAGINA = 15;
+/*
+ * Diez por pagina. Con el catalogo de demostracion -trece productos- eso
+ * deja dos paginas, de modo que los controles se ven y se pueden probar.
+ * Con un tamano mayor la paginacion existia pero no llegaba a mostrarse
+ * nunca, y parecia no estar implementada.
+ */
+const TAMANO_PAGINA = 10;
 
 export default function PaginaProductos(): React.JSX.Element {
   const { puedeOperar } = useSesion();
 
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [meta, setMeta] = useState<MetaPaginacion | null>(null);
   const [pagina, setPagina] = useState(1);
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -51,7 +59,7 @@ export default function PaginaProductos(): React.JSX.Element {
         buscar: texto.trim() || undefined,
       });
       setProductos(resultado.datos);
-      setTotalPaginas(Math.max(1, resultado.meta.totalPaginas));
+      setMeta(resultado.meta);
     } catch (fallo) {
       setError(
         fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el catalogo.',
@@ -200,31 +208,8 @@ export default function PaginaProductos(): React.JSX.Element {
             </table>
           </ContenedorTabla>
 
-          {totalPaginas > 1 && (
-            <nav
-              aria-label="Paginacion"
-              className="mt-4 flex items-center justify-between"
-            >
-              <Boton
-                variante="secundario"
-                tamano="sm"
-                disabled={pagina <= 1}
-                onClick={() => setPagina((p) => Math.max(1, p - 1))}
-              >
-                Anterior
-              </Boton>
-              <span className="text-sm text-slate-500" aria-live="polite">
-                Pagina {pagina} de {totalPaginas}
-              </span>
-              <Boton
-                variante="secundario"
-                tamano="sm"
-                disabled={pagina >= totalPaginas}
-                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-              >
-                Siguiente
-              </Boton>
-            </nav>
+          {meta && (
+            <Paginacion meta={meta} elementos="productos" onCambiarPagina={setPagina} />
           )}
         </>
       </ContenidoAsincrono>

@@ -10,6 +10,7 @@ import {
   formatearCantidad,
   formatearFecha,
   formatearMoneda,
+  type MetaPaginacion,
 } from '@hce/api-cliente';
 import {
   Alerta,
@@ -21,6 +22,7 @@ import {
   EtiquetaStock,
   MarcoAplicacion,
   Modal,
+  Paginacion,
 } from '@hce/ui';
 
 import { apiHce } from '@/lib/api';
@@ -36,12 +38,18 @@ import { apiHce } from '@/lib/api';
  * listado en un Kardex utilizable para conciliar el inventario fisico.
  */
 
-const TAMANO_PAGINA = 20;
+/*
+ * Diez por pagina. Con el catalogo de demostracion -trece productos- eso
+ * deja dos paginas, de modo que los controles se ven y se pueden probar.
+ * Con un tamano mayor la paginacion existia pero no llegaba a mostrarse
+ * nunca, y parecia no estar implementada.
+ */
+const TAMANO_PAGINA = 10;
 
 export default function PaginaKardex(): React.JSX.Element {
   const [filas, setFilas] = useState<FilaKardex[]>([]);
   const [pagina, setPagina] = useState(1);
-  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [meta, setMeta] = useState<MetaPaginacion | null>(null);
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +67,7 @@ export default function PaginaKardex(): React.JSX.Element {
         buscar: texto.trim() || undefined,
       });
       setFilas(resultado.datos);
-      setTotalPaginas(Math.max(1, resultado.meta.totalPaginas));
+      setMeta(resultado.meta);
     } catch (fallo) {
       setError(
         fallo instanceof ErrorApi ? fallo.mensaje : 'No se pudo cargar el Kardex.',
@@ -192,31 +200,8 @@ export default function PaginaKardex(): React.JSX.Element {
             </table>
           </ContenedorTabla>
 
-          {totalPaginas > 1 && (
-            <nav
-              aria-label="Paginacion"
-              className="mt-4 flex items-center justify-between"
-            >
-              <Boton
-                variante="secundario"
-                tamano="sm"
-                disabled={pagina <= 1}
-                onClick={() => setPagina((p) => Math.max(1, p - 1))}
-              >
-                Anterior
-              </Boton>
-              <span className="text-sm text-slate-500" aria-live="polite">
-                Pagina {pagina} de {totalPaginas}
-              </span>
-              <Boton
-                variante="secundario"
-                tamano="sm"
-                disabled={pagina >= totalPaginas}
-                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-              >
-                Siguiente
-              </Boton>
-            </nav>
+          {meta && (
+            <Paginacion meta={meta} elementos="productos" onCambiarPagina={setPagina} />
           )}
         </>
       </ContenidoAsincrono>

@@ -639,7 +639,15 @@ BEGIN
     WHERE (@Buscar IS NULL
            OR s.Nombre_producto LIKE N'%' + @Buscar + N'%'
            OR s.NroLote         LIKE N'%' + @Buscar + N'%')
-    ORDER BY s.Nombre_producto
+    /* Se ordena por identificador y no por nombre.
+       El Kardex muestra la columna Id_producto -la exige el enunciado- y
+       ordenar por nombre la dejaba salteada: 10, 3, 4, 5, 9, 7, 2... Con la
+       columna a la vista, el ojo espera que esa sea la secuencia, y un orden
+       que no se corresponde con lo que se ve se lee como un error de datos.
+       Ordenar por el identificador tambien da un recorrido estable: dos
+       productos pueden llamarse igual, pero su Id no se repite, asi que la
+       paginacion no puede duplicar ni saltarse filas. */
+    ORDER BY s.Id_producto
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS
     FETCH NEXT @TamanoPagina ROWS ONLY;
 END;

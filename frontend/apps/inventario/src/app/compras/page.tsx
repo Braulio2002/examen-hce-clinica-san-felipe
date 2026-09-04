@@ -18,6 +18,7 @@ import {
   MarcoAplicacion,
   useSesion,
   ResumenTotales,
+  SelectorBuscable,
 } from '@hce/ui';
 
 import { ModalNuevoProducto } from '@/componentes/ModalNuevoProducto';
@@ -59,8 +60,6 @@ export default function PaginaCompras(): React.JSX.Element {
   const [exito, setExito] = useState<string | null>(null);
   const [modalProducto, setModalProducto] = useState(false);
 
-  const [seleccion, setSeleccion] = useState('');
-
   const cargarCatalogo = useCallback(async () => {
     setCargandoCatalogo(true);
     try {
@@ -97,7 +96,6 @@ export default function PaginaCompras(): React.JSX.Element {
         precio: producto.costo > 0 ? String(producto.costo) : '',
       },
     ]);
-    setSeleccion('');
   };
 
   const actualizarLinea = (
@@ -230,32 +228,24 @@ export default function PaginaCompras(): React.JSX.Element {
       <div className="tarjeta mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label
-              htmlFor="selector-producto"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
-            >
-              Agregar producto
-            </label>
-            <select
-              id="selector-producto"
-              value={seleccion}
-              disabled={cargandoCatalogo}
-              onChange={(e) => {
-                const id = Number(e.target.value);
+            <SelectorBuscable
+              etiqueta="Agregar producto"
+              cargando={cargandoCatalogo}
+              marcador="Escriba nombre o numero de lote..."
+              ayuda="Busca por nombre o por lote; puede escribir varias palabras sueltas."
+              opciones={productos.map((p) => ({
+                id: p.idProducto,
+                etiqueta: p.nombreProducto,
+                // El lote entra en la busqueda: farmacia suele tener la caja
+                // delante y es mas rapido teclear el numero que el nombre.
+                terminosExtra: p.nroLote,
+                nota: `Lote ${p.nroLote}`,
+              }))}
+              onSeleccionar={(id) => {
                 const producto = productos.find((p) => p.idProducto === id);
                 if (producto) agregarLinea(producto);
               }}
-              className="block min-h-[44px] w-full rounded-lg border-0 px-3 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-clinica-600"
-            >
-              <option value="">
-                {cargandoCatalogo ? 'Cargando catalogo...' : 'Seleccione un producto'}
-              </option>
-              {productos.map((p) => (
-                <option key={p.idProducto} value={p.idProducto}>
-                  {p.nombreProducto} — Lote {p.nroLote}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Requisito del enunciado: si el producto no existe, crearlo desde un modal. */}
