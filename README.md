@@ -320,6 +320,35 @@ criterio sea un cambio mínimo.
 
 ---
 
+## Si algo no responde
+
+**Los contenedores están «Up» pero el navegador no recibe nada.** Es lo más
+probable que le ocurra si el entorno lleva muchas horas levantado: Docker
+Desktop redirige los puertos publicados mediante un proxy, y ese proxy puede
+perder la referencia al contenedor tras un tiempo largo o tras suspender el
+equipo. El síntoma engaña, porque `docker compose ps` muestra todo sano y los
+servicios responden correctamente dentro de la red interna.
+
+Se distingue en un paso: si esto funciona pero desde el navegador no,
+el problema es el proxy y no la aplicación.
+
+```bash
+docker compose exec api-gateway wget -qO- http://127.0.0.1:4000/api/v1/salud
+```
+
+Se resuelve reasentando la publicación de puertos:
+
+```bash
+docker compose up -d --force-recreate api-gateway front-shell front-inventario
+```
+
+**El registro de compra o de venta falla con error interno tras reejecutar los
+scripts SQL.** `03-stored-procedures.sql` elimina y vuelve a crear los tipos
+tabla, y al eliminarlos SQL Server descarta también sus permisos. Vuelva a
+aplicar `06-seguridad-accesos.sql` después. `run-init.sh` ya respeta ese orden.
+
+---
+
 ## Comandos útiles
 
 ```bash
