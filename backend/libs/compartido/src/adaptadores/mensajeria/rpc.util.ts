@@ -6,6 +6,7 @@ import {
   ErrorInfraestructura,
   ExcepcionDominio,
 } from '../../dominio/excepciones/dominio.excepcion';
+import { conCorrelacion } from '../observabilidad/contexto-correlacion';
 
 /** Tiempo maximo que el Gateway espera la respuesta de un microservicio. */
 export const TIMEOUT_RPC_MS = 10_000;
@@ -27,7 +28,7 @@ export async function enviarMensaje<TRespuesta>(
   timeoutMs: number = TIMEOUT_RPC_MS,
 ): Promise<TRespuesta> {
   return firstValueFrom(
-    cliente.send<TRespuesta>(patron, payload).pipe(
+    cliente.send<TRespuesta>(patron, conCorrelacion(payload)).pipe(
       timeout(timeoutMs),
       catchError((error: unknown) => {
         if (error instanceof TimeoutError) {

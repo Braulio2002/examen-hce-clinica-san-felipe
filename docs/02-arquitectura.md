@@ -142,7 +142,9 @@ flowchart LR
 | Medición de latencia de acceso a datos | Implementado | Decoradores `*PasarelaTrazada` |
 | Detección de consulta lenta | Implementado | Umbral configurable (500 ms lectura, 1 s escritura) |
 | Auditoría de cambios con usuario | Implementado | Triggers DML → `hce.Auditoria` |
-| Trazas distribuidas, métricas, alertas | **No implementado** | Requiere OpenTelemetry + Prometheus |
+| Correlación de peticiones entre servicios | Implementado | `X-Request-Id` propagado por RPC |
+| Latencia de cada petición HTTP | Implementado | Registro de acceso en el Gateway |
+| Métricas agregadas y alertas | **No implementado** | Requiere Prometheus + Grafana |
 | Integración HL7/FHIR con el HCE | **No implementado** | Fuera del alcance del enunciado |
 
 La integración con un HCE asistencial real se haría por **HL7 v2 o FHIR**,

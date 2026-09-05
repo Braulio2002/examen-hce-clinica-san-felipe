@@ -31,6 +31,8 @@ export * from './adaptadores/filtros/excepcion-rpc.filtro';
 export * from './adaptadores/mensajeria/patrones-mensaje';
 export * from './adaptadores/mensajeria/rpc.util';
 export * from './adaptadores/observabilidad/cronometro';
+export * from './adaptadores/observabilidad/contexto-correlacion';
+export * from './adaptadores/observabilidad/correlacion.interceptor';
 export * from './adaptadores/observabilidad/registro-nest.adaptador';
 export * from './adaptadores/persistencia/mssql.service';
 

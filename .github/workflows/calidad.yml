@@ -1,0 +1,149 @@
+name: Calidad
+
+# =============================================================================
+# Puerta de calidad del proyecto.
+#
+# El repositorio tiene 218 comprobaciones automaticas, y sin esto nadie lo
+# sabria sin clonarlo y ejecutarlas. Este flujo las corre en cada push y en cada
+# pull request, sobre un entorno limpio de Linux.
+#
+# Que sea un entorno limpio importa mas de lo que parece: durante el desarrollo
+# el proyecto se topo dos veces con fallos que solo aparecian fuera de la
+# maquina del autor. El archivo de bloqueo generado en Windows no incluia los
+# paquetes nativos de Linux y `npm ci` fallaba dentro de Docker; y un import de
+# efecto lateral que el empaquetador descartaba dejaba la pantalla de login sin
+# cliente de API. Una CI en Ubuntu detecta esa clase de problema; ejecutar las
+# pruebas en local, no.
+#
+# QUE NO HACE
+# Las pruebas de extremo a extremo y las de SQL no corren aqui: necesitan el
+# ecosistema completo con SQL Server, y levantarlo en cada push encarece el
+# flujo mas de lo que aporta para un proyecto de este tamano. Se ejecutan en
+# local con `bash scripts/prueba-humo.sh` y `scripts/prueba-concurrencia.sh`, y
+# el README explica como. Es una limitacion consciente, no un olvido.
+# =============================================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Un push nuevo cancela la ejecucion anterior de la misma rama: no tiene sentido
+# gastar minutos validando un commit que ya quedo atras.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: BackEnd · NestJS
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # `npm ci` y no `npm install`: instala exactamente lo que fija el archivo
+      # de bloqueo y falla si package.json y el bloqueo estan desincronizados.
+      # Esa comprobacion es justamente la que salvo el build de Docker.
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Formato
+        working-directory: backend
+        run: npm run format:check
+
+      - name: Tipos
+        working-directory: backend
+        run: npm run typecheck
+
+      # Sin avisos tolerados. Incluye las reglas de arquitectura propias, que
+      # prohiben por configuracion que el dominio conozca NestJS o que un
+      # microservicio importe codigo de otro.
+      - name: Lint estricto
+        working-directory: backend
+        run: npm run lint:strict
+
+      # Las 122 pruebas incluyen dos de arquitectura que analizan cada import y
+      # fallan si una capa mira hacia afuera.
+      - name: Pruebas y cobertura
+        working-directory: backend
+        run: npm run test:cov
+
+      - name: Compilar los 4 servicios
+        working-directory: backend
+        run: npm run build
+
+      - name: Vulnerabilidades
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+  frontend:
+    name: FrontEnd · Next.js
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Formato
+        working-directory: frontend
+        run: npm run format:check
+
+      - name: Tipos
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint estricto
+        working-directory: frontend
+        run: npm run lint:strict
+
+      - name: Pruebas
+        working-directory: frontend
+        run: npm test
+
+      - name: Compilar las dos zonas del microfront
+        working-directory: frontend
+        run: npm run build
+
+      - name: Vulnerabilidades
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  docker:
+    name: Imágenes Docker
+    runs-on: ubuntu-latest
+
+    # Construir las imagenes comprueba algo que las pruebas no ven: que el
+    # Dockerfile, el archivo de bloqueo y la salida standalone encajen. Los dos
+    # fallos de entorno que sufrio este proyecto se habrian detectado aqui.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Preparar variables
+        run: cp .env.example .env
+
+      - name: Construir las imágenes
+        run: docker compose build api-gateway ms-auth ms-catalogo ms-inventario front-shell front-inventario

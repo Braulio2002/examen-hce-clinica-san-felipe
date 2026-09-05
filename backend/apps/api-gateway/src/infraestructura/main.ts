@@ -5,6 +5,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
+import { CorrelacionInterceptor } from '@hce/compartido';
+
 import { cargarConfiguracion } from './configuracion/configuracion';
 import { AppModule } from './nestjs/app.module';
 
@@ -101,6 +103,11 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   app.setGlobalPrefix(cfg.prefijoApi);
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+
+  // Nace aqui el identificador de correlacion: el Gateway es el borde del
+  // sistema y toda peticion lo atraviesa. Va antes de la validacion para que
+  // incluso un rechazo por datos invalidos quede trazado.
+  app.useGlobalInterceptors(new CorrelacionInterceptor());
 
   app.useGlobalPipes(
     new ValidationPipe({

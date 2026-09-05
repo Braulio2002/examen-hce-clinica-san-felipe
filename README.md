@@ -1,5 +1,7 @@
 # Sistema de Gestión de Insumos Médicos — HCE
 
+[![Calidad](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml/badge.svg)](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml)
+
 Solución al examen técnico para **Especialista de Desarrollo TI — HCE**,
 Clínica San Felipe.
 
@@ -117,6 +119,34 @@ la venta y coherencia del Kardex.
 > comprobación 16b lanza su ráfaga con `curl` directo, sin pasar por el
 > envoltorio. Un reintento que absorbe el fallo que debería delatar es peor que
 > no tener la prueba.
+
+### Prueba de concurrencia (9 comprobaciones)
+
+```bash
+bash scripts/prueba-concurrencia.sh
+```
+
+La prueba de humo verifica que no se pueda vender más de lo que hay en stock,
+pero lo hace en secuencia: una venta, contra un sistema en reposo. Ese es el
+caso fácil.
+
+Este script provoca el difícil, el que ocurre en planta: **veinte cajas
+despachando a la vez el último envase**. Si la comprobación de stock y el
+descuento no fueran atómicos, todas leerían «queda 1», todas aprobarían, y el
+inventario terminaría en negativo — sin error visible, y con el descuadre
+apareciendo semanas después en un conteo físico.
+
+Exige que exactamente una venta se acepte, que las otras diecinueve reciban 422
+por stock insuficiente, que ninguna termine en error interno —un 500 significaría
+que el bloqueo se resolvió por interbloqueo, es decir por accidente— y que el
+stock final sea 0, nunca negativo.
+
+Es lo que demuestra que `UPDLOCK, HOLDLOCK` en `usp_Venta_Registrar` sostiene el
+invariante de verdad, en lugar de afirmarlo en un comentario.
+
+> Con `VENTAS_PARALELAS=50` se puede subir la presión. El limitador de peticiones
+> (100/min) se cruza en el camino: si alguna venta lo toca, el script lo detecta,
+> avisa y no da un resultado engañoso.
 
 ### Pruebas del FrontEnd (39 casos)
 
@@ -317,6 +347,45 @@ La fórmula está centralizada en un único lugar por capa —el value object
 [`Importe`](backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts) y la
 función SQL `hce.fn_CalcularImportes`— precisamente para que corregir el
 criterio sea un cambio mínimo.
+
+---
+
+## Trazabilidad entre microservicios
+
+Una compra atraviesa cuatro procesos. Cada uno escribía en su propio registro, y
+sin nada que los uniera, averiguar qué operación produjo qué error consistía en
+comparar marcas de tiempo a ojo — algo que deja de funcionar con dos usuarios
+trabajando a la vez.
+
+Cada petición lleva ahora un identificador que nace en el Gateway, viaja dentro
+del mensaje RPC y aparece en las líneas de todos los servicios:
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" http://localhost:4000/api/v1/kardex
+# X-Request-Id: 0602272a-b4dd-49bf-8c72-a9d1fe0758b3
+```
+
+Con ese valor se reconstruye la operación completa:
+
+```bash
+docker compose logs api-gateway ms-catalogo ms-inventario | grep 0602272a
+```
+
+```
+hce-api-gateway   [Peticion]           [traza-165425] POST /api/v1/compras — 437 ms
+hce-ms-catalogo   [ProductoPasarela]   [traza-165425] registrar(...) completado en 195.6 ms
+hce-ms-inventario [InventarioPasarela] [traza-165425] registrarCompra(1 lineas) en 409.2 ms
+hce-ms-inventario [RegistrarCompra]    [traza-165425] Compra 3 registrada. Total 32.7.
+```
+
+Se puede imponer uno propio con la cabecera `X-Request-Id`, lo que permite
+enlazar la traza con un balanceador o una pasarela externa. Si el cliente no la
+envía, el Gateway genera una y la devuelve en la respuesta: quien reporta un
+fallo puede citarla.
+
+El identificador no viaja por parámetro. Vive en un `AsyncLocalStorage`, de modo
+que la capa de aplicación no lo conoce ni lo transporta — un caso de uso de
+registrar venta no debería saber que existe un sistema de trazas.
 
 ---
 

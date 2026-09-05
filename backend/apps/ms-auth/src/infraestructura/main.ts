@@ -2,7 +2,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
 
-import { ExcepcionRpcFiltro } from '@hce/compartido';
+import { CorrelacionInterceptor, ExcepcionRpcFiltro } from '@hce/compartido';
 
 import { AuthModule } from './nestjs/auth.module';
 
@@ -31,6 +31,9 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
+  // Activa el identificador de correlacion que llega en el payload RPC,
+  // de modo que cada linea de registro de este servicio lo lleve.
+  app.useGlobalInterceptors(new CorrelacionInterceptor());
   app.useGlobalFilters(new ExcepcionRpcFiltro());
 
   await app.listen();
