@@ -82,8 +82,21 @@ export function normalizarPaginacion(
   const solicitado = Math.trunc(
     consulta.tamanoPagina ?? LIMITES_PAGINACION.TAMANO_POR_DEFECTO,
   );
+
+  /*
+   * La comprobacion de NaN va primero, y no es defensiva de mas.
+   *
+   * `Math.trunc(NaN)` es NaN, y `NaN < 1` es false. Sin esta guarda el valor se
+   * colaba hasta `Math.min(NaN, 200)`, que tambien es NaN, y salia de aqui como
+   * tamano de pagina. Aguas abajo eso llega al procedimiento como
+   * `FETCH NEXT NaN ROWS`.
+   *
+   * El DTO del Gateway ya rechaza un valor no numerico, pero esta funcion es
+   * compartida y la usa tambien codigo interno: no puede apoyarse en que alguien
+   * haya validado antes. Lo destapo una prueba, no produccion.
+   */
   const tamanoPagina =
-    solicitado < 1
+    !Number.isFinite(solicitado) || solicitado < 1
       ? LIMITES_PAGINACION.TAMANO_POR_DEFECTO
       : Math.min(solicitado, LIMITES_PAGINACION.TAMANO_MAXIMO);
 
