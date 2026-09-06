@@ -1,14 +1,87 @@
+<div align="center">
+
 # Sistema de Gestión de Insumos Médicos — HCE
 
+**Control de medicamentos e insumos en atenciones clínicas: compras, ventas y trazabilidad por Kardex.**
+
+Solución al examen técnico para *Especialista de Desarrollo TI — HCE*, Clínica San Felipe.
+
 [![Calidad](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml/badge.svg)](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml)
+[![Pruebas](https://img.shields.io/badge/pruebas-226_comprobaciones-2ea44f)](#verificación)
+[![Vulnerabilidades](https://img.shields.io/badge/npm_audit-0_vulnerabilidades-2ea44f)](#verificación)
 
-Solución al examen técnico para **Especialista de Desarrollo TI — HCE**,
-Clínica San Felipe.
+<br>
 
-Control de medicamentos e insumos médicos en atenciones clínicas: registro de
-compras, despacho en ventas y trazabilidad completa mediante Kardex.
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-**Stack:** NestJS (microservicios) · Next.js (microfront) · SQL Server · Docker
+![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker_Compose-v2-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white)
+
+<br>
+
+[Puesta en marcha](#puesta-en-marcha) ·
+[Casos de uso](#casos-de-uso) ·
+[Arquitectura](#arquitectura) ·
+[Seguridad](#seguridad) ·
+[Verificación](#verificación) ·
+[Documentación](#documentación)
+
+</div>
+
+---
+
+## Cumplimiento del enunciado
+
+Cada requisito, y dónde está resuelto.
+
+### BackEnd — sección 1.1
+
+| Requisito | | Dónde |
+|---|:--:|---|
+| API REST con NestJS, dockerizada | ✅ | [`backend/`](backend/) · [`docker-compose.yml`](docker-compose.yml) |
+| Arquitectura de microservicios | ✅ | 3 microservicios + API Gateway |
+| JWT con duración estricta de 30 min | ✅ | [`main.ts`](backend/apps/api-gateway/src/infraestructura/main.ts) |
+| Modelo relacional con las 7 tablas | ✅ | [`01-schema.sql`](database/01-schema.sql) |
+| Los 8 servicios exigidos | ✅ | [Casos de uso](#casos-de-uso) |
+| Scripts de BD (insertar, listar, actualizar, eliminar) | ✅ | [`04-consultas-tsql.sql`](database/04-consultas-tsql.sql) |
+| Documentador REST (Swagger) | ✅ | `localhost:4000/api/docs` |
+| Colección para probar la API | ✅ | [`postman/`](postman/) |
+| CORS restringido al FrontEnd | ✅ | Lista blanca; el comodín se rechaza al arrancar |
+| Patrones Facade y Decorator | ✅ | [Patrones de diseño](#patrones-de-diseño) |
+| Principios SOLID | ✅ | [Arquitectura](#arquitectura) |
+
+### FrontEnd — sección 1.2
+
+| Requisito | | Dónde |
+|---|:--:|---|
+| Next.js con microfront | ✅ | Multi-Zones: 2 zonas independientes |
+| Interceptores para el token JWT | ✅ | [`cliente.ts`](frontend/paquetes/api-cliente/src/cliente.ts) |
+| **1.2.1** Compra con varios productos | ✅ | [Registrar compra](#1--registrar-compra) |
+| **1.2.1** Modal para crear producto inexistente | ✅ | `ModalNuevoProducto` |
+| **1.2.1** Actualiza costo y precio (× 1.35), genera Entrada | ✅ | `usp_Compra_Registrar`, en una transacción |
+| **1.2.2** Venta mostrando precio y stock por producto | ✅ | [Registrar venta](#2--registrar-venta) |
+| **1.2.2** Bloqueo si la cantidad supera el stock | ✅ | Cliente y servidor; probado bajo concurrencia |
+| **1.2.2** Cálculo de subtotal, IGV y total al digitar | ✅ | [Observación sobre el IGV](#observación-sobre-el-cálculo-del-igv) |
+| **1.2.2** Genera movimiento de Salida | ✅ | `usp_Venta_Registrar` |
+| **1.2.3** Kardex con las 5 columnas exigidas | ✅ | [Kardex](#3--kardex) |
+| **1.2.3** Botón por fila con modal de movimientos | ✅ | Fecha, tipo y cantidad, más saldo acumulado |
+
+### Consideraciones globales — sección 1.3
+
+| Requisito | | Dónde |
+|---|:--:|---|
+| Maquetado con Tailwind CSS | ✅ | [`tailwind.config.ts`](frontend/apps/shell/tailwind.config.ts) |
+| Diseño responsivo para tablets y laptops | ✅ | Áreas táctiles de 44 px; tablas con desplazamiento propio |
+| Clean Architecture en NestJS **con justificación** | ✅ | [`docs/02-arquitectura.md`](docs/02-arquitectura.md) |
+| `docker-compose.yml` con Back, Front y BD | ✅ | 7 contenedores |
+| API Gateway en la capa NestJS | ✅ | Único servicio expuesto al exterior |
+| Mínimo 2 mecanismos de seguridad | ✅ | **6 implementados** — [Seguridad](#seguridad) |
+| Repositorio público con README | ✅ | Este documento |
 
 ---
 
@@ -18,7 +91,7 @@ Requisitos: **Docker Desktop** con Docker Compose v2. Nada más — no hace falt
 Node ni SQL Server instalados en el equipo.
 
 ```bash
-git clone <URL-DEL-REPOSITORIO>
+git clone https://github.com/Braulio2002/examen-hce-clinica-san-felipe.git
 cd examen-hce-clinica-san-felipe
 cp .env.example .env
 docker compose up --build
@@ -35,7 +108,7 @@ Cuando `api-gateway` aparezca como `healthy`, todo está listo:
 | **Swagger** | http://localhost:4000/api/docs | Documentación interactiva |
 | **API** | http://localhost:4000/api/v1 | Base de todos los endpoints |
 | **Salud del Gateway** | http://localhost:4000/api/v1/salud | Usado por el healthcheck |
-| **SQL Server** | `localhost,14330` | Usuario `sa`, contraseña del `.env` |
+| **SQL Server** | `127.0.0.1,14330` | Usuario `sa`, contraseña del `.env` |
 
 ### Usuarios de demostración
 
@@ -50,7 +123,8 @@ de modo que el Kardex tiene movimientos desde el primer minuto.
 
 ### Antes de un despliegue real
 
-El `.env.example` trae un `JWT_SECRET` de marcador. **Genere uno propio:**
+El `.env.example` trae contraseñas de muestra y un `JWT_SECRET` de marcador.
+**Genere los suyos:**
 
 ```bash
 openssl rand -base64 48
@@ -58,57 +132,308 @@ openssl rand -base64 48
 
 ---
 
+## Casos de uso
+
+Los ocho servicios que exige la sección 1.1.1, con su endpoint, el procedimiento
+que los resuelve y el rol mínimo necesario.
+
+| # | Servicio | Endpoint | Procedimiento | Rol |
+|:--:|---|---|---|---|
+| 1 | **Registrar Compra** | `POST /compras` | `usp_Compra_Registrar` | FARMACIA |
+| 2 | **Registrar Venta** | `POST /ventas` | `usp_Venta_Registrar` | FARMACIA |
+| 3 | **Registrar Producto** | `POST /productos` | `usp_Producto_Registrar` | FARMACIA |
+| 4 | **Actualizar Producto** | `PATCH /productos/:id` | `usp_Producto_Actualizar` | FARMACIA |
+| 5 | **Listar Compra** | `GET /compras` | `usp_Compra_Listar` | CONSULTA |
+| 6 | **Listar Venta** | `GET /ventas` | `usp_Venta_Listar` | CONSULTA |
+| 7 | **Listar Producto** | `GET /productos` | `usp_Producto_Listar` | CONSULTA |
+| 8 | **Listar Kardex** | `GET /kardex` | `usp_Kardex_Listar` | CONSULTA |
+
+Cada uno es **una clase de caso de uso** en la capa de aplicación del
+microservicio que le corresponde. Hay quince en total —los ocho del enunciado,
+más los de detalle, autenticación y perfil— y el mayor ocupa 74 líneas.
+
+```
+ms-auth        iniciar-sesion · obtener-perfil
+ms-catalogo    registrar-producto · actualizar-producto · listar-productos
+               obtener-producto · eliminar-producto
+ms-inventario  registrar-compra · listar-compras · obtener-compra
+               registrar-venta · listar-ventas · obtener-venta
+               listar-kardex · movimientos-producto
+```
+
+### 1 · Registrar compra
+
+Permite cargar varias líneas y crear un producto desde un modal si no existe. El
+selector admite búsqueda por texto: ignora mayúsculas y tildes, acepta palabras
+sueltas en cualquier orden y también encuentra por número de lote.
+
+Al confirmar, el servidor ejecuta **una sola transacción**:
+
+1. Graba `CompraCab` y `CompraDet`.
+2. Actualiza el costo del producto y recalcula su precio de venta
+   (`PrecioVenta = Costo × 1.35`).
+3. Genera el movimiento de tipo **Entrada** en el Kardex.
+
+Si cualquier paso falla, no se graba nada. Que sea indivisible no es un lujo: si
+el precio se actualizara después, existiría una ventana en la que una venta
+concurrente cobraría el precio anterior.
+
+### 2 · Registrar venta
+
+Muestra por producto el precio de venta y el **stock disponible**, calculado
+desde la tabla de movimientos. No permite guardar si alguna cantidad supera el
+stock: la fila se marca, el campo indica el error y el botón queda deshabilitado
+con el mensaje *«la cantidad no debe ser mayor al stock»*.
+
+Esa validación es comodidad para el usuario. **La autoridad está en el
+servidor**, que revalida dentro de la transacción y con bloqueo, de modo que dos
+cajas vendiendo el mismo insumo a la vez no pueden provocar sobreventa.
+
+### 3 · Kardex
+
+Grilla con identificador, nombre, stock actual, costo y precio de venta. Cada
+fila abre un modal con los movimientos del producto: fecha, tipo de movimiento,
+cantidad y **saldo acumulado**.
+
+La paginación se resuelve en el servidor con `OFFSET/FETCH` y una función de
+ventana para el total: el navegador recibe solo la página que pidió.
+
+---
+
+## Arquitectura
+
+### Vista de despliegue
+
+```mermaid
+flowchart TB
+    N["🌐 Navegador"]
+
+    subgraph FRONT["FrontEnd — Microfront (Next.js Multi-Zones)"]
+        SH["front-shell :3000<br/>Login · Inicio · Productos"]
+        IN["front-inventario<br/>Compras · Ventas · Kardex"]
+    end
+
+    subgraph BACK["BackEnd — NestJS"]
+        GW["api-gateway :4000<br/>JWT · Roles · Rate limit<br/>CORS · Helmet · Swagger"]
+        MA["ms-auth"]
+        MC["ms-catalogo"]
+        MI["ms-inventario"]
+    end
+
+    DB[("SQL Server 2022<br/>16 procedimientos · 6 triggers")]
+
+    N --> SH
+    SH -.->|"rewrite /inventario/*"| IN
+    N --> GW
+    GW -->|TCP| MA
+    GW -->|TCP| MC
+    GW -->|TCP| MI
+    MA --> DB
+    MC --> DB
+    MI --> DB
+```
+
+Solo `front-shell` y `api-gateway` publican puerto. Los tres microservicios y la
+base son alcanzables únicamente desde la red interna de Docker.
+
+### Clean Architecture — las cuatro capas
+
+Cada microservicio se organiza en cuatro capas, y las dependencias apuntan
+**siempre hacia adentro**.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  4 · INFRAESTRUCTURA                                        │
+│     main.ts · Módulos NestJS · Configuración                │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  3 · ADAPTADORES                                      │  │
+│  │     Controladores · Pasarelas · Mapeadores · DTOs     │  │
+│  │  ┌─────────────────────────────────────────────────┐  │  │
+│  │  │  2 · APLICACIÓN                                 │  │  │
+│  │  │     Casos de uso · Puertos · Fachadas           │  │  │
+│  │  │  ┌───────────────────────────────────────────┐  │  │  │
+│  │  │  │  1 · DOMINIO                              │  │  │  │
+│  │  │  │     Entidades · Objetos de valor          │  │  │  │
+│  │  │  │     Excepciones de negocio                │  │  │  │
+│  │  │  └───────────────────────────────────────────┘  │  │  │
+│  │  └─────────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+
+              Las flechas de import van  ←←←
+```
+
+| Capa | Qué contiene | Qué **no** puede importar |
+|---|---|---|
+| **1 · Dominio** | Entidades, objetos de valor, excepciones de negocio | Nada externo. Ni NestJS, ni `mssql`, ni `class-validator` |
+| **2 · Aplicación** | Casos de uso, puertos, fachadas, modelos | Frameworks. Tampoco decoradores |
+| **3 · Adaptadores** | Controladores, pasarelas, mapeadores, DTOs | La raíz de composición que los construye |
+| **4 · Infraestructura** | `main.ts`, módulos NestJS, configuración | — |
+
+**Esta regla no es una convención escrita: está verificada.** Dos pruebas
+recorren el código fuente, analizan cada `import` y fallan si una capa mira
+hacia afuera. Cuando se escribió la segunda, encontró una violación real que
+llevaba tiempo sin detectarse.
+
+> **La decisión que la sostiene:** los casos de uso **no llevan `@Injectable()`**.
+> Son clases planas de TypeScript que reciben sus dependencias por constructor, y
+> todo el cableado vive en un único archivo por servicio, con `useFactory`.
+> Ponerles el decorador los ataría al contenedor de NestJS y la capa de
+> aplicación pasaría a depender del framework.
+>
+> El beneficio es medible: las 122 pruebas del backend corren en segundos y sin
+> base de datos.
+
+### Patrones de diseño
+
+| Patrón | Dónde | Para qué |
+|---|---|---|
+| **Facade** | `aplicacion/fachadas/` | Agrupa los casos de uso tras una interfaz simple |
+| **Decorator** | `adaptadores/pasarelas/*-trazada.ts` | Añade medición de tiempos y reintentos sin tocar la clase original |
+| **Repository** | `aplicacion/puertos/salida/` | Abstrae la persistencia del dominio |
+| **Adapter** | `adaptadores/pasarelas/` | Implementa los puertos contra SQL Server, bcrypt o JWT |
+| **Mapper** | `adaptadores/mapeadores/` | Traduce filas de la base al modelo de aplicación |
+| **API Gateway** | `apps/api-gateway/` | Punto único de entrada y de seguridad |
+| **Multi-Zones** | `frontend/apps/` | Microfrontend con despliegue independiente |
+
+> Conviene distinguir dos cosas que se llaman igual. El **patrón Decorator** de
+> la GoF es un objeto que envuelve a otro con la misma interfaz. Los
+> `@Decoradores` de NestJS son metadatos del lenguaje. El proyecto usa ambos.
+
+### FrontEnd — microfront y organización
+
+Dos aplicaciones Next independientes que se construyen y despliegan por
+separado, compuestas en una sola URL. Dentro de cada zona el código se organiza
+**por funcionalidad**, no por tipo de archivo.
+
+```
+frontend/
+├── apps/shell/                  Zona anfitriona · única expuesta
+│   └── src/
+│       ├── app/                 Rutas: solo composición
+│       ├── funcionalidades/     productos/
+│       └── compartido/          api · navegación
+├── apps/inventario/             Zona de inventario · basePath /inventario
+│   └── src/
+│       ├── app/                 Rutas: solo composición
+│       ├── funcionalidades/     compras/ · ventas/ · kardex/
+│       └── compartido/          api · useCatalogo · useLineasDocumento
+└── paquetes/                    Lo que comparten AMBAS zonas
+    ├── api-cliente/             Axios + interceptores + tipos
+    └── ui/                      Sistema de diseño y chrome
+```
+
+La regla de ubicación es simple: lo que usan varias funcionalidades **de una
+zona** va en el `compartido/` de esa zona; lo que usan **ambas zonas** va en
+`paquetes/`, como dependencia declarada. Subir a `paquetes/` algo que solo
+necesita una zona rompería el aislamiento del microfront.
+
+### Base de datos
+
+Toda la lógica transaccional vive en **16 procedimientos almacenados**. Ninguna
+parte del código emite SQL directamente, lo que elimina la superficie de
+inyección y hace posible el mínimo privilegio por servicio.
+
+**El stock no se almacena.** Se deriva siempre de la tabla de movimientos, que es
+la única fuente de verdad. Una columna `stock` sería un dato duplicado, y basta
+que un proceso inserte un movimiento y olvide actualizar el contador para que la
+cifra que ve farmacia sea falsa **sin que nada falle**.
+
+El costo de derivarlo se paga con un índice de cobertura sobre
+`MovimientoDet (Id_Producto) INCLUDE (Cantidad)`. Verificado con las vistas de
+diagnóstico de SQL Server: tras ejecutar toda la suite, el motor **no echa en
+falta ningún índice**.
+
+---
+
+## Seguridad
+
+El enunciado pide un mínimo de dos mecanismos. Se implementaron **seis**.
+
+| Mecanismo | Implementación |
+|---|---|
+| **JWT de 30 minutos** | HS256 con `issuer` y `audience` validados |
+| **Cookie HttpOnly** | Inaccesible desde JavaScript; mitiga el robo de token por XSS |
+| **Rate limiting** | 100 peticiones/min general, 5/min en login |
+| **CORS restringido** | Lista blanca; el comodín `*` se rechaza al arrancar |
+| **Cabeceras de seguridad** | Helmet, `nosniff`, CSP con nonce por petición, `X-Frame-Options: DENY`, HSTS |
+| **Autorización por rol** | Guard global con ADMIN / FARMACIA / CONSULTA |
+
+Y uno que el enunciado no pide: **mínimo privilegio en la base de datos**. Cada
+microservicio tiene su propia cuenta, con permiso para ejecutar únicamente sus
+procedimientos. **Ninguna tiene un solo permiso sobre tablas ni vistas** — no
+hacen falta, gracias al encadenamiento de propiedad. Si `ms-catalogo` intentara
+registrar una venta, el error no llega del código: llega de SQL Server.
+
+Además: bcrypt para contraseñas, defensa contra enumeración de usuarios por
+temporización, parámetros tipados en todo acceso a SQL, rechazo de campos no
+declarados en los DTOs, contenedores sin privilegios de root y bitácora de
+auditoría inmutable.
+
+Las limitaciones conocidas están declaradas en el
+[documento de arquitectura](docs/02-arquitectura.md).
+
+---
+
 ## Verificación
+
+**226 comprobaciones automáticas** repartidas en cinco suites.
+
+| Suite | Casos | Qué cubre |
+|---|:--:|---|
+| [Dominio y arquitectura](#pruebas-de-dominio-y-arquitectura) | 122 | Fórmulas, casos de uso, regla de dependencia |
+| [Extremo a extremo](#pruebas-de-extremo-a-extremo) | 43 | El sistema completo en ejecución |
+| [FrontEnd](#pruebas-del-frontend) | 39 | Lógica pura del cliente |
+| [Base de datos](#pruebas-de-base-de-datos) | 13 | Reglas de negocio y aislamiento entre servicios |
+| [Concurrencia](#prueba-de-concurrencia) | 9 | El invariante de stock bajo competencia real |
 
 ### Puerta de calidad
 
-Cada proyecto tiene una cadena que debe pasar entera antes de dar un cambio por
-terminado:
-
 ```bash
 cd backend  && npm run quality   # formato · tipos · lint · pruebas+cobertura · build
-cd frontend && npm run quality   # formato · tipos · lint · build
+cd frontend && npm run quality   # formato · tipos · lint · pruebas · build
 ```
 
 | Comprobación | Backend | Frontend |
 |---|---|---|
 | `format:check` (Prettier) | limpio | limpio |
-| `typecheck` (`strict` completo + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
+| `typecheck` (`strict` + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
 | `lint:strict` (0 avisos permitidos) | limpio | limpio |
 | Pruebas | 122 casos | 39 casos |
 | Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | fórmulas y depuración de rutas |
+| `npm audit` | 0 vulnerabilidades | 0 vulnerabilidades |
 
-El linter no es el `next lint` por defecto: es la configuración de SIGPRO PECEPE
-adaptada a este proyecto — `typescript-eslint` con reglas que usan información de
-tipos, más **SonarJS**, **unicorn**, **eslint-plugin-security**, **import-x** y,
-en el frontend, **jsx-a11y** y las reglas de React Hooks. Incluye además reglas
-de arquitectura propias que impiden por configuración lo que la prueba de
-dependencia verifica en tiempo de ejecución.
+El linter no es el `next lint` por defecto: es `typescript-eslint` con reglas que
+usan información de tipos, más **SonarJS**, **unicorn**, **eslint-plugin-security**,
+**import-x** y, en el frontend, **jsx-a11y** y las reglas de React Hooks. Incluye
+reglas de arquitectura propias que impiden por configuración lo que las pruebas
+de dependencia verifican en ejecución.
 
-### Pruebas de dominio y arquitectura (122 casos)
+Todo esto corre además en **GitHub Actions** en cada push, sobre un Ubuntu
+limpio, junto con la construcción de las seis imágenes Docker.
+
+### Pruebas de dominio y arquitectura
 
 ```bash
 cd backend && npm test          # ejecuta la suite
 cd backend && npm run test:cov  # con informe de cobertura y umbral
 ```
 
-Cubren el value object `Importe` —la fórmula de importes del enunciado y el
-margen de 1.35—, los 15 casos de uso, las excepciones de dominio con su viaje de
-ida y vuelta por el transporte RPC, y **la regla de dependencia de Clean
-Architecture**, que se comprueba analizando los `import` del código fuente.
-Corren sin base de datos ni contenedores: es la ventaja concreta de mantener el
-dominio aislado.
+Cubren el objeto de valor `Importe` —la fórmula del enunciado y el margen de
+1.35—, los 15 casos de uso, las excepciones de dominio con su viaje de ida y
+vuelta por el transporte RPC, y **la regla de dependencia de Clean
+Architecture**. Corren sin base de datos ni contenedores.
 
-### Pruebas de extremo a extremo (43 verificaciones)
+### Pruebas de extremo a extremo
 
 ```bash
 bash scripts/prueba-humo.sh
 ```
 
-Comprueba, contra el sistema en ejecución: JWT de 30 minutos, cookie HttpOnly,
-CORS restringido, rate limiting, cabeceras de seguridad, autorización por rol,
-cálculo de importes, actualización de precio por compra, validación de stock en
-la venta y coherencia del Kardex.
+43 comprobaciones contra el sistema en ejecución: JWT de 30 minutos, cookie
+HttpOnly, CORS, rate limiting, cabeceras de seguridad del API y del FrontEnd,
+autorización por rol, cálculo de importes, actualización de precio por compra,
+validación de stock, coherencia del Kardex y protección de rutas de la zona.
 
 > El script es reejecutable sin re-provisionar la base: crea su producto de
 > prueba con un lote único por ejecución y absorbe las esperas del rate limit
@@ -117,18 +442,17 @@ la venta y coherencia del Kardex.
 > Ese reintento tiene un coste que conviene conocer: durante un tiempo ocultó
 > que la API entera estaba limitada a 5 peticiones por minuto. Por eso la
 > comprobación 16b lanza su ráfaga con `curl` directo, sin pasar por el
-> envoltorio. Un reintento que absorbe el fallo que debería delatar es peor que
-> no tener la prueba.
+> envoltorio. **Un reintento que absorbe el fallo que debería delatar es peor que
+> no tener la prueba.**
 
-### Prueba de concurrencia (9 comprobaciones)
+### Prueba de concurrencia
 
 ```bash
 bash scripts/prueba-concurrencia.sh
 ```
 
-La prueba de humo verifica que no se pueda vender más de lo que hay en stock,
-pero lo hace en secuencia: una venta, contra un sistema en reposo. Ese es el
-caso fácil.
+La prueba de humo verifica que no se pueda vender más de lo que hay, pero lo hace
+en secuencia: una venta, contra un sistema en reposo. Ese es el caso fácil.
 
 Este script provoca el difícil, el que ocurre en planta: **veinte cajas
 despachando a la vez el último envase**. Si la comprobación de stock y el
@@ -136,35 +460,33 @@ descuento no fueran atómicos, todas leerían «queda 1», todas aprobarían, y 
 inventario terminaría en negativo — sin error visible, y con el descuadre
 apareciendo semanas después en un conteo físico.
 
-Exige que exactamente una venta se acepte, que las otras diecinueve reciban 422
-por stock insuficiente, que ninguna termine en error interno —un 500 significaría
-que el bloqueo se resolvió por interbloqueo, es decir por accidente— y que el
-stock final sea 0, nunca negativo.
+Exige que exactamente una venta se acepte, que las otras diecinueve reciban 422,
+que ninguna termine en error interno —un 500 significaría que el bloqueo se
+resolvió por interbloqueo, es decir por accidente— y que el stock final sea 0,
+nunca negativo.
 
 Es lo que demuestra que `UPDLOCK, HOLDLOCK` en `usp_Venta_Registrar` sostiene el
 invariante de verdad, en lugar de afirmarlo en un comentario.
 
-> Con `VENTAS_PARALELAS=50` se puede subir la presión. El limitador de peticiones
-> (100/min) se cruza en el camino: si alguna venta lo toca, el script lo detecta,
-> avisa y no da un resultado engañoso.
+> Con `VENTAS_PARALELAS=50` se puede subir la presión. El limitador se cruza en
+> el camino: si alguna venta lo toca, el script lo detecta, avisa y no da un
+> resultado engañoso.
 
-### Pruebas del FrontEnd (39 casos)
+### Pruebas del FrontEnd
 
 ```bash
 cd frontend && npm test
 ```
 
-Cubren las tres piezas de lógica pura del cliente: las fórmulas del enunciado
-—IGV del 18 %, precio de venta a costo × 1.35, suma de líneas—, la depuración
-del destino tras autenticarse —lo que impide que un enlace
+Cubren las tres piezas de lógica pura del cliente: las fórmulas del enunciado, la
+depuración del destino tras autenticarse —lo que impide que un enlace
 `/login?destino=<url externa>` saque al usuario del dominio— y el filtro del
-buscador de productos, que ignora mayúsculas y tildes y también encuentra por
-número de lote.
+buscador de productos.
 
 No cubren componentes: para una interfaz de este tamaño, las verificaciones de
 extremo a extremo y el linter de accesibilidad dan más señal que montar el DOM.
 
-### Pruebas de base de datos (13 comprobaciones)
+### Pruebas de base de datos
 
 ```bash
 docker compose exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
@@ -172,131 +494,78 @@ docker compose exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
   -i /scripts/99-pruebas-verificacion.sql
 ```
 
-Diez comprueban reglas de negocio del enunciado —fórmula del IGV, precio de
-venta a costo × 1.35, bloqueo por stock insuficiente, auditoría inmutable— y
-tres verifican que cada microservicio solo alcanza sus propios procedimientos.
+Diez comprueban reglas de negocio —fórmula del IGV, precio de venta, bloqueo por
+stock, auditoría inmutable— y tres verifican que cada microservicio solo alcanza
+sus propios procedimientos.
 
 ### Colección de Postman
 
 Importe `postman/HCE-Insumos.postman_collection.json` junto con
 `postman/HCE-Local.postman_environment.json`. La petición de login guarda el
-token automáticamente en la variable de entorno; el resto de peticiones lo
-reutilizan.
+token automáticamente; el resto lo reutiliza.
 
 ---
 
-## Qué hace el sistema
+## Trazabilidad entre microservicios
 
-### Registrar compra
+Una compra atraviesa cuatro procesos. Cada uno escribía en su propio registro, y
+sin nada que los uniera, averiguar qué operación produjo qué error consistía en
+comparar marcas de tiempo a ojo.
 
-Permite cargar varias líneas y crear un producto desde un modal si no existe.
-Al confirmar, el servidor ejecuta **una sola transacción**:
+Cada petición lleva ahora un identificador que nace en el Gateway, viaja dentro
+del mensaje RPC y aparece en las líneas de todos los servicios:
 
-1. Graba `CompraCab` y `CompraDet`.
-2. Actualiza el costo del producto y recalcula su precio de venta
-   (`PrecioVenta = Costo × 1.35`).
-3. Genera el movimiento de tipo **Entrada** en el Kardex.
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" http://localhost:4000/api/v1/kardex
+# X-Request-Id: 0602272a-b4dd-49bf-8c72-a9d1fe0758b3
 
-Si cualquier paso falla, no se graba nada.
-
-### Registrar venta
-
-Muestra por producto el precio de venta y el **stock disponible**, calculado
-desde la tabla de movimientos. No permite guardar si alguna cantidad supera el
-stock: la fila se marca y aparece el mensaje *"la cantidad no debe ser mayor al
-stock"*.
-
-La validación definitiva ocurre en el servidor, dentro de la transacción y con
-bloqueo, de modo que dos cajas vendiendo el mismo insumo a la vez no pueden
-provocar sobreventa.
-
-### Kardex
-
-Grilla con identificador, nombre, stock actual, costo y precio de venta. Cada
-fila abre un modal con los movimientos del producto: fecha, tipo de movimiento,
-cantidad y **saldo acumulado**.
-
----
-
-## Arquitectura
-
-```
-Navegador
-    │
-    ├──► front-shell :3000 ──(rewrite /inventario/*)──► front-inventario
-    │         Login · Inicio · Productos                Compras · Ventas · Kardex
-    │
-    └──► api-gateway :4000
-              JWT · Roles · Rate limit · CORS · Helmet · Swagger
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-    ms-auth    ms-catalogo  ms-inventario      (TCP interno, sin puertos públicos)
-        └───────────┼───────────┘
-                    ▼
-              SQL Server
-     Procedimientos almacenados · Triggers de auditoría
+docker compose logs api-gateway ms-catalogo ms-inventario | grep 0602272a
 ```
 
-**Backend:** monorepo NestJS con tres microservicios y un API Gateway. Cada
-servicio sigue **Clean Architecture** en cuatro capas (dominio, aplicación,
-adaptadores, infraestructura). El dominio y la aplicación no importan NestJS ni
-el driver de base de datos, y **una prueba automatizada verifica esa regla de
-dependencia** en cada ejecución de la suite.
+```
+hce-api-gateway   [Peticion]           [traza-165425] POST /api/v1/compras — 437 ms
+hce-ms-catalogo   [ProductoPasarela]   [traza-165425] registrar(...) completado en 195.6 ms
+hce-ms-inventario [InventarioPasarela] [traza-165425] registrarCompra(1 lineas) en 409.2 ms
+hce-ms-inventario [RegistrarCompra]    [traza-165425] Compra 3 registrada. Total 32.7.
+```
 
-**Frontend:** microfront con **Next.js Multi-Zones**. Dos aplicaciones
-independientes que se construyen y despliegan por separado, compuestas en una
-sola URL. Comparten diseño y cliente HTTP a través de paquetes de workspace.
+Se puede imponer uno propio con la cabecera `X-Request-Id`, lo que permite
+enlazar la traza con un balanceador o una pasarela externa. Si el cliente no la
+envía, el Gateway genera una y la devuelve en la respuesta.
 
-**Base de datos:** toda la lógica transaccional vive en procedimientos
-almacenados. El stock **no se almacena**: se deriva siempre de la tabla de
-movimientos, que es la única fuente de verdad de la existencia física.
-
-Detalle completo, diagramas y justificaciones:
-- [Evaluación teórica](docs/01-evaluacion-teorica.md) — API REST, monolito vs.
-  microservicios, BFF, DDD
-- [Arquitectura](docs/02-arquitectura.md) — diagramas, Clean Architecture en
-  salud, patrones, seguridad, modelo de datos
-- [Guía de capas del BackEnd](backend/ARQUITECTURA.md) — qué va en cada capa y
-  dónde poner un cambio
+El identificador no viaja por parámetro: vive en un `AsyncLocalStorage`, de modo
+que la capa de aplicación no lo conoce ni lo transporta.
 
 ---
 
-## Seguridad
-
-El enunciado pide un mínimo de dos mecanismos. Se implementaron seis:
-
-| Mecanismo | Implementación |
-|---|---|
-| **JWT de 30 minutos** | HS256 con `issuer` y `audience` validados |
-| **Cookie HttpOnly** | Inaccesible desde JavaScript; mitiga robo de token por XSS |
-| **Rate limiting** | 100 peticiones/min general, 5/min en login |
-| **CORS restringido** | Lista blanca; el comodín `*` se rechaza al arrancar |
-| **Cabeceras de seguridad** | Helmet, `X-Content-Type-Options: nosniff`, CSP, `X-Frame-Options: DENY` |
-| **Autorización por rol** | Guard global con roles ADMIN / FARMACIA / CONSULTA |
-
-Además: bcrypt para contraseñas, defensa contra enumeración de usuarios por
-temporización, parámetros tipados en todo acceso a SQL, rechazo de campos no
-declarados en los DTOs, contenedores sin privilegios y bitácora de auditoría
-inmutable.
-
-Las limitaciones conocidas están declaradas en el
-[documento de arquitectura](docs/02-arquitectura.md#54-limitaciones-conocidas).
-
----
-
-## Estructura
+## Estructura del repositorio
 
 ```
+├── .github/workflows/         Integración continua
 ├── docker-compose.yml         Levanta todo el ecosistema
 ├── .env.example               Plantilla de configuración
 ├── database/                  Esquema, triggers, procedimientos, seed y pruebas
 ├── backend/                   Monorepo NestJS · Clean Architecture en 4 capas
+│   ├── apps/                  api-gateway · ms-auth · ms-catalogo · ms-inventario
+│   ├── libs/compartido/       Dominio, aplicación, adaptadores e infraestructura
+│   └── test/                  Pruebas de arquitectura
 ├── frontend/                  Microfront Next.js (2 zonas + 2 paquetes)
 ├── postman/                   Colección de la API
-├── scripts/prueba-humo.sh     43 verificaciones end-to-end
+├── scripts/
+│   ├── prueba-humo.sh         43 verificaciones end-to-end
+│   └── prueba-concurrencia.sh 9 comprobaciones del invariante de stock
 └── docs/                      Evaluación teórica y arquitectura
 ```
+
+---
+
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [Evaluación teórica](docs/01-evaluacion-teorica.md) | API REST, monolito vs. microservicios, BFF, DDD |
+| [Arquitectura](docs/02-arquitectura.md) | Diagramas, Clean Architecture en salud, patrones, seguridad, modelo de datos |
+| [Guía de capas del BackEnd](backend/ARQUITECTURA.md) | Qué va en cada capa y dónde poner un cambio |
 
 ---
 
@@ -337,69 +606,32 @@ Igv      = Cantidad × Precio Venta × 1.18
 Total    = Subtotal + Igv
 ```
 
-**Se implementó literalmente**, y hay una prueba automatizada que lo verifica.
+Tomada al pie de la letra, esa fórmula hace que `Igv` sea el importe **con** IGV
+incluido, y que `Total` acabe siendo el subtotal más el total con impuesto — es
+decir, 2.18 veces la base, no 1.18.
 
-Queda registrada la observación técnica: con esa fórmula el IGV resulta ser el
-118 % del subtotal y el total el 218 %, mientras que el IGV peruano vigente es
-el 18 % del valor de venta (`Igv = SubTotal × 0.18`, `Total = SubTotal × 1.18`).
+La fórmula tributaria habitual en Perú sería `Igv = Subtotal × 0.18` y
+`Total = Subtotal + Igv`.
 
-La fórmula está centralizada en un único lugar por capa —el value object
-[`Importe`](backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts) y la
-función SQL `hce.fn_CalcularImportes`— precisamente para que corregir el
-criterio sea un cambio mínimo.
+**Se implementó la fórmula literal del enunciado**, porque es lo que se pide y es
+lo que las pruebas verifican. La misma expresión se aplica en los tres lugares
+donde aparece —base de datos, backend y frontend— para que no haya divergencia.
 
----
-
-## Trazabilidad entre microservicios
-
-Una compra atraviesa cuatro procesos. Cada uno escribía en su propio registro, y
-sin nada que los uniera, averiguar qué operación produjo qué error consistía en
-comparar marcas de tiempo a ojo — algo que deja de funcionar con dos usuarios
-trabajando a la vez.
-
-Cada petición lleva ahora un identificador que nace en el Gateway, viaja dentro
-del mensaje RPC y aparece en las líneas de todos los servicios:
-
-```bash
-curl -i -H "Authorization: Bearer $TOKEN" http://localhost:4000/api/v1/kardex
-# X-Request-Id: 0602272a-b4dd-49bf-8c72-a9d1fe0758b3
-```
-
-Con ese valor se reconstruye la operación completa:
-
-```bash
-docker compose logs api-gateway ms-catalogo ms-inventario | grep 0602272a
-```
-
-```
-hce-api-gateway   [Peticion]           [traza-165425] POST /api/v1/compras — 437 ms
-hce-ms-catalogo   [ProductoPasarela]   [traza-165425] registrar(...) completado en 195.6 ms
-hce-ms-inventario [InventarioPasarela] [traza-165425] registrarCompra(1 lineas) en 409.2 ms
-hce-ms-inventario [RegistrarCompra]    [traza-165425] Compra 3 registrada. Total 32.7.
-```
-
-Se puede imponer uno propio con la cabecera `X-Request-Id`, lo que permite
-enlazar la traza con un balanceador o una pasarela externa. Si el cliente no la
-envía, el Gateway genera una y la devuelve en la respuesta: quien reporta un
-fallo puede citarla.
-
-El identificador no viaja por parámetro. Vive en un `AsyncLocalStorage`, de modo
-que la capa de aplicación no lo conoce ni lo transporta — un caso de uso de
-registrar venta no debería saber que existe un sistema de trazas.
+Cambiarla es un ajuste de una línea en `hce.fn_CalcularImportes` y otra en
+`calculos.ts`, ambas documentadas.
 
 ---
 
 ## Si algo no responde
 
 **Los contenedores están «Up» pero el navegador no recibe nada.** Es lo más
-probable que le ocurra si el entorno lleva muchas horas levantado: Docker
-Desktop redirige los puertos publicados mediante un proxy, y ese proxy puede
-perder la referencia al contenedor tras un tiempo largo o tras suspender el
-equipo. El síntoma engaña, porque `docker compose ps` muestra todo sano y los
-servicios responden correctamente dentro de la red interna.
+probable si el entorno lleva muchas horas levantado: Docker Desktop redirige los
+puertos publicados mediante un proxy, y ese proxy puede perder la referencia al
+contenedor tras un tiempo largo o tras suspender el equipo. El síntoma engaña,
+porque `docker compose ps` muestra todo sano.
 
-Se distingue en un paso: si esto funciona pero desde el navegador no,
-el problema es el proxy y no la aplicación.
+Se distingue en un paso: si esto funciona pero desde el navegador no, el problema
+es el proxy y no la aplicación.
 
 ```bash
 docker compose exec api-gateway wget -qO- http://127.0.0.1:4000/api/v1/salud
@@ -425,10 +657,10 @@ aplicar `06-seguridad-accesos.sql` después. `run-init.sh` ya respeta ese orden.
 docker compose ps
 
 # Seguir los logs de un servicio
-docker compose logs -f ms-inventario
+docker compose logs -f api-gateway
 
 # Reiniciar desde cero, borrando los datos
-docker compose down -v && docker compose up --build
+docker compose down -v && docker compose up -d
 
 # Conectarse a la base
 docker compose exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
