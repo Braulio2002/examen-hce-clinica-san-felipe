@@ -149,7 +149,7 @@ IGV=$(echo "$compra" | python -c "import sys,json; print(json.load(sys.stdin).ge
 if [ -n "$ID_COMPRA" ]; then echo "OK     Compra registrada con id $ID_COMPRA"; OK=$((OK+1));
 else echo "FALLA  No se registro la compra: $compra"; FALLA=$((FALLA+1)); fi
 verificar "SubTotal de la compra = 50*2.5 = 125" "125" "$SUB"
-verificar "IGV segun enunciado = 125*1.18 = 147.5" "147.5" "$IGV"
+verificar "IGV del 18% sobre 125 = 22.5" "22.5" "$IGV"
 
 echo
 echo "== 8. La compra actualizo costo y precio de venta =="

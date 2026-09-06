@@ -104,7 +104,7 @@ describe('ReglasDocumento', () => {
   });
 
   describe('totalesPrevistos', () => {
-    it('coincide con la formula del enunciado', () => {
+    it('coincide con la formula aplicada (IGV del 18 %)', () => {
       const totales = ReglasDocumento.totalesPrevistos([
         { cantidad: 50, precio: 2.5 },
         { cantidad: 10, precio: 1 },
@@ -112,9 +112,9 @@ describe('ReglasDocumento', () => {
 
       // SubTotal: 125 + 10 = 135
       expect(totales.subTotal).toBe(135);
-      // Igv: 147.5 + 11.8 = 159.3
-      expect(totales.igv).toBeCloseTo(159.3, 4);
-      expect(totales.total).toBeCloseTo(294.3, 4);
+      // Igv: 22.5 + 1.8 = 24.3
+      expect(totales.igv).toBeCloseTo(24.3, 4);
+      expect(totales.total).toBeCloseTo(159.3, 4);
     });
   });
 });

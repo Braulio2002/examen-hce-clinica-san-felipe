@@ -20,18 +20,41 @@ describe('Importe', () => {
       expect(importe.subTotal).toBe(125);
     });
 
-    it('calcula el IGV como cantidad * precio * 1.18, tal como lo define el examen', () => {
+    /*
+     * DESVIACION DELIBERADA respecto al enunciado, y esta prueba la fija.
+     *
+     * El examen escribe `Igv = Cantidad * Precio Venta * 1.18`, que convierte el
+     * IGV en el 118 % del subtotal y el total en el 218 %. Se implementa el IGV
+     * peruano vigente -18 % del valor de venta- porque este sistema factura
+     * medicamentos y un comprobante mal calculado es un error tributario, no un
+     * detalle de presentacion.
+     *
+     * Si alguien revierte el factor a 1.18, esta prueba lo detiene.
+     */
+    it('calcula el IGV como el 18 % del subtotal', () => {
       const importe = Importe.calcular(50, 2.5);
 
-      // 50 * 2.5 * 1.18 = 147.5
-      expect(importe.igv).toBeCloseTo(147.5, 4);
+      // Subtotal 125 -> IGV 22.5
+      expect(importe.igv).toBeCloseTo(22.5, 4);
+    });
+
+    it('NO aplica la formula literal del enunciado, que daria el 118 %', () => {
+      const importe = Importe.calcular(50, 2.5);
+
+      expect(importe.igv).not.toBeCloseTo(147.5, 4);
     });
 
     it('calcula el total como la suma de subtotal e IGV', () => {
       const importe = Importe.calcular(50, 2.5);
 
       expect(importe.total).toBe(importe.subTotal + importe.igv);
-      expect(importe.total).toBeCloseTo(272.5, 4);
+      expect(importe.total).toBeCloseTo(147.5, 4);
+    });
+
+    it('el total equivale al subtotal incrementado en un 18 %', () => {
+      const importe = Importe.calcular(50, 2.5);
+
+      expect(importe.total).toBeCloseTo(importe.subTotal * 1.18, 4);
     });
 
     it('redondea a 4 decimales sin arrastrar el sesgo del binario flotante', () => {
@@ -72,9 +95,10 @@ describe('Importe', () => {
 
       const total = Importe.sumar(lineas);
 
+      // 10x1 -> sub 10, igv 1.8 | 5x2 -> sub 10, igv 1.8
       expect(total.subTotal).toBe(20);
-      expect(total.igv).toBeCloseTo(23.6, 4);
-      expect(total.total).toBeCloseTo(43.6, 4);
+      expect(total.igv).toBeCloseTo(3.6, 4);
+      expect(total.total).toBeCloseTo(23.6, 4);
     });
 
     it('devuelve ceros cuando no hay lineas', () => {

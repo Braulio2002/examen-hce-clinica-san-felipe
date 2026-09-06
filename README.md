@@ -57,19 +57,19 @@ Cada requisito, y dónde está resuelto.
 
 ### FrontEnd — sección 1.2
 
-| Requisito                                                   |     | Dónde                                                             |
-| ----------------------------------------------------------- | :-: | ----------------------------------------------------------------- |
-| Next.js con microfront                                      | ✅  | Multi-Zones: 2 zonas independientes                               |
-| Interceptores para el token JWT                             | ✅  | [`cliente.ts`](frontend/paquetes/api-cliente/src/cliente.ts)      |
-| **1.2.1** Compra con varios productos                       | ✅  | [Registrar compra](#1--registrar-compra)                          |
-| **1.2.1** Modal para crear producto inexistente             | ✅  | `ModalNuevoProducto`                                              |
-| **1.2.1** Actualiza costo y precio (× 1.35), genera Entrada | ✅  | `usp_Compra_Registrar`, en una transacción                        |
-| **1.2.2** Venta mostrando precio y stock por producto       | ✅  | [Registrar venta](#2--registrar-venta)                            |
-| **1.2.2** Bloqueo si la cantidad supera el stock            | ✅  | Cliente y servidor; probado bajo concurrencia                     |
-| **1.2.2** Cálculo de subtotal, IGV y total al digitar       | ✅  | [Observación sobre el IGV](#observación-sobre-el-cálculo-del-igv) |
-| **1.2.2** Genera movimiento de Salida                       | ✅  | `usp_Venta_Registrar`                                             |
-| **1.2.3** Kardex con las 5 columnas exigidas                | ✅  | [Kardex](#3--kardex)                                              |
-| **1.2.3** Botón por fila con modal de movimientos           | ✅  | Fecha, tipo y cantidad, más saldo acumulado                       |
+| Requisito                                                   |     | Dónde                                                                                                                                          |
+| ----------------------------------------------------------- | :-: | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js con microfront                                      | ✅  | Multi-Zones: 2 zonas independientes                                                                                                            |
+| Interceptores para el token JWT                             | ✅  | [`cliente.ts`](frontend/paquetes/api-cliente/src/cliente.ts)                                                                                   |
+| **1.2.1** Compra con varios productos                       | ✅  | [Registrar compra](#1--registrar-compra)                                                                                                       |
+| **1.2.1** Modal para crear producto inexistente             | ✅  | `ModalNuevoProducto`                                                                                                                           |
+| **1.2.1** Actualiza costo y precio (× 1.35), genera Entrada | ✅  | `usp_Compra_Registrar`, en una transacción                                                                                                     |
+| **1.2.2** Venta mostrando precio y stock por producto       | ✅  | [Registrar venta](#2--registrar-venta)                                                                                                         |
+| **1.2.2** Bloqueo si la cantidad supera el stock            | ✅  | Cliente y servidor; probado bajo concurrencia                                                                                                  |
+| **1.2.2** Cálculo de subtotal, IGV y total al digitar       | ⚠️  | Implementado con el **IGV correcto del 18 %**, no con el 118 % que da la fórmula literal — [motivo](#desviación-deliberada-el-cálculo-del-igv) |
+| **1.2.2** Genera movimiento de Salida                       | ✅  | `usp_Venta_Registrar`                                                                                                                          |
+| **1.2.3** Kardex con las 5 columnas exigidas                | ✅  | [Kardex](#3--kardex)                                                                                                                           |
+| **1.2.3** Botón por fila con modal de movimientos           | ✅  | Fecha, tipo y cantidad, más saldo acumulado                                                                                                    |
 
 ### Consideraciones globales — sección 1.3
 
@@ -668,29 +668,57 @@ npm run dev               # shell en :3000, zona de inventario en :3001
 
 ---
 
-## Observación sobre el cálculo del IGV
+## Desviación deliberada: el cálculo del IGV
 
-La sección 1.2.2 del enunciado define:
+**Este es el único punto en el que la solución no sigue el enunciado al pie de la
+letra, y es a propósito.**
+
+La sección 1.2.2 define:
 
 ```
 Subtotal = Cantidad × Precio Venta
-Igv      = Cantidad × Precio Venta × 1.18
+Igv      = Cantidad × Precio Venta × 1.18     ← error de redacción
 Total    = Subtotal + Igv
 ```
 
-Tomada al pie de la letra, esa fórmula hace que `Igv` sea el importe **con** IGV
-incluido, y que `Total` acabe siendo el subtotal más el total con impuesto — es
-decir, 2.18 veces la base, no 1.18.
+Tomada literalmente, esa fórmula hace que el IGV sea el **118 % del subtotal** y
+el total el **218 %**. Una venta de S/ 100 tributaría S/ 118 y se cobraría
+S/ 218.
 
-La fórmula tributaria habitual en Perú sería `Igv = Subtotal × 0.18` y
-`Total = Subtotal + Igv`.
+Lo implementado es la fórmula correcta:
 
-**Se implementó la fórmula literal del enunciado**, porque es lo que se pide y es
-lo que las pruebas verifican. La misma expresión se aplica en los tres lugares
-donde aparece —base de datos, backend y frontend— para que no haya divergencia.
+```
+Subtotal = Cantidad × Precio Venta
+Igv      = Subtotal × 0.18                    ← IGV peruano vigente
+Total    = Subtotal + Igv                     (= Subtotal × 1.18)
+```
 
-Cambiarla es un ajuste de una línea en `hce.fn_CalcularImportes` y otra en
-`calculos.ts`, ambas documentadas.
+### Por qué
+
+Este sistema factura medicamentos. Un comprobante con el IGV mal calculado no es
+un detalle de presentación: es un error tributario que se propaga a la
+contabilidad y al paciente, y que además no se detecta solo —los importes salen
+perfectamente cuadrados entre sí, solo que multiplicados por dos—.
+
+Replicar el defecto y anotarlo al margen habría sido entregar a sabiendas una
+bomba en producción. Lo más probable es que el enunciado quisiera decir
+`Total = Subtotal × 1.18` y el `1.18` se deslizara una línea más arriba al
+redactarlo.
+
+### Dónde está
+
+La fórmula vive en **un único lugar por capa**, y las tres están cubiertas por
+pruebas que comparan sus resultados, de modo que no pueden divergir:
+
+| Capa     | Archivo                                                               |
+| -------- | --------------------------------------------------------------------- |
+| Base     | `hce.fn_CalcularImportes` en `database/03-stored-procedures.sql`      |
+| BackEnd  | `Importe` en `backend/libs/compartido/src/dominio/objetos-valor/`     |
+| FrontEnd | `calcularImportes` en `frontend/paquetes/api-cliente/src/calculos.ts` |
+
+Volver a la fórmula literal del enunciado es cambiar el factor en esos tres
+sitios. Hay una prueba en cada capa que falla explícitamente si alguien lo hace
+sin querer.
 
 ---
 

@@ -145,8 +145,9 @@ BEGIN CATCH
 END CATCH;
 
 /* -----------------------------------------------------------------------------
-   PRUEBA 6 - Los importes siguen la formula literal del enunciado
-              SubTotal = Cant * Precio ; Igv = Cant * Precio * 1.18 ; Total = suma
+   PRUEBA 6 - Los importes siguen la formula aplicada
+              SubTotal = Cant * Precio ; Igv = SubTotal * 0.18 ; Total = suma
+              (desviacion deliberada del enunciado; ver 03-stored-procedures.sql)
 ----------------------------------------------------------------------------- */
 SET @Pruebas += 1;
 IF EXISTS (
@@ -162,7 +163,7 @@ BEGIN
     PRINT 'FALLA  P6 - Hay detalles de venta con importes inconsistentes';
 END
 ELSE
-    PRINT 'OK     P6 - Los importes de venta respetan la formula del enunciado';
+    PRINT 'OK     P6 - Los importes de venta respetan la formula aplicada';
 
 /* -----------------------------------------------------------------------------
    PRUEBA 7 - Los triggers de auditoria registran los cambios de producto

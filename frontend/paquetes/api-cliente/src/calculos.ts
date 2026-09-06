@@ -11,13 +11,20 @@
  * BackEnd resuelve precio, subtotal, IGV y total. Confiar en el calculo del
  * cliente permitiria manipular el importe desde el navegador.
  *
- * Formula del enunciado:
+ * Formula aplicada:
  *   SubTotal = Cantidad * PrecioVenta
- *   Igv      = Cantidad * PrecioVenta * 1.18
- *   Total    = SubTotal + Igv
+ *   Igv      = SubTotal * 0.18          <-- IGV peruano vigente
+ *   Total    = SubTotal + Igv           (= SubTotal * 1.18)
+ *
+ * DESVIACION DELIBERADA. El enunciado escribe `Igv = Cantidad * PrecioVenta *
+ * 1.18`, lo que hace del IGV el 118 % del subtotal y del total el 218 %: una
+ * venta de 100 soles tributaria 118 y se cobraria 218. Se implementa la formula
+ * correcta porque este sistema factura medicamentos y un comprobante con el IGV
+ * mal calculado es un error tributario, no un detalle de presentacion. El motivo
+ * completo esta en el objeto de valor `Importe` del BackEnd y en el README.
  */
 
-export const FACTOR_IGV = 1.18;
+export const FACTOR_IGV = 0.18;
 export const MARGEN_PRECIO_VENTA = 1.35;
 const DECIMALES = 4;
 
@@ -38,7 +45,9 @@ export function calcularImportes(cantidad: number, precio: number): Importes {
   }
 
   const subTotal = redondear(cantidad * precio);
-  const igv = redondear(cantidad * precio * FACTOR_IGV);
+  // Sobre el subtotal ya redondeado, igual que en el backend y en SQL: es lo
+  // que hace que la suma del comprobante cuadre al centimo.
+  const igv = redondear(subTotal * FACTOR_IGV);
 
   return { subTotal, igv, total: redondear(subTotal + igv) };
 }

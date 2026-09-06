@@ -134,18 +134,18 @@ flowchart LR
 
 **Qué está implementado y qué no**, sin ambigüedad:
 
-| Capacidad | Estado | Dónde |
-|---|---|---|
-| Healthcheck HTTP del Gateway | Implementado | `GET /api/v1/salud` |
-| Healthcheck de la base | Implementado | `docker-compose.yml` |
-| Logs por servicio con contexto | Implementado | `Logger` de NestJS en cada capa |
-| Medición de latencia de acceso a datos | Implementado | Decoradores `*PasarelaTrazada` |
-| Detección de consulta lenta | Implementado | Umbral configurable (500 ms lectura, 1 s escritura) |
-| Auditoría de cambios con usuario | Implementado | Triggers DML → `hce.Auditoria` |
-| Correlación de peticiones entre servicios | Implementado | `X-Request-Id` propagado por RPC |
-| Latencia de cada petición HTTP | Implementado | Registro de acceso en el Gateway |
-| Métricas agregadas y alertas | **No implementado** | Requiere Prometheus + Grafana |
-| Integración HL7/FHIR con el HCE | **No implementado** | Fuera del alcance del enunciado |
+| Capacidad                                 | Estado              | Dónde                                               |
+| ----------------------------------------- | ------------------- | --------------------------------------------------- |
+| Healthcheck HTTP del Gateway              | Implementado        | `GET /api/v1/salud`                                 |
+| Healthcheck de la base                    | Implementado        | `docker-compose.yml`                                |
+| Logs por servicio con contexto            | Implementado        | `Logger` de NestJS en cada capa                     |
+| Medición de latencia de acceso a datos    | Implementado        | Decoradores `*PasarelaTrazada`                      |
+| Detección de consulta lenta               | Implementado        | Umbral configurable (500 ms lectura, 1 s escritura) |
+| Auditoría de cambios con usuario          | Implementado        | Triggers DML → `hce.Auditoria`                      |
+| Correlación de peticiones entre servicios | Implementado        | `X-Request-Id` propagado por RPC                    |
+| Latencia de cada petición HTTP            | Implementado        | Registro de acceso en el Gateway                    |
+| Métricas agregadas y alertas              | **No implementado** | Requiere Prometheus + Grafana                       |
+| Integración HL7/FHIR con el HCE           | **No implementado** | Fuera del alcance del enunciado                     |
 
 La integración con un HCE asistencial real se haría por **HL7 v2 o FHIR**,
 mapeando el despacho de insumos a un recurso `MedicationDispense` vinculado al
@@ -254,7 +254,7 @@ infraestructura obligue a reescribir —y revalidar— la lógica asistencial.
 **2. La trazabilidad y la auditoría son requisitos regulatorios.**
 En Perú, DIGEMID exige trazabilidad de medicamentos. Con el dominio aislado, la
 regla auditable está en un archivo que un auditor puede leer sin entender
-NestJS. La lógica de negocio es *legible como documento*, no solo como código.
+NestJS. La lógica de negocio es _legible como documento_, no solo como código.
 
 **3. La validación de software sanitario es cara.**
 Cuando un sistema clínico se somete a validación, revalidar es costoso. La
@@ -347,26 +347,26 @@ requeriría una clave de idempotencia que el contrato actual no define.
 
 ### 3.3 Otros patrones presentes
 
-| Patrón | Dónde | Para qué |
-|---|---|---|
-| Repository | `ProductoRepositorio`, `InventarioRepositorio` | Abstraer la persistencia del dominio |
-| Adapter | `ProductoMssqlRepositorio`, `BcryptServicio` | Implementar los puertos contra tecnología concreta |
-| Dependency Injection | Tokens `Symbol` + `useFactory` | Invertir dependencias (la D de SOLID) |
-| Value Object | `Importe` | Encapsular el cálculo de importes de forma inmutable |
-| API Gateway | `api-gateway` | Punto único de entrada y seguridad |
-| Multi-Zones | `front-shell` + `front-inventario` | Microfrontend con despliegue independiente |
+| Patrón               | Dónde                                          | Para qué                                             |
+| -------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| Repository           | `ProductoRepositorio`, `InventarioRepositorio` | Abstraer la persistencia del dominio                 |
+| Adapter              | `ProductoMssqlRepositorio`, `BcryptServicio`   | Implementar los puertos contra tecnología concreta   |
+| Dependency Injection | Tokens `Symbol` + `useFactory`                 | Invertir dependencias (la D de SOLID)                |
+| Value Object         | `Importe`                                      | Encapsular el cálculo de importes de forma inmutable |
+| API Gateway          | `api-gateway`                                  | Punto único de entrada y seguridad                   |
+| Multi-Zones          | `front-shell` + `front-inventario`             | Microfrontend con despliegue independiente           |
 
 ---
 
 ## 4. Principios SOLID
 
-| Principio | Aplicación verificable |
-|---|---|
-| **S** — Responsabilidad única | Cada caso de uso resuelve una operación. `MssqlService` solo gestiona el pool y ejecuta procedimientos: no conoce entidades |
-| **O** — Abierto/cerrado | Añadir trazabilidad o reintentos no modificó el repositorio: se envolvió con decoradores |
-| **L** — Sustitución de Liskov | Todo decorador es intercambiable por el repositorio que envuelve; el caso de uso no distingue |
+| Principio                         | Aplicación verificable                                                                                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S** — Responsabilidad única     | Cada caso de uso resuelve una operación. `MssqlService` solo gestiona el pool y ejecuta procedimientos: no conoce entidades                        |
+| **O** — Abierto/cerrado           | Añadir trazabilidad o reintentos no modificó el repositorio: se envolvió con decoradores                                                           |
+| **L** — Sustitución de Liskov     | Todo decorador es intercambiable por el repositorio que envuelve; el caso de uso no distingue                                                      |
 | **I** — Segregación de interfaces | `InventarioRepositorio` se declara como tres interfaces (`Compra`, `Venta`, `Kardex`): un caso de uso de Kardex no depende de métodos de escritura |
-| **D** — Inversión de dependencias | Los casos de uso dependen de interfaces del dominio; las implementaciones se inyectan por token |
+| **D** — Inversión de dependencias | Los casos de uso dependen de interfaces del dominio; las implementaciones se inyectan por token                                                    |
 
 ---
 
@@ -376,14 +376,14 @@ requeriría una clave de idempotencia que el contrato actual no define.
 
 ### 5.1 Mecanismos implementados
 
-| # | Mecanismo | Implementación | Verificado por |
-|---|---|---|---|
-| 1 | **JWT de 30 minutos** | HS256, `expiresIn: 1800`, con `issuer` y `audience` validados | Prueba de humo 3 |
-| 2 | **Cookie HttpOnly** | `httpOnly`, `sameSite: lax`, `secure` en producción. El token nunca se guarda en `localStorage` | Prueba de humo 3 |
-| 3 | **Rate limiting** | Dos políticas: 100/min general, 5/min en login | Prueba de humo 15 |
-| 4 | **CORS restringido** | Lista blanca de orígenes; el comodín `*` se rechaza al arrancar | Prueba de humo 18 |
-| 5 | **Cabeceras de seguridad** | Helmet + `X-Content-Type-Options: nosniff` explícito, `X-Frame-Options: DENY`, CSP, sin `X-Powered-By` | Prueba de humo 17 |
-| 6 | **Autorización por rol** | Guard global; `ADMIN`, `FARMACIA`, `CONSULTA` | Prueba de humo 13 |
+| #   | Mecanismo                  | Implementación                                                                                         | Verificado por    |
+| --- | -------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------- |
+| 1   | **JWT de 30 minutos**      | HS256, `expiresIn: 1800`, con `issuer` y `audience` validados                                          | Prueba de humo 3  |
+| 2   | **Cookie HttpOnly**        | `httpOnly`, `sameSite: lax`, `secure` en producción. El token nunca se guarda en `localStorage`        | Prueba de humo 3  |
+| 3   | **Rate limiting**          | Dos políticas: 100/min general, 5/min en login                                                         | Prueba de humo 15 |
+| 4   | **CORS restringido**       | Lista blanca de orígenes; el comodín `*` se rechaza al arrancar                                        | Prueba de humo 18 |
+| 5   | **Cabeceras de seguridad** | Helmet + `X-Content-Type-Options: nosniff` explícito, `X-Frame-Options: DENY`, CSP, sin `X-Powered-By` | Prueba de humo 17 |
+| 6   | **Autorización por rol**   | Guard global; `ADMIN`, `FARMACIA`, `CONSULTA`                                                          | Prueba de humo 13 |
 
 ### 5.2 Otras defensas aplicadas
 
@@ -394,7 +394,7 @@ requeriría una clave de idempotencia que el contrato actual no define.
 - **Prevención de inyección SQL por construcción**: toda entrada viaja como
   parámetro tipado del driver `mssql`; nunca se concatena SQL. Los detalles de
   compra y venta usan Table-Valued Parameters.
-- **Anti *mass assignment***: `ValidationPipe` con `forbidNonWhitelisted: true`
+- **Anti _mass assignment_**: `ValidationPipe` con `forbidNonWhitelisted: true`
   rechaza cualquier campo no declarado en el DTO.
 - **El precio de venta nunca se acepta del cliente**: se toma del catálogo en el
   servidor. Aceptarlo permitiría despachar medicamentos a importe manipulado.
@@ -590,10 +590,10 @@ examen-hce-clinica-san-felipe/
 
 Hay dos ejes, y conviene no confundirlos:
 
-| Eje | Qué decide | Cómo se materializa |
-|---|---|---|
-| **Microfront** | Fronteras de **despliegue** | `apps/*` — cada zona es un contenedor propio |
-| **Feature-based** | Fronteras de **código** | `funcionalidades/*` dentro de cada zona |
+| Eje               | Qué decide                  | Cómo se materializa                          |
+| ----------------- | --------------------------- | -------------------------------------------- |
+| **Microfront**    | Fronteras de **despliegue** | `apps/*` — cada zona es un contenedor propio |
+| **Feature-based** | Fronteras de **código**     | `funcionalidades/*` dentro de cada zona      |
 
 De ahí sale una regla que resuelve casi todas las dudas de ubicación:
 

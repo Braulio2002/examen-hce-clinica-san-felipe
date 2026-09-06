@@ -36,10 +36,10 @@ describe('Formulas de importes', () => {
      * abriria la puerta a los que si son errores-.
      *
      * Comparar la representacion textual afirma exactamente lo que interesa:
-     * que la constante dice 1.18, ni 1.180001 ni 1.2.
+     * que la constante dice 0.18, ni 0.180001 ni 0.2.
      */
     it('el IGV es del 18 %', () => {
-      expect(String(FACTOR_IGV)).toBe('1.18');
+      expect(String(FACTOR_IGV)).toBe('0.18');
     });
 
     it('el precio de venta lleva un margen de 1.35 sobre el costo', () => {
@@ -48,15 +48,34 @@ describe('Formulas de importes', () => {
   });
 
   describe('calcularImportes', () => {
-    it('aplica la formula literal del enunciado', () => {
-      // Subtotal = cantidad * precio
-      // Igv      = cantidad * precio * 1.18
-      // Total    = subtotal + Igv
+    /*
+     * DESVIACION DELIBERADA respecto al enunciado, fijada aqui.
+     *
+     * El examen escribe `Igv = cantidad * precio * 1.18`, que hace del IGV el
+     * 118 % del subtotal y del total el 218 %. Se aplica el IGV peruano vigente,
+     * el 18 %. El motivo completo esta en `calculos.ts` y en el README.
+     */
+    it('aplica el IGV del 18 % sobre el subtotal', () => {
+      // Subtotal = cantidad * precio        = 50
+      // Igv      = subtotal * 0.18          = 9
+      // Total    = subtotal + Igv           = 59
       const { subTotal, igv, total } = calcularImportes(5, 10);
 
       expect(subTotal).toBeCloseTo(50, 4);
-      expect(igv).toBeCloseTo(59, 4);
-      expect(total).toBeCloseTo(109, 4);
+      expect(igv).toBeCloseTo(9, 4);
+      expect(total).toBeCloseTo(59, 4);
+    });
+
+    it('NO aplica la formula literal del enunciado, que daria el 118 %', () => {
+      const { igv } = calcularImportes(5, 10);
+
+      expect(igv).not.toBeCloseTo(59, 4);
+    });
+
+    it('el total equivale al subtotal incrementado en un 18 %', () => {
+      const { subTotal, total } = calcularImportes(5, 10);
+
+      expect(total).toBeCloseTo(subTotal * 1.18, 4);
     });
 
     it('el total es siempre la suma de subtotal e IGV', () => {
@@ -81,9 +100,10 @@ describe('Formulas de importes', () => {
     it('suma las tres columnas por separado', () => {
       const total = sumarImportes([calcularImportes(2, 10), calcularImportes(1, 5)]);
 
+      // 2x10 -> sub 20, igv 3.6 | 1x5 -> sub 5, igv 0.9
       expect(total.subTotal).toBeCloseTo(25, 4);
-      expect(total.igv).toBeCloseTo(29.5, 4);
-      expect(total.total).toBeCloseTo(54.5, 4);
+      expect(total.igv).toBeCloseTo(4.5, 4);
+      expect(total.total).toBeCloseTo(29.5, 4);
     });
 
     it('devuelve ceros sin lineas', () => {

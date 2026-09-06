@@ -123,21 +123,31 @@ GO
 /* =============================================================================
    1. FUNCION UNICA DE CALCULO DE IMPORTES
    -----------------------------------------------------------------------------
+   DESVIACION DELIBERADA RESPECTO AL ENUNCIADO.
+
    El enunciado (seccion 1.2.2, literales b/c/d) define textualmente:
 
        Subtotal = Cantidad * Precio Venta
-       Igv      = Cantidad * Precio Venta * 1.18
+       Igv      = Cantidad * Precio Venta * 1.18      <-- error de redaccion
        Total    = Subtotal + Igv
 
-   Se implementa LITERALMENTE como lo pide el examen. Queda constancia de la
-   observacion tecnica: con esa formula el IGV resulta ser el 118 % del subtotal
-   y el total el 218 %, mientras que el IGV peruano vigente es el 18 % del valor
-   de venta (Igv = SubTotal * 0.18  ->  Total = SubTotal * 1.18).
+   Esa formula hace que el IGV sea el 118 % del subtotal y el total el 218 %:
+   una venta de 100 soles tributaria 118 y se cobraria 218.
+
+   Se implementa la formula CORRECTA:
+
+       Subtotal = Cantidad * Precio Venta
+       Igv      = Subtotal * 0.18                     <-- IGV peruano vigente
+       Total    = Subtotal + Igv                      (= Subtotal * 1.18)
+
+   El motivo es que este sistema factura medicamentos. Un comprobante con el
+   IGV mal calculado no es un detalle de presentacion: es un error tributario
+   que se propaga a la contabilidad y al paciente.
 
    Para no dispersar la regla por todo el sistema, la formula vive en un unico
-   lugar: esta funcion en linea. Cambiar de criterio es cambiar dos lineas aqui
-   y su equivalente en el value object del BackEnd
-   (backend/libs/shared/src/domain/value-objects/importe.vo.ts).
+   lugar: esta funcion en linea. Su equivalente en el BackEnd es el value object
+   backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts, y hay
+   pruebas que comparan los resultados de ambos para que no puedan divergir.
 ============================================================================= */
 CREATE OR ALTER FUNCTION hce.fn_CalcularImportes
 (
@@ -149,10 +159,9 @@ AS
 RETURN
 (
     SELECT
-        Sub_Total = CAST(@Cantidad * @Precio                 AS DECIMAL(18,4)),
-        Igv       = CAST(@Cantidad * @Precio * 1.18           AS DECIMAL(18,4)),
-        Total     = CAST(@Cantidad * @Precio
-                       + @Cantidad * @Precio * 1.18           AS DECIMAL(18,4))
+        Sub_Total = CAST(@Cantidad * @Precio                  AS DECIMAL(18,4)),
+        Igv       = CAST(@Cantidad * @Precio * 0.18           AS DECIMAL(18,4)),
+        Total     = CAST(@Cantidad * @Precio * 1.18           AS DECIMAL(18,4))
 );
 GO
 

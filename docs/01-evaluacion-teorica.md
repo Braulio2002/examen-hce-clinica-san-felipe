@@ -18,13 +18,13 @@ REST es un estilo arquitectónico para sistemas distribuidos. Una API es REST
 cuando respeta un conjunto de restricciones, no simplemente porque devuelva
 JSON sobre HTTP:
 
-| Restricción | Qué significa | Cómo se aplica en esta solución |
-|---|---|---|
-| Cliente–servidor | Separación de responsabilidades entre interfaz y almacenamiento | El FrontEnd Next.js no conoce SQL Server; solo habla con el API Gateway |
-| Sin estado | Cada petición lleva toda la información necesaria | El JWT viaja en cada petición; el servidor no guarda sesión en memoria |
-| Cacheable | Las respuestas indican si pueden almacenarse | Los `GET` son idempotentes; los `POST` de compra y venta nunca se cachean |
-| Interfaz uniforme | Recursos identificados por URI, manipulados por representaciones | `/api/v1/productos/:id`, `/api/v1/kardex/producto/:id/movimientos` |
-| Sistema en capas | El cliente no sabe si habla con el servidor final o con un intermediario | El cliente habla con el Gateway y desconoce los tres microservicios detrás |
+| Restricción       | Qué significa                                                            | Cómo se aplica en esta solución                                            |
+| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Cliente–servidor  | Separación de responsabilidades entre interfaz y almacenamiento          | El FrontEnd Next.js no conoce SQL Server; solo habla con el API Gateway    |
+| Sin estado        | Cada petición lleva toda la información necesaria                        | El JWT viaja en cada petición; el servidor no guarda sesión en memoria     |
+| Cacheable         | Las respuestas indican si pueden almacenarse                             | Los `GET` son idempotentes; los `POST` de compra y venta nunca se cachean  |
+| Interfaz uniforme | Recursos identificados por URI, manipulados por representaciones         | `/api/v1/productos/:id`, `/api/v1/kardex/producto/:id/movimientos`         |
+| Sistema en capas  | El cliente no sabe si habla con el servidor final o con un intermediario | El cliente habla con el Gateway y desconoce los tres microservicios detrás |
 
 ### 1.2 Diseño de recursos y verbos
 
@@ -60,18 +60,18 @@ común al implementar REST: rompe el manejo estándar de errores de cualquier
 cliente HTTP y de la infraestructura intermedia. La API usa el código como
 canal primario:
 
-| Código | Cuándo | Ejemplo real de esta API |
-|---|---|---|
-| 200 | Lectura correcta | `GET /kardex` |
-| 201 | Recurso creado | `POST /productos` |
-| 400 | Entrada inválida | Cantidad negativa, campo no declarado en el DTO |
-| 401 | Sin credenciales o token vencido | JWT expirado a los 30 minutos |
-| 403 | Autenticado pero sin permiso | Rol `CONSULTA` intentando vender |
-| 404 | Recurso inexistente | `GET /productos/9999` |
-| 409 | Conflicto de estado | Producto duplicado (mismo nombre y lote) |
-| 422 | Sintaxis válida, regla de negocio incumplida | Venta que supera el stock |
-| 429 | Exceso de peticiones | Más de 5 intentos de login por minuto |
-| 500 | Fallo interno | Error no controlado (nunca expone el detalle) |
+| Código | Cuándo                                       | Ejemplo real de esta API                        |
+| ------ | -------------------------------------------- | ----------------------------------------------- |
+| 200    | Lectura correcta                             | `GET /kardex`                                   |
+| 201    | Recurso creado                               | `POST /productos`                               |
+| 400    | Entrada inválida                             | Cantidad negativa, campo no declarado en el DTO |
+| 401    | Sin credenciales o token vencido             | JWT expirado a los 30 minutos                   |
+| 403    | Autenticado pero sin permiso                 | Rol `CONSULTA` intentando vender                |
+| 404    | Recurso inexistente                          | `GET /productos/9999`                           |
+| 409    | Conflicto de estado                          | Producto duplicado (mismo nombre y lote)        |
+| 422    | Sintaxis válida, regla de negocio incumplida | Venta que supera el stock                       |
+| 429    | Exceso de peticiones                         | Más de 5 intentos de login por minuto           |
+| 500    | Fallo interno                                | Error no controlado (nunca expone el detalle)   |
 
 La distinción entre **400 y 422** es deliberada: `400` significa "el mensaje
 está mal formado", `422` significa "el mensaje está bien formado pero el
@@ -88,8 +88,19 @@ paginación una sola vez:
 
 ```json
 {
-  "datos": [ { "idProducto": 1, "nombreProducto": "Paracetamol 500 mg", "stockActual": 680 } ],
-  "meta": { "pagina": 1, "tamanoPagina": 20, "totalRegistros": 13, "totalPaginas": 1 }
+  "datos": [
+    {
+      "idProducto": 1,
+      "nombreProducto": "Paracetamol 500 mg",
+      "stockActual": 680
+    }
+  ],
+  "meta": {
+    "pagina": 1,
+    "tamanoPagina": 20,
+    "totalRegistros": 13,
+    "totalPaginas": 1
+  }
 }
 ```
 
@@ -123,15 +134,15 @@ sin darles ruta de migración no es una opción.
 
 ### 2.1 Comparación
 
-| Dimensión | Monolito | Microservicios |
-|---|---|---|
-| Despliegue | Una unidad; un cambio obliga a desplegar todo | Independiente por servicio |
-| Escalado | Se replica la aplicación completa | Se escala solo el servicio saturado |
-| Consistencia de datos | Transacciones ACID locales, sencillas | Requiere sagas o consistencia eventual entre servicios |
-| Latencia interna | Llamada en memoria | Llamada de red, con fallos parciales |
-| Aislamiento de fallos | Un fallo puede tumbar el proceso completo | Un servicio caído degrada solo su función |
-| Complejidad operativa | Baja | Alta: descubrimiento, trazas distribuidas, orquestación |
-| Equipos | Coordinación alta sobre un mismo código | Equipos autónomos por servicio |
+| Dimensión             | Monolito                                      | Microservicios                                          |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| Despliegue            | Una unidad; un cambio obliga a desplegar todo | Independiente por servicio                              |
+| Escalado              | Se replica la aplicación completa             | Se escala solo el servicio saturado                     |
+| Consistencia de datos | Transacciones ACID locales, sencillas         | Requiere sagas o consistencia eventual entre servicios  |
+| Latencia interna      | Llamada en memoria                            | Llamada de red, con fallos parciales                    |
+| Aislamiento de fallos | Un fallo puede tumbar el proceso completo     | Un servicio caído degrada solo su función               |
+| Complejidad operativa | Baja                                          | Alta: descubrimiento, trazas distribuidas, orquestación |
+| Equipos               | Coordinación alta sobre un mismo código       | Equipos autónomos por servicio                          |
 
 ### 2.2 El error más costoso: dónde se traza la frontera
 
@@ -146,12 +157,12 @@ por capas técnicas ni por tablas.
 
 La solución usa **tres microservicios más un API Gateway**:
 
-| Servicio | Responsabilidad | Por qué es un límite legítimo |
-|---|---|---|
-| `ms-auth` | Identidad, credenciales, emisión de JWT | Ciclo de vida y perfil de seguridad propios; podría sustituirse por un proveedor externo (Keycloak, Entra ID) sin tocar el resto |
-| `ms-catalogo` | Alta y mantenimiento de productos | Predominantemente lectura, alta cardinalidad, cacheable; escala distinto que el inventario |
-| `ms-inventario` | Compras, ventas y Kardex | Núcleo transaccional; concentra la escritura y la contención de bloqueos |
-| `api-gateway` | Enrutamiento y seguridad perimetral | Punto único de entrada, autenticación y rate limiting |
+| Servicio        | Responsabilidad                         | Por qué es un límite legítimo                                                                                                    |
+| --------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `ms-auth`       | Identidad, credenciales, emisión de JWT | Ciclo de vida y perfil de seguridad propios; podría sustituirse por un proveedor externo (Keycloak, Entra ID) sin tocar el resto |
+| `ms-catalogo`   | Alta y mantenimiento de productos       | Predominantemente lectura, alta cardinalidad, cacheable; escala distinto que el inventario                                       |
+| `ms-inventario` | Compras, ventas y Kardex                | Núcleo transaccional; concentra la escritura y la contención de bloqueos                                                         |
+| `api-gateway`   | Enrutamiento y seguridad perimetral     | Punto único de entrada, autenticación y rate limiting                                                                            |
 
 **La decisión que merece justificación es no haber separado compras, ventas y
 Kardex en tres servicios**, que a primera vista parecería "más microservicios".
@@ -163,7 +174,7 @@ atómica. Durante la ventana de inconsistencia eventual, dos cajas podrían
 despachar el mismo medicamento. **En un sistema de salud ese riesgo no es
 aceptable**, y el beneficio a cambio sería únicamente organizativo.
 
-Regla aplicada: *un agregado de dominio no se parte entre servicios*. El
+Regla aplicada: _un agregado de dominio no se parte entre servicios_. El
 razonamiento está documentado en el propio código, en
 [`inventario.entidades.ts`](../backend/apps/ms-inventario/src/dominio/entidades/inventario.entidades.ts).
 
@@ -232,20 +243,20 @@ arquitectónica.
 
 ### 4.1 Conceptos aplicados
 
-| Concepto | Definición | Implementación en este repositorio |
-|---|---|---|
-| Lenguaje ubicuo | Vocabulario común entre negocio y código | El código está en español y usa los términos del enunciado: `CompraCab`, `MovimientoDet`, `Kardex`, `Entrada`, `Salida` |
-| Bounded Context | Frontera donde un término tiene un solo significado | Tres contextos: Identidad, Catálogo, Inventario |
-| Entidad | Objeto con identidad propia y ciclo de vida | [`Producto`](../backend/apps/ms-catalogo/src/dominio/entidades/producto.entidad.ts), [`Usuario`](../backend/apps/ms-auth/src/dominio/entidades/usuario.entidad.ts) |
-| Value Object | Objeto sin identidad, comparado por valor, inmutable | [`Importe`](../backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts) |
-| Agregado | Grupo de objetos con una raíz que garantiza invariantes | Inventario: la raíz es el movimiento; el stock es su invariante |
-| Repositorio | Abstracción de persistencia orientada al dominio | [`ProductoRepositorio`](../backend/apps/ms-catalogo/src/aplicacion/puertos/salida/producto.repositorio.ts), [`InventarioRepositorio`](../backend/apps/ms-inventario/src/aplicacion/puertos/salida/inventario.repositorio.ts) |
-| Caso de uso | Una operación completa del negocio | `RegistrarCompraCasoUso`, `RegistrarVentaCasoUso` |
+| Concepto        | Definición                                              | Implementación en este repositorio                                                                                                                                                                                           |
+| --------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lenguaje ubicuo | Vocabulario común entre negocio y código                | El código está en español y usa los términos del enunciado: `CompraCab`, `MovimientoDet`, `Kardex`, `Entrada`, `Salida`                                                                                                      |
+| Bounded Context | Frontera donde un término tiene un solo significado     | Tres contextos: Identidad, Catálogo, Inventario                                                                                                                                                                              |
+| Entidad         | Objeto con identidad propia y ciclo de vida             | [`Producto`](../backend/apps/ms-catalogo/src/dominio/entidades/producto.entidad.ts), [`Usuario`](../backend/apps/ms-auth/src/dominio/entidades/usuario.entidad.ts)                                                           |
+| Value Object    | Objeto sin identidad, comparado por valor, inmutable    | [`Importe`](../backend/libs/compartido/src/dominio/objetos-valor/importe.vo.ts)                                                                                                                                              |
+| Agregado        | Grupo de objetos con una raíz que garantiza invariantes | Inventario: la raíz es el movimiento; el stock es su invariante                                                                                                                                                              |
+| Repositorio     | Abstracción de persistencia orientada al dominio        | [`ProductoRepositorio`](../backend/apps/ms-catalogo/src/aplicacion/puertos/salida/producto.repositorio.ts), [`InventarioRepositorio`](../backend/apps/ms-inventario/src/aplicacion/puertos/salida/inventario.repositorio.ts) |
+| Caso de uso     | Una operación completa del negocio                      | `RegistrarCompraCasoUso`, `RegistrarVentaCasoUso`                                                                                                                                                                            |
 
 ### 4.2 El agregado de Inventario
 
 El agregado más importante del sistema es el **movimiento de inventario**, y su
-invariante es: *el stock de un producto nunca puede ser negativo*.
+invariante es: _el stock de un producto nunca puede ser negativo_.
 
 Ese invariante se protege en tres niveles, deliberadamente redundantes:
 
@@ -290,28 +301,55 @@ seguridad.
 
 ---
 
-## 6. Observación sobre la fórmula del IGV del enunciado
+## 6. Desviación deliberada: la fórmula del IGV
+
+**Es el único punto en el que la solución no sigue el enunciado al pie de la
+letra.**
 
 La sección 1.2.2 del examen define textualmente:
 
 ```
 Subtotal = Cantidad * Precio Venta
-Igv      = Cantidad * Precio Venta * 1.18
+Igv      = Cantidad * Precio Venta * 1.18     <- error de redacción
 Total    = Subtotal + Igv
 ```
 
-**Se implementó literalmente**, tanto en el value object `Importe` como en la
-función SQL `hce.fn_CalcularImportes`, y hay una prueba automatizada que lo
-verifica.
+Esa fórmula hace que el IGV sea el **118 % del subtotal** y el total el **218 %**.
+Una venta de S/ 100 tributaría S/ 118 y se cobraría S/ 218.
 
-Queda constancia de la observación técnica: con esa fórmula el IGV resulta ser
-el **118 % del subtotal** y el total el **218 %**, mientras que el IGV peruano
-vigente es el 18 % del valor de venta:
+Se implementó la fórmula correcta, que es el IGV peruano vigente:
 
 ```
-Igv   = SubTotal * 0.18
-Total = SubTotal * 1.18
+Subtotal = Cantidad * Precio Venta
+Igv      = Subtotal * 0.18
+Total    = Subtotal + Igv                     (= Subtotal * 1.18)
 ```
 
-La fórmula vive en un único lugar por capa precisamente para que corregir el
-criterio sea un cambio de dos líneas y no una búsqueda por todo el sistema.
+### El razonamiento
+
+Ante una contradicción entre lo que el enunciado dice y lo que el dominio exige,
+caben dos posturas. Replicar el texto y anotar la observación al margen es la
+más literal, y es defendible cuando el resultado es inocuo.
+
+Aquí no lo es. Este sistema factura medicamentos: un comprobante con el IGV mal
+calculado es un error tributario que se propaga a la contabilidad y al paciente.
+Y es de los que no se detectan solos, porque los importes salen perfectamente
+cuadrados entre sí —subtotal más IGV igual a total—, solo que con el impuesto
+multiplicado por seis.
+
+Entregar ese defecto replicado habría sido dejar a sabiendas una bomba en
+producción para cumplir con la letra de un requisito cuyo espíritu es
+evidentemente el contrario. Lo más probable es que el enunciado quisiera decir
+`Total = Subtotal * 1.18` y el factor se deslizara una línea más arriba.
+
+En un encargo real esto se resuelve con una pregunta al cliente. Como aquí no
+había a quién preguntar, se tomó la decisión que menos daño causa si me equivoco:
+un IGV correcto en un sistema que factura es defendible ante cualquiera; uno del
+118 % no lo es ante nadie.
+
+### Cómo queda trazado
+
+La fórmula vive en un único lugar por capa —función SQL, value object del
+BackEnd y módulo de cálculo del FrontEnd—, las tres están cubiertas por pruebas
+que comparan sus resultados, y en cada capa hay además una prueba que falla
+explícitamente si alguien vuelve al factor 1.18 sin darse cuenta.
