@@ -14,5 +14,5 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../../tipos-pruebas.d.ts"]
 }

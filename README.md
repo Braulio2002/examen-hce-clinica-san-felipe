@@ -4,7 +4,7 @@
 
 **Control de medicamentos e insumos en atenciones clínicas: compras, ventas y trazabilidad por Kardex.**
 
-Solución al examen técnico para *Especialista de Desarrollo TI — HCE*, Clínica San Felipe.
+Solución al examen técnico para _Especialista de Desarrollo TI — HCE_, Clínica San Felipe.
 
 [![Calidad](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml/badge.svg)](https://github.com/Braulio2002/examen-hce-clinica-san-felipe/actions/workflows/calidad.yml)
 [![Pruebas](https://img.shields.io/badge/pruebas-226_comprobaciones-2ea44f)](#verificación)
@@ -41,47 +41,47 @@ Cada requisito, y dónde está resuelto.
 
 ### BackEnd — sección 1.1
 
-| Requisito | | Dónde |
-|---|:--:|---|
-| API REST con NestJS, dockerizada | ✅ | [`backend/`](backend/) · [`docker-compose.yml`](docker-compose.yml) |
-| Arquitectura de microservicios | ✅ | 3 microservicios + API Gateway |
-| JWT con duración estricta de 30 min | ✅ | [`main.ts`](backend/apps/api-gateway/src/infraestructura/main.ts) |
-| Modelo relacional con las 7 tablas | ✅ | [`01-schema.sql`](database/01-schema.sql) |
-| Los 8 servicios exigidos | ✅ | [Casos de uso](#casos-de-uso) |
-| Scripts de BD (insertar, listar, actualizar, eliminar) | ✅ | [`04-consultas-tsql.sql`](database/04-consultas-tsql.sql) |
-| Documentador REST (Swagger) | ✅ | `localhost:4000/api/docs` |
-| Colección para probar la API | ✅ | [`postman/`](postman/) |
-| CORS restringido al FrontEnd | ✅ | Lista blanca; el comodín se rechaza al arrancar |
-| Patrones Facade y Decorator | ✅ | [Patrones de diseño](#patrones-de-diseño) |
-| Principios SOLID | ✅ | [Arquitectura](#arquitectura) |
+| Requisito                                              |     | Dónde                                                               |
+| ------------------------------------------------------ | :-: | ------------------------------------------------------------------- |
+| API REST con NestJS, dockerizada                       | ✅  | [`backend/`](backend/) · [`docker-compose.yml`](docker-compose.yml) |
+| Arquitectura de microservicios                         | ✅  | 3 microservicios + API Gateway                                      |
+| JWT con duración estricta de 30 min                    | ✅  | [`main.ts`](backend/apps/api-gateway/src/infraestructura/main.ts)   |
+| Modelo relacional con las 7 tablas                     | ✅  | [`01-schema.sql`](database/01-schema.sql)                           |
+| Los 8 servicios exigidos                               | ✅  | [Casos de uso](#casos-de-uso)                                       |
+| Scripts de BD (insertar, listar, actualizar, eliminar) | ✅  | [`04-consultas-tsql.sql`](database/04-consultas-tsql.sql)           |
+| Documentador REST (Swagger)                            | ✅  | `localhost:4000/api/docs`                                           |
+| Colección para probar la API                           | ✅  | [`postman/`](postman/)                                              |
+| CORS restringido al FrontEnd                           | ✅  | Lista blanca; el comodín se rechaza al arrancar                     |
+| Patrones Facade y Decorator                            | ✅  | [Patrones de diseño](#patrones-de-diseño)                           |
+| Principios SOLID                                       | ✅  | [Arquitectura](#arquitectura)                                       |
 
 ### FrontEnd — sección 1.2
 
-| Requisito | | Dónde |
-|---|:--:|---|
-| Next.js con microfront | ✅ | Multi-Zones: 2 zonas independientes |
-| Interceptores para el token JWT | ✅ | [`cliente.ts`](frontend/paquetes/api-cliente/src/cliente.ts) |
-| **1.2.1** Compra con varios productos | ✅ | [Registrar compra](#1--registrar-compra) |
-| **1.2.1** Modal para crear producto inexistente | ✅ | `ModalNuevoProducto` |
-| **1.2.1** Actualiza costo y precio (× 1.35), genera Entrada | ✅ | `usp_Compra_Registrar`, en una transacción |
-| **1.2.2** Venta mostrando precio y stock por producto | ✅ | [Registrar venta](#2--registrar-venta) |
-| **1.2.2** Bloqueo si la cantidad supera el stock | ✅ | Cliente y servidor; probado bajo concurrencia |
-| **1.2.2** Cálculo de subtotal, IGV y total al digitar | ✅ | [Observación sobre el IGV](#observación-sobre-el-cálculo-del-igv) |
-| **1.2.2** Genera movimiento de Salida | ✅ | `usp_Venta_Registrar` |
-| **1.2.3** Kardex con las 5 columnas exigidas | ✅ | [Kardex](#3--kardex) |
-| **1.2.3** Botón por fila con modal de movimientos | ✅ | Fecha, tipo y cantidad, más saldo acumulado |
+| Requisito                                                   |     | Dónde                                                             |
+| ----------------------------------------------------------- | :-: | ----------------------------------------------------------------- |
+| Next.js con microfront                                      | ✅  | Multi-Zones: 2 zonas independientes                               |
+| Interceptores para el token JWT                             | ✅  | [`cliente.ts`](frontend/paquetes/api-cliente/src/cliente.ts)      |
+| **1.2.1** Compra con varios productos                       | ✅  | [Registrar compra](#1--registrar-compra)                          |
+| **1.2.1** Modal para crear producto inexistente             | ✅  | `ModalNuevoProducto`                                              |
+| **1.2.1** Actualiza costo y precio (× 1.35), genera Entrada | ✅  | `usp_Compra_Registrar`, en una transacción                        |
+| **1.2.2** Venta mostrando precio y stock por producto       | ✅  | [Registrar venta](#2--registrar-venta)                            |
+| **1.2.2** Bloqueo si la cantidad supera el stock            | ✅  | Cliente y servidor; probado bajo concurrencia                     |
+| **1.2.2** Cálculo de subtotal, IGV y total al digitar       | ✅  | [Observación sobre el IGV](#observación-sobre-el-cálculo-del-igv) |
+| **1.2.2** Genera movimiento de Salida                       | ✅  | `usp_Venta_Registrar`                                             |
+| **1.2.3** Kardex con las 5 columnas exigidas                | ✅  | [Kardex](#3--kardex)                                              |
+| **1.2.3** Botón por fila con modal de movimientos           | ✅  | Fecha, tipo y cantidad, más saldo acumulado                       |
 
 ### Consideraciones globales — sección 1.3
 
-| Requisito | | Dónde |
-|---|:--:|---|
-| Maquetado con Tailwind CSS | ✅ | [`tailwind.config.ts`](frontend/apps/shell/tailwind.config.ts) |
-| Diseño responsivo para tablets y laptops | ✅ | Áreas táctiles de 44 px; tablas con desplazamiento propio |
-| Clean Architecture en NestJS **con justificación** | ✅ | [`docs/02-arquitectura.md`](docs/02-arquitectura.md) |
-| `docker-compose.yml` con Back, Front y BD | ✅ | 7 contenedores |
-| API Gateway en la capa NestJS | ✅ | Único servicio expuesto al exterior |
-| Mínimo 2 mecanismos de seguridad | ✅ | **6 implementados** — [Seguridad](#seguridad) |
-| Repositorio público con README | ✅ | Este documento |
+| Requisito                                          |     | Dónde                                                          |
+| -------------------------------------------------- | :-: | -------------------------------------------------------------- |
+| Maquetado con Tailwind CSS                         | ✅  | [`tailwind.config.ts`](frontend/apps/shell/tailwind.config.ts) |
+| Diseño responsivo para tablets y laptops           | ✅  | Áreas táctiles de 44 px; tablas con desplazamiento propio      |
+| Clean Architecture en NestJS **con justificación** | ✅  | [`docs/02-arquitectura.md`](docs/02-arquitectura.md)           |
+| `docker-compose.yml` con Back, Front y BD          | ✅  | 7 contenedores                                                 |
+| API Gateway en la capa NestJS                      | ✅  | Único servicio expuesto al exterior                            |
+| Mínimo 2 mecanismos de seguridad                   | ✅  | **6 implementados** — [Seguridad](#seguridad)                  |
+| Repositorio público con README                     | ✅  | Este documento                                                 |
 
 ---
 
@@ -102,21 +102,21 @@ varios minutos. Las siguientes son casi instantáneas.
 
 Cuando `api-gateway` aparezca como `healthy`, todo está listo:
 
-| Recurso | URL | Notas |
-|---|---|---|
-| **Aplicación web** | http://localhost:3000 | Punto de entrada |
-| **Swagger** | http://localhost:4000/api/docs | Documentación interactiva |
-| **API** | http://localhost:4000/api/v1 | Base de todos los endpoints |
-| **Salud del Gateway** | http://localhost:4000/api/v1/salud | Usado por el healthcheck |
-| **SQL Server** | `127.0.0.1,14330` | Usuario `sa`, contraseña del `.env` |
+| Recurso               | URL                                | Notas                               |
+| --------------------- | ---------------------------------- | ----------------------------------- |
+| **Aplicación web**    | http://localhost:3000              | Punto de entrada                    |
+| **Swagger**           | http://localhost:4000/api/docs     | Documentación interactiva           |
+| **API**               | http://localhost:4000/api/v1       | Base de todos los endpoints         |
+| **Salud del Gateway** | http://localhost:4000/api/v1/salud | Usado por el healthcheck            |
+| **SQL Server**        | `127.0.0.1,14330`                  | Usuario `sa`, contraseña del `.env` |
 
 ### Usuarios de demostración
 
-| Usuario | Contraseña | Rol | Permisos |
-|---|---|---|---|
-| `admin` | `Admin123$` | ADMIN | Acceso total |
+| Usuario    | Contraseña     | Rol      | Permisos                    |
+| ---------- | -------------- | -------- | --------------------------- |
+| `admin`    | `Admin123$`    | ADMIN    | Acceso total                |
 | `farmacia` | `Farmacia123$` | FARMACIA | Compras, ventas y productos |
-| `consulta` | `Consulta123$` | CONSULTA | Solo lectura |
+| `consulta` | `Consulta123$` | CONSULTA | Solo lectura                |
 
 La base arranca con 12 insumos médicos, dos compras y una venta ya registradas,
 de modo que el Kardex tiene movimientos desde el primer minuto.
@@ -137,16 +137,16 @@ openssl rand -base64 48
 Los ocho servicios que exige la sección 1.1.1, con su endpoint, el procedimiento
 que los resuelve y el rol mínimo necesario.
 
-| # | Servicio | Endpoint | Procedimiento | Rol |
-|:--:|---|---|---|---|
-| 1 | **Registrar Compra** | `POST /compras` | `usp_Compra_Registrar` | FARMACIA |
-| 2 | **Registrar Venta** | `POST /ventas` | `usp_Venta_Registrar` | FARMACIA |
-| 3 | **Registrar Producto** | `POST /productos` | `usp_Producto_Registrar` | FARMACIA |
-| 4 | **Actualizar Producto** | `PATCH /productos/:id` | `usp_Producto_Actualizar` | FARMACIA |
-| 5 | **Listar Compra** | `GET /compras` | `usp_Compra_Listar` | CONSULTA |
-| 6 | **Listar Venta** | `GET /ventas` | `usp_Venta_Listar` | CONSULTA |
-| 7 | **Listar Producto** | `GET /productos` | `usp_Producto_Listar` | CONSULTA |
-| 8 | **Listar Kardex** | `GET /kardex` | `usp_Kardex_Listar` | CONSULTA |
+|  #  | Servicio                | Endpoint               | Procedimiento             | Rol      |
+| :-: | ----------------------- | ---------------------- | ------------------------- | -------- |
+|  1  | **Registrar Compra**    | `POST /compras`        | `usp_Compra_Registrar`    | FARMACIA |
+|  2  | **Registrar Venta**     | `POST /ventas`         | `usp_Venta_Registrar`     | FARMACIA |
+|  3  | **Registrar Producto**  | `POST /productos`      | `usp_Producto_Registrar`  | FARMACIA |
+|  4  | **Actualizar Producto** | `PATCH /productos/:id` | `usp_Producto_Actualizar` | FARMACIA |
+|  5  | **Listar Compra**       | `GET /compras`         | `usp_Compra_Listar`       | CONSULTA |
+|  6  | **Listar Venta**        | `GET /ventas`          | `usp_Venta_Listar`        | CONSULTA |
+|  7  | **Listar Producto**     | `GET /productos`       | `usp_Producto_Listar`     | CONSULTA |
+|  8  | **Listar Kardex**       | `GET /kardex`          | `usp_Kardex_Listar`       | CONSULTA |
 
 Cada uno es **una clase de caso de uso** en la capa de aplicación del
 microservicio que le corresponde. Hay quince en total —los ocho del enunciado,
@@ -183,7 +183,7 @@ concurrente cobraría el precio anterior.
 Muestra por producto el precio de venta y el **stock disponible**, calculado
 desde la tabla de movimientos. No permite guardar si alguna cantidad supera el
 stock: la fila se marca, el campo indica el error y el botón queda deshabilitado
-con el mensaje *«la cantidad no debe ser mayor al stock»*.
+con el mensaje _«la cantidad no debe ser mayor al stock»_.
 
 Esa validación es comodidad para el usuario. **La autoridad está en el
 servidor**, que revalida dentro de la transacción y con bloqueo, de modo que dos
@@ -263,12 +263,12 @@ Cada microservicio se organiza en cuatro capas, y las dependencias apuntan
               Las flechas de import van  ←←←
 ```
 
-| Capa | Qué contiene | Qué **no** puede importar |
-|---|---|---|
-| **1 · Dominio** | Entidades, objetos de valor, excepciones de negocio | Nada externo. Ni NestJS, ni `mssql`, ni `class-validator` |
-| **2 · Aplicación** | Casos de uso, puertos, fachadas, modelos | Frameworks. Tampoco decoradores |
-| **3 · Adaptadores** | Controladores, pasarelas, mapeadores, DTOs | La raíz de composición que los construye |
-| **4 · Infraestructura** | `main.ts`, módulos NestJS, configuración | — |
+| Capa                    | Qué contiene                                        | Qué **no** puede importar                                 |
+| ----------------------- | --------------------------------------------------- | --------------------------------------------------------- |
+| **1 · Dominio**         | Entidades, objetos de valor, excepciones de negocio | Nada externo. Ni NestJS, ni `mssql`, ni `class-validator` |
+| **2 · Aplicación**      | Casos de uso, puertos, fachadas, modelos            | Frameworks. Tampoco decoradores                           |
+| **3 · Adaptadores**     | Controladores, pasarelas, mapeadores, DTOs          | La raíz de composición que los construye                  |
+| **4 · Infraestructura** | `main.ts`, módulos NestJS, configuración            | —                                                         |
 
 **Esta regla no es una convención escrita: está verificada.** Dos pruebas
 recorren el código fuente, analizan cada `import` y fallan si una capa mira
@@ -286,15 +286,15 @@ llevaba tiempo sin detectarse.
 
 ### Patrones de diseño
 
-| Patrón | Dónde | Para qué |
-|---|---|---|
-| **Facade** | `aplicacion/fachadas/` | Agrupa los casos de uso tras una interfaz simple |
-| **Decorator** | `adaptadores/pasarelas/*-trazada.ts` | Añade medición de tiempos y reintentos sin tocar la clase original |
-| **Repository** | `aplicacion/puertos/salida/` | Abstrae la persistencia del dominio |
-| **Adapter** | `adaptadores/pasarelas/` | Implementa los puertos contra SQL Server, bcrypt o JWT |
-| **Mapper** | `adaptadores/mapeadores/` | Traduce filas de la base al modelo de aplicación |
-| **API Gateway** | `apps/api-gateway/` | Punto único de entrada y de seguridad |
-| **Multi-Zones** | `frontend/apps/` | Microfrontend con despliegue independiente |
+| Patrón          | Dónde                                | Para qué                                                           |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| **Facade**      | `aplicacion/fachadas/`               | Agrupa los casos de uso tras una interfaz simple                   |
+| **Decorator**   | `adaptadores/pasarelas/*-trazada.ts` | Añade medición de tiempos y reintentos sin tocar la clase original |
+| **Repository**  | `aplicacion/puertos/salida/`         | Abstrae la persistencia del dominio                                |
+| **Adapter**     | `adaptadores/pasarelas/`             | Implementa los puertos contra SQL Server, bcrypt o JWT             |
+| **Mapper**      | `adaptadores/mapeadores/`            | Traduce filas de la base al modelo de aplicación                   |
+| **API Gateway** | `apps/api-gateway/`                  | Punto único de entrada y de seguridad                              |
+| **Multi-Zones** | `frontend/apps/`                     | Microfrontend con despliegue independiente                         |
 
 > Conviene distinguir dos cosas que se llaman igual. El **patrón Decorator** de
 > la GoF es un objeto que envuelve a otro con la misma interfaz. Los
@@ -350,14 +350,14 @@ falta ningún índice**.
 
 El enunciado pide un mínimo de dos mecanismos. Se implementaron **seis**.
 
-| Mecanismo | Implementación |
-|---|---|
-| **JWT de 30 minutos** | HS256 con `issuer` y `audience` validados |
-| **Cookie HttpOnly** | Inaccesible desde JavaScript; mitiga el robo de token por XSS |
-| **Rate limiting** | 100 peticiones/min general, 5/min en login |
-| **CORS restringido** | Lista blanca; el comodín `*` se rechaza al arrancar |
+| Mecanismo                  | Implementación                                                               |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| **JWT de 30 minutos**      | HS256 con `issuer` y `audience` validados                                    |
+| **Cookie HttpOnly**        | Inaccesible desde JavaScript; mitiga el robo de token por XSS                |
+| **Rate limiting**          | 100 peticiones/min general, 5/min en login                                   |
+| **CORS restringido**       | Lista blanca; el comodín `*` se rechaza al arrancar                          |
 | **Cabeceras de seguridad** | Helmet, `nosniff`, CSP con nonce por petición, `X-Frame-Options: DENY`, HSTS |
-| **Autorización por rol** | Guard global con ADMIN / FARMACIA / CONSULTA |
+| **Autorización por rol**   | Guard global con ADMIN / FARMACIA / CONSULTA                                 |
 
 Y uno que el enunciado no pide: **mínimo privilegio en la base de datos**. Cada
 microservicio tiene su propia cuenta, con permiso para ejecutar únicamente sus
@@ -377,15 +377,15 @@ Las limitaciones conocidas están declaradas en el
 
 ## Verificación
 
-**226 comprobaciones automáticas** repartidas en cinco suites.
+**1 215 comprobaciones automáticas** repartidas en cinco suites.
 
-| Suite | Casos | Qué cubre |
-|---|:--:|---|
-| [Dominio y arquitectura](#pruebas-de-dominio-y-arquitectura) | 122 | Fórmulas, casos de uso, regla de dependencia |
-| [Extremo a extremo](#pruebas-de-extremo-a-extremo) | 43 | El sistema completo en ejecución |
-| [FrontEnd](#pruebas-del-frontend) | 39 | Lógica pura del cliente |
-| [Base de datos](#pruebas-de-base-de-datos) | 13 | Reglas de negocio y aislamiento entre servicios |
-| [Concurrencia](#prueba-de-concurrencia) | 9 | El invariante de stock bajo competencia real |
+| Suite                                              | Casos | Qué cubre                                                             |
+| -------------------------------------------------- | :---: | --------------------------------------------------------------------- |
+| [BackEnd](#pruebas-del-backend)                    |  722  | Dominio, casos de uso, adaptadores, seguridad y raíces de composición |
+| [FrontEnd](#pruebas-del-frontend)                  |  428  | Cliente HTTP, componentes, hooks y pantallas                          |
+| [Extremo a extremo](#pruebas-de-extremo-a-extremo) |  43   | El sistema completo en ejecución                                      |
+| [Base de datos](#pruebas-de-base-de-datos)         |  13   | Reglas de negocio y aislamiento entre servicios                       |
+| [Concurrencia](#prueba-de-concurrencia)            |   9   | El invariante de stock bajo competencia real                          |
 
 ### Puerta de calidad
 
@@ -394,14 +394,14 @@ cd backend  && npm run quality   # formato · tipos · lint · pruebas+cobertura
 cd frontend && npm run quality   # formato · tipos · lint · pruebas · build
 ```
 
-| Comprobación | Backend | Frontend |
-|---|---|---|
-| `format:check` (Prettier) | limpio | limpio |
-| `typecheck` (`strict` + `noUncheckedIndexedAccess`) | 0 errores | 0 errores |
-| `lint:strict` (0 avisos permitidos) | limpio | limpio |
-| Pruebas | 122 casos | 39 casos |
-| Cobertura de dominio y aplicación | 86 % sentencias, **100 % ramas** | fórmulas y depuración de rutas |
-| `npm audit` | 0 vulnerabilidades | 0 vulnerabilidades |
+| Comprobación                                        | Backend                              | Frontend                             |
+| --------------------------------------------------- | ------------------------------------ | ------------------------------------ |
+| `format:check` (Prettier)                           | limpio                               | limpio                               |
+| `typecheck` (`strict` + `noUncheckedIndexedAccess`) | 0 errores                            | 0 errores                            |
+| `lint:strict` (0 avisos permitidos)                 | limpio                               | limpio                               |
+| Pruebas                                             | 722 casos                            | 428 casos                            |
+| Cobertura                                           | **98,9 %** sentencias · 94,8 % ramas | **97,1 %** sentencias · 96,0 % ramas |
+| `npm audit`                                         | 0 vulnerabilidades                   | 0 vulnerabilidades                   |
 
 El linter no es el `next lint` por defecto: es `typescript-eslint` con reglas que
 usan información de tipos, más **SonarJS**, **unicorn**, **eslint-plugin-security**,
@@ -412,17 +412,40 @@ de dependencia verifican en ejecución.
 Todo esto corre además en **GitHub Actions** en cada push, sobre un Ubuntu
 limpio, junto con la construcción de las seis imágenes Docker.
 
-### Pruebas de dominio y arquitectura
+### Pruebas del BackEnd
 
 ```bash
 cd backend && npm test          # ejecuta la suite
 cd backend && npm run test:cov  # con informe de cobertura y umbral
 ```
 
-Cubren el objeto de valor `Importe` —la fórmula del enunciado y el margen de
-1.35—, los 15 casos de uso, las excepciones de dominio con su viaje de ida y
-vuelta por el transporte RPC, y **la regla de dependencia de Clean
-Architecture**. Corren sin base de datos ni contenedores.
+Cubren **todo el proyecto**, capa por capa, sin base de datos ni contenedores:
+
+| Capa            | Qué se comprueba                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Dominio         | El objeto de valor `Importe` con la fórmula del enunciado y el margen de 1.35, las entidades y sus invariantes                       |
+| Aplicación      | Los 15 casos de uso y las fachadas, con dobles de los puertos de salida                                                              |
+| Adaptadores     | Mapeadores, pasarelas de SQL Server, decoradores de trazado y reintento, controladores RPC y REST, guardias, filtros e interceptores |
+| Infraestructura | Las **cuatro raíces de composición**, levantadas de verdad                                                                           |
+| Arquitectura    | La regla de dependencia y la superficie del paquete compartido, símbolo a símbolo                                                    |
+
+Dos de esas suites merecen mención aparte.
+
+**Las raíces de composición.** Los casos de uso son clases planas sin
+`@Injectable()`, así que todo el grafo se arma a mano con `useFactory`. Ese
+cableado no lo comprueba el compilador: un `inject` en distinto orden que los
+parámetros de la fábrica compila igual y entrega el repositorio donde iba el
+registro. Las pruebas levantan cada módulo con el servicio de base sustituido y
+verifican que cada pieza se construye, que la cadena de decoradores queda
+apilada en el orden previsto y que la fachada recibe cada caso de uso en su
+posición. En el gateway comprueban además el orden de los guardias globales, que
+es el orden en que se ejecutan.
+
+**La traducción de errores del motor.** Los procedimientos almacenados lanzan
+códigos numéricos —51001, 54004, 2627— que el adaptador de persistencia
+convierte en excepciones de dominio. Ese mapeo es el contrato entre la base y la
+aplicación: sin él, un «no hay stock» llegaría al usuario como un error interno
+del servidor. Hay una prueba por código.
 
 ### Pruebas de extremo a extremo
 
@@ -476,15 +499,38 @@ invariante de verdad, en lugar de afirmarlo en un comentario.
 
 ```bash
 cd frontend && npm test
+cd frontend && npx vitest run --coverage
 ```
 
-Cubren las tres piezas de lógica pura del cliente: las fórmulas del enunciado, la
-depuración del destino tras autenticarse —lo que impide que un enlace
-`/login?destino=<url externa>` saque al usuario del dominio— y el filtro del
-buscador de productos.
+Se ejecutan en **jsdom**: los componentes se montan de verdad y se consultan por
+rol y por texto accesible, no por clase CSS ni por estructura de nodos. La
+diferencia no es de estilo. Una prueba que busca `.btn-primario` se rompe al
+renombrar una clase aunque el botón siga funcionando, y no se entera si el botón
+deja de ser accesible; consultando como lo haría una persona —o un lector de
+pantalla— la prueba falla cuando cambia el comportamiento, que es cuando debe
+fallar. **La accesibilidad queda cubierta sin proponérselo**: si un `aria-label`
+desaparece, la consulta deja de encontrar el elemento.
 
-No cubren componentes: para una interfaz de este tamaño, las verificaciones de
-extremo a extremo y el linter de accesibilidad dan más señal que montar el DOM.
+| Suite         | Qué cubre                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `api-cliente` | Interceptores, traducción de errores HTTP a mensajes presentables, reacción al 401 y contrato de cada servicio con la API |
+| `ui`          | Botón, campo, modal, paginación, selector buscable, formulario de producto, navegación y proveedor de sesión              |
+| Hooks         | Carga de catálogo y detalle de documento, con `renderHook`                                                                |
+| Pantallas     | Productos, compras, ventas y Kardex, con la API sustituida y el resto de piezas reales                                    |
+
+Tres comprobaciones concretas que valen más que su tamaño:
+
+- **El modal devuelve el foco a quien lo abrió.** Es el criterio 2.4.3 de las
+  WCAG y pesa más de lo habitual aquí: en planta el teclado suele ser el
+  dispositivo principal, y sin esa devolución quien acaba de pulsar «Ver» en la
+  fila 30 del Kardex tiene que recorrer la tabla entera otra vez. Se verifica
+  abriendo, cerrando y mirando dónde quedó el foco.
+- **La navegación distingue las dos zonas.** Con Multi-Zones, un enlace del
+  shell hacia el inventario tiene que ser un `<a>` y no un `<Link>`: el enrutador
+  del shell no conoce esas rutas y devolvería un 404. Ese fallo ocurrió durante
+  el desarrollo; la prueba es lo que impide que vuelva.
+- **La línea de venta no lleva precio.** Lo fija el servidor desde el catálogo.
+  Está comprobado en el servicio, en la tabla y en la pantalla.
 
 ### Pruebas de base de datos
 
@@ -561,11 +607,11 @@ que la capa de aplicación no lo conoce ni lo transporta.
 
 ## Documentación
 
-| Documento | Contenido |
-|---|---|
-| [Evaluación teórica](docs/01-evaluacion-teorica.md) | API REST, monolito vs. microservicios, BFF, DDD |
-| [Arquitectura](docs/02-arquitectura.md) | Diagramas, Clean Architecture en salud, patrones, seguridad, modelo de datos |
-| [Guía de capas del BackEnd](backend/ARQUITECTURA.md) | Qué va en cada capa y dónde poner un cambio |
+| Documento                                            | Contenido                                                                    |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [Evaluación teórica](docs/01-evaluacion-teorica.md)  | API REST, monolito vs. microservicios, BFF, DDD                              |
+| [Arquitectura](docs/02-arquitectura.md)              | Diagramas, Clean Architecture en salud, patrones, seguridad, modelo de datos |
+| [Guía de capas del BackEnd](backend/ARQUITECTURA.md) | Qué va en cada capa y dónde poner un cambio                                  |
 
 ---
 

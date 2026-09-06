@@ -90,8 +90,15 @@ export function FormularioProducto<T>({
   const motivoInvalido = (): string | null => {
     if (!nombre.trim()) return 'El nombre del producto es obligatorio.';
     if (!lote.trim()) return 'El numero de lote es obligatorio.';
-    // Number.isFinite y no `!(x >= 0)`: un campo vacio produce NaN, y NaN
-    // compara false contra todo, de modo que la forma invertida lo dejaria pasar.
+
+    // El campo vacio se comprueba APARTE, y es imprescindible: `Number('')`
+    // devuelve 0, no NaN. Sin esta linea, dejar el costo en blanco creaba el
+    // producto con costo 0 -y precio de venta 0- sin avisar de nada.
+    if (costo.trim() === '') return 'El costo es obligatorio.';
+
+    // Number.isFinite y no `!(x >= 0)`: un texto no numerico si produce NaN, y
+    // NaN compara false contra todo, de modo que la forma invertida lo dejaria
+    // pasar.
     if (!Number.isFinite(costoNumero) || costoNumero < 0) {
       return 'El costo debe ser un numero mayor o igual a cero.';
     }

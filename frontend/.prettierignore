@@ -7,3 +7,8 @@ dist/
 coverage/
 package-lock.json
 *.md
+
+# Lo genera Next en cada compilacion y su cabecera pide no editarlo. Sin esta
+# exclusion, Prettier y Next se pisan: el formateador cambia las comillas y la
+# siguiente compilacion las devuelve, dejando el arbol sucio sin motivo.
+apps/*/next-env.d.ts

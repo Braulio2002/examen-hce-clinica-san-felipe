@@ -89,6 +89,18 @@ const unicornExtraActivas = reglasDisponibles(reglasUnicornExtra, unicorn, 'unic
 
 const ARCHIVOS_APP = ['apps/*/src/**/*.{ts,tsx}', 'paquetes/*/src/**/*.{ts,tsx}'];
 const ARCHIVOS_NODE = ['*.config.{ts,mjs}', 'apps/*/*.config.{ts,mjs}', 'eslint*.mjs'];
+const ARCHIVOS_PRUEBA = [
+  'apps/*/src/**/*.{spec,test}.{ts,tsx}',
+  'paquetes/*/src/**/*.{spec,test}.{ts,tsx}',
+];
+
+/**
+ * Preparacion de las pruebas. Vive en la raiz, fuera del programa de TypeScript
+ * de los paquetes, pero se ejecuta en jsdom y necesita los globales del
+ * navegador -toca `Element.prototype`-, asi que no encaja ni con las
+ * aplicaciones ni con los scripts de Node y lleva su propio bloque.
+ */
+const ARCHIVOS_PREPARACION = ['vitest.setup.ts'];
 
 export default defineConfig([
   globalIgnores([
@@ -291,6 +303,42 @@ export default defineConfig([
   // Reglas de arquitectura del microfront (FA-HCE v1).
   // ===========================================================================
   ...configuracionesMicrofront,
+
+  // ===========================================================================
+  // Archivos de prueba.
+  //
+  // Se les aplica exactamente el mismo analisis que al codigo de produccion,
+  // incluido el que usa informacion de tipos: una prueba mal tipada es una
+  // prueba que puede estar comprobando otra cosa. La UNICA regla que se relaja
+  // es la de literales repetidos, y por un motivo concreto.
+  //
+  // En produccion, ver tres veces la misma cadena suele senalar un concepto sin
+  // nombre. En una prueba es al reves: el valor literal ES la especificacion.
+  //
+  //   expect(await screen.findByText('Paracetamol 500 mg')).toBeVisible();
+  //
+  // se lee de un vistazo; con una constante en su lugar hay que ir a buscar que
+  // vale para saber que se esta comprobando. Extraer esos literales haria las
+  // pruebas mas dificiles de leer sin hacerlas mas faciles de mantener, que es
+  // justo lo contrario de lo que persigue la regla.
+  //
+  // Todo lo demas -tipos, promesas sin esperar, complejidad, accesibilidad-
+  // sigue exigiendose igual.
+  // ===========================================================================
+  {
+    files: ARCHIVOS_PRUEBA,
+    rules: { 'sonarjs/no-duplicate-string': 'off' },
+  },
+  {
+    files: ARCHIVOS_PREPARACION,
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      globals: globals.browser,
+      parser: tseslint.parser,
+    },
+  },
 
   // ===========================================================================
   // Configuracion y scripts: se ejecutan en Node, no en el navegador, y quedan

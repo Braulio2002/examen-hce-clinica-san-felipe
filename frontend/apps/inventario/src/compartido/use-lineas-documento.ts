@@ -63,26 +63,48 @@ export function useLineasDocumento<TLinea extends LineaBase>({
 }: Opciones<TLinea>): DetalleDocumento<TLinea> {
   const [lineas, setLineas] = useState<readonly TLinea[]>([]);
 
-  const agregar = useCallback((nueva: LineaNueva<TLinea>): boolean => {
-    let admitida = false;
-
-    setLineas((actuales) => {
+  /*
+   * La comprobacion de duplicado se hace FUERA del actualizador de estado, y es
+   * importante que asi sea.
+   *
+   * La version anterior la hacia dentro -`setLineas((actuales) => ...)`- y
+   * asignaba el resultado a una variable que despues devolvia. Eso funciona solo
+   * mientras React evalue el actualizador de forma ansiosa, que es una
+   * optimizacion suya y no una garantia: en cuanto hay actualizaciones
+   * encoladas, React lo aplaza hasta el siguiente render y la funcion devuelve
+   * el valor inicial. El sintoma era que, tras vaciar el documento, agregar un
+   * producto devolvia `false` aunque la linea si se anadia, y la pantalla
+   * mostraba "ese producto ya esta en el detalle" sin ser cierto.
+   *
+   * Leyendo `lineas` del cierre el resultado es inmediato y no depende de
+   * cuando React decida procesar la cola.
+   *
+   * La comprobacion se repite DENTRO del actualizador, y no sobra: el cierre ve
+   * el estado del ultimo render, asi que dos adiciones del mismo producto en el
+   * mismo lote pasarian las dos por el filtro de fuera. Fuera se decide que
+   * responder; dentro se protege el estado.
+   */
+  const agregar = useCallback(
+    (nueva: LineaNueva<TLinea>): boolean => {
       // Repetir el producto en dos filas partiria la cantidad sin motivo: es
       // mas claro ajustar la fila existente.
-      if (actuales.some((l) => l.idProducto === nueva.idProducto)) return actuales;
+      const yaEsta = (actuales: readonly TLinea[]): boolean =>
+        actuales.some((l) => l.idProducto === nueva.idProducto);
 
-      admitida = true;
+      if (yaEsta(lineas)) return false;
+
       // Date.now() basta para distinguir filas: se agregan de una en una, por
       // interaccion humana, y el identificador solo vive en la pantalla.
       const linea = {
         ...nueva,
         idFila: `${String(nueva.idProducto)}-${String(Date.now())}`,
       } as TLinea;
-      return [...actuales, linea];
-    });
 
-    return admitida;
-  }, []);
+      setLineas((actuales) => (yaEsta(actuales) ? actuales : [...actuales, linea]));
+      return true;
+    },
+    [lineas],
+  );
 
   const actualizarCampo = useCallback(
     (idFila: string, campo: keyof TLinea, valor: string): void => {
