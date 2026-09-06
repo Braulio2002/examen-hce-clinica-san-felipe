@@ -84,11 +84,33 @@ export default defineConfig({
         '**/tipos.ts',
         '**/tailwind.config.ts',
       ],
+      /*
+       * Cobertura completa, declarada y no solo alcanzada: cualquier linea
+       * nueva sin prueba hace fallar `npm test`, y con ello la integracion
+       * continua.
+       *
+       * Las ramas van a 99.8 y no a 100 por UNA sola, en `modal.tsx`:
+       *
+       *   const primero = enfocables[0];
+       *   const ultimo = enfocables[enfocables.length - 1];
+       *   if (!primero || !ultimo) return;
+       *
+       * Con `noUncheckedIndexedAccess` activado, TypeScript exige comprobar el
+       * resultado de indexar un array. En ejecucion esa comprobacion no puede
+       * fallar: el contenedor del dialogo siempre incluye su boton de cerrar,
+       * de modo que la lista nunca esta vacia.
+       *
+       * Cubrirla exigiria una asercion de no nulidad -que debilita los tipos y
+       * ademas prohibe la configuracion estricta del linter- o retorcer el
+       * componente para fabricar un caso que no existe. Ninguna de las dos cosas
+       * mejora el codigo, asi que el umbral refleja la realidad en lugar de
+       * disimularla.
+       */
       thresholds: {
-        statements: 90,
-        branches: 90,
-        functions: 90,
-        lines: 90,
+        statements: 100,
+        branches: 99.8,
+        functions: 100,
+        lines: 100,
       },
     },
   },

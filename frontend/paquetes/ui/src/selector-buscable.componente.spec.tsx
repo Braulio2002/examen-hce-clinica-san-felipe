@@ -248,6 +248,45 @@ describe('SelectorBuscable', () => {
       expect(onSeleccionar).toHaveBeenCalledWith(1);
     });
 
+    /*
+     * Home y End saltan al primer y ultimo resultado. Con un catalogo de
+     * doscientos productos, llegar al ultimo a base de flechas no es una opcion
+     * realista, y en un puesto con las manos ocupadas el raton tampoco.
+     */
+    it('Home salta al primer resultado', async () => {
+      const { campo, onSeleccionar } = montar();
+      await userEvent.type(campo, 'mg');
+      await screen.findByRole('listbox');
+
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}{Home}{Enter}');
+
+      expect(onSeleccionar).toHaveBeenCalledWith(1);
+    });
+
+    it('End salta al ultimo resultado seleccionable', async () => {
+      const { campo } = montar();
+      await userEvent.type(campo, 'mg');
+      await screen.findByRole('listbox');
+
+      await userEvent.keyboard('{End}');
+
+      // El foco no se mueve del campo: la opcion activa se comunica por
+      // `aria-activedescendant`, igual que con las flechas.
+      expect(campo).toHaveFocus();
+      expect(campo).toHaveAttribute('aria-activedescendant');
+    });
+
+    it('una tecla sin accion asignada no hace nada', async () => {
+      const { campo, onSeleccionar } = montar();
+      await userEvent.type(campo, 'mg');
+      await screen.findByRole('listbox');
+
+      await userEvent.keyboard('{PageDown}');
+
+      expect(onSeleccionar).not.toHaveBeenCalled();
+      expect(screen.getByRole('listbox')).toBeVisible();
+    });
+
     it('Escape cierra la lista sin elegir nada', async () => {
       const { campo, onSeleccionar } = montar();
       await userEvent.type(campo, 'para');
@@ -269,6 +308,45 @@ describe('SelectorBuscable', () => {
       await userEvent.keyboard('{ArrowDown}{ArrowUp}');
 
       expect(campo).toHaveFocus();
+    });
+  });
+
+  describe('cierre al pulsar fuera', () => {
+    /*
+     * Pulsar en cualquier otro sitio cierra el desplegable. Sin esto, la lista
+     * queda abierta tapando la tabla del detalle mientras el usuario intenta
+     * escribir la cantidad de la linea que acaba de agregar.
+     */
+    it('un clic fuera del selector lo cierra', async () => {
+      render(
+        <div>
+          <SelectorBuscable
+            etiqueta="Agregar producto"
+            opciones={OPCIONES}
+            onSeleccionar={vi.fn()}
+          />
+          <button type="button">Otra cosa</button>
+        </div>,
+      );
+
+      await userEvent.type(screen.getByRole('combobox'), 'para');
+      await screen.findByRole('listbox');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Otra cosa' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+    });
+
+    it('un clic dentro del selector no lo cierra', async () => {
+      const { campo } = montar();
+      await userEvent.type(campo, 'para');
+      await screen.findByRole('listbox');
+
+      await userEvent.click(campo);
+
+      expect(screen.getByRole('listbox')).toBeVisible();
     });
   });
 

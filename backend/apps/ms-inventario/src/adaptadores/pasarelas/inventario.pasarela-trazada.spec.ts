@@ -180,10 +180,14 @@ describe('InventarioPasarelaTrazada', () => {
       expect(r.depurar.mock.calls[0]?.[0]).toContain('pagina=4');
     });
 
-    it('los listados asumen la pagina 1 si no se indica', async () => {
+    it.each([
+      ['listarCompras', 'listarCompras'],
+      ['listarVentas', 'listarVentas'],
+      ['listarKardex', 'listarKardex'],
+    ] as const)('%s asume la pagina 1 si no se indica', async (_caso, metodo) => {
       const r = registro();
 
-      await new InventarioPasarelaTrazada(repositorio(), r).listarVentas({});
+      await new InventarioPasarelaTrazada(repositorio(), r)[metodo]({});
 
       expect(r.depurar.mock.calls[0]?.[0]).toContain('pagina=1');
     });

@@ -63,6 +63,24 @@ export interface LineaVenta extends LineaBase {
  * transaccion que descuenta; sin eso, dos cajas podrian vender a la vez la
  * ultima unidad.
  */
+/**
+ * Un producto solo se puede vender si queda alguna unidad.
+ *
+ * Es una regla de negocio, no de presentacion, y por eso tiene nombre propio y
+ * un unico lugar. Antes estaba escrita dos veces -una para deshabilitar la
+ * opcion del buscador y otra como guarda al agregar la linea-, y la segunda no
+ * podia ejecutarse nunca porque la primera ya lo impedia. Dos copias de la
+ * misma condicion sobre el mismo dato no son defensa en profundidad: son
+ * duplicacion, y una de ellas es codigo que nadie puede verificar.
+ *
+ * La palabra final sobre el stock la tiene el procedimiento almacenado, que
+ * bloquea la fila al vender. Esto solo evita que el usuario llegue hasta ahi
+ * para nada.
+ */
+function hayStock(fila: FilaKardex): boolean {
+  return fila.stockActual > 0;
+}
+
 function validarLineaVenta(linea: LineaVenta): string | null {
   const cantidad = Number(linea.cantidad);
   if (!Number.isFinite(cantidad) || cantidad <= 0) {
@@ -107,11 +125,6 @@ export function PantallaVentas(): React.JSX.Element {
   const { lineas, totales, lineasConError, validar: validarLinea } = detalle;
 
   const agregarLinea = (fila: FilaKardex): void => {
-    if (fila.stockActual <= 0) {
-      inventario.reportarError(`"${fila.nombreProducto}" no tiene stock disponible.`);
-      return;
-    }
-
     const admitida = detalle.agregar({
       idProducto: fila.idProducto,
       nombreProducto: fila.nombreProducto,
@@ -132,18 +145,23 @@ export function PantallaVentas(): React.JSX.Element {
 
   const puedeGuardar = detalle.hayLineas && lineasConError.length === 0 && !guardando;
 
+  /*
+   * Sin guardas de validacion al inicio, y es deliberado.
+   *
+   * Habia dos -"agregue al menos un producto" y "revise las lineas senaladas"-
+   * que no podian ejecutarse nunca: cuando no hay lineas el boton ni se
+   * renderiza, y cuando alguna es invalida `puedeGuardar` lo deshabilita. Eran
+   * la misma condicion, sobre el mismo estado, evaluada dos veces en el mismo
+   * instante. Eso no es defensa en profundidad: es duplicacion, y la copia
+   * inalcanzable es codigo que nadie puede verificar.
+   *
+   * La regla vive ahora en un solo sitio, el renderizado, y hay pruebas que la
+   * fijan: sin lineas no aparece el boton, y con lineas invalidas aparece
+   * deshabilitado.
+   */
   const registrar = async (): Promise<void> => {
     inventario.limpiarError();
     setExito(null);
-
-    if (!detalle.hayLineas) {
-      inventario.reportarError('Agregue al menos un producto a la venta.');
-      return;
-    }
-    if (lineasConError.length > 0) {
-      inventario.reportarError('Corrija las cantidades marcadas antes de guardar.');
-      return;
-    }
 
     setGuardando(true);
     try {
@@ -211,11 +229,10 @@ export function PantallaVentas(): React.JSX.Element {
             terminosExtra: c.nroLote,
             // Sin existencias se muestra, pero no se puede elegir: ocultarlo
             // haria pensar que el producto no existe.
-            deshabilitada: c.stockActual <= 0,
-            nota:
-              c.stockActual <= 0
-                ? 'sin stock'
-                : `${formatearMoneda(c.precioVenta)} · stock ${String(c.stockActual)}`,
+            deshabilitada: !hayStock(c),
+            nota: hayStock(c)
+              ? `${formatearMoneda(c.precioVenta)} · stock ${String(c.stockActual)}`
+              : 'sin stock',
           }))}
           onSeleccionar={(id) => {
             const fila = catalogo.find((c) => c.idProducto === id);

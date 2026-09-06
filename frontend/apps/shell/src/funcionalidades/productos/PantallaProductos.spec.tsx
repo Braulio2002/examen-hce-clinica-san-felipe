@@ -131,6 +131,29 @@ describe('PantallaProductos', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/No se pudo contactar/);
     });
+
+    it('un fallo desconocido usa un mensaje comprensible', async () => {
+      dobles.listar.mockRejectedValue(new TypeError('x is not a function'));
+      render(<PantallaProductos />);
+
+      // El texto de un error de programacion no significa nada para quien esta
+      // usando la aplicacion.
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se pudo cargar el catalogo.',
+      );
+    });
+
+    it('el aviso de error se puede descartar', async () => {
+      dobles.listar.mockRejectedValue(new Error('x'));
+      render(<PantallaProductos />);
+      await screen.findByRole('alert');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Descartar mensaje' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('permisos', () => {
@@ -312,6 +335,69 @@ describe('PantallaProductos', () => {
     });
   });
 
+  describe('guardado de una edicion', () => {
+    /*
+     * El alta y la edicion comparten formulario pero llaman a operaciones
+     * distintas: `registrar` crea, `actualizar` modifica. Cruzarlas duplicaria
+     * el producto en lugar de corregirlo, y el formulario es identico en los dos
+     * casos, asi que nada en pantalla delataria el error.
+     */
+    it('llama a actualizar, no a registrar', async () => {
+      render(<PantallaProductos />);
+      await screen.findByText('Paracetamol 500 mg');
+      await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+      const dialogo = await screen.findByRole('dialog');
+      await waitFor(() => {
+        expect(dialogo).toContainElement(document.activeElement as HTMLElement);
+      });
+      const costo = within(dialogo).getByLabelText('Costo unitario');
+      await userEvent.clear(costo);
+      await userEvent.type(costo, '0.55');
+      await userEvent.click(
+        within(dialogo).getByRole('button', { name: 'Guardar cambios' }),
+      );
+
+      await waitFor(() => {
+        expect(dobles.actualizar).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ costo: 0.55 }),
+        );
+      });
+      expect(dobles.registrar).not.toHaveBeenCalled();
+    });
+
+    it('confirma la edicion con el nombre del producto', async () => {
+      render(<PantallaProductos />);
+      await screen.findByText('Paracetamol 500 mg');
+      await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+      const dialogo = await screen.findByRole('dialog');
+      await waitFor(() => {
+        expect(dialogo).toContainElement(document.activeElement as HTMLElement);
+      });
+      await userEvent.click(
+        within(dialogo).getByRole('button', { name: 'Guardar cambios' }),
+      );
+
+      expect(await screen.findByRole('status')).toHaveTextContent(/actualizado/);
+    });
+
+    it('el formulario se puede cerrar sin guardar', async () => {
+      render(<PantallaProductos />);
+      await screen.findByText('Paracetamol 500 mg');
+      await userEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
+      await screen.findByRole('dialog');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(dobles.registrar).not.toHaveBeenCalled();
+    });
+  });
+
   describe('tras guardar', () => {
     const rellenarYGuardar = async () => {
       const dialogo = await screen.findByRole('dialog');
@@ -373,6 +459,21 @@ describe('PantallaProductos', () => {
 
       await waitFor(() => {
         expect(dobles.listar.mock.calls.length).toBeGreaterThan(1);
+      });
+    });
+
+    it('la confirmacion se puede descartar', async () => {
+      render(<PantallaProductos />);
+      await screen.findByText('Paracetamol 500 mg');
+      await userEvent.click(screen.getByRole('button', { name: 'Nuevo producto' }));
+
+      await rellenarYGuardar();
+      await screen.findByRole('status');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Descartar mensaje' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
       });
     });
 

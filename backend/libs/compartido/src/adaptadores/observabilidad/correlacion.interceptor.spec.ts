@@ -155,6 +155,25 @@ describe('CorrelacionInterceptor', () => {
       expect(String(registrar.mock.calls[0]?.[0])).toContain('/api/ventas');
     });
 
+    /*
+     * Una peticion sin metodo ni ruta reconocibles no debe dejar la linea del
+     * registro a medias. Puede pasar con transportes que no son Express o con
+     * peticiones malformadas: se registra con interrogantes en lugar de con
+     * `undefined`, que es lo que rompe las busquedas despues.
+     */
+    it('describe la peticion con interrogantes si no trae metodo ni ruta', async () => {
+      const registrar = jest.spyOn(Logger.prototype, 'log');
+      registrar.mockClear();
+      const { host } = contextoHttp(
+        {},
+        { method: undefined, originalUrl: undefined, url: undefined },
+      );
+
+      await firstValueFrom(new CorrelacionInterceptor().intercept(host, manejador()));
+
+      expect(String(registrar.mock.calls[0]?.[0])).toContain('? ?');
+    });
+
     it('la peticion que falla tambien se registra, como aviso', async () => {
       const avisar = jest.spyOn(Logger.prototype, 'warn');
       avisar.mockClear();
@@ -173,6 +192,24 @@ describe('CorrelacionInterceptor', () => {
       const linea = String(avisar.mock.calls[0]?.[0]);
       expect(linea).toContain('traza-123');
       expect(linea).toContain('stock insuficiente');
+    });
+
+    it('un fallo que no es un Error se registra igualmente', async () => {
+      const avisar = jest.spyOn(Logger.prototype, 'warn');
+      avisar.mockClear();
+      const { host } = contextoHttp({ 'x-request-id': 'traza-123' });
+
+      await expect(
+        firstValueFrom(
+          new CorrelacionInterceptor().intercept(host, {
+            // Codigo de terceros que rechaza con una cadena: la linea del
+            // registro no debe quedarse en "[object Object]".
+            handle: () => throwError(() => 'cadena suelta'),
+          }),
+        ),
+      ).rejects.toBe('cadena suelta');
+
+      expect(String(avisar.mock.calls[0]?.[0])).toContain('error');
     });
 
     it('el fallo se propaga sin envolver', async () => {

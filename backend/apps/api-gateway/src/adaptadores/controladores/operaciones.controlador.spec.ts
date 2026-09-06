@@ -346,6 +346,42 @@ describe('Controladores REST de operaciones', () => {
       expect(new SaludControlador().estado().marcaTiempo).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
+    /*
+     * La version sale de `npm_package_version`, que npm inyecta al arrancar por
+     * script. Fuera de ese contexto -por ejemplo, ejecutando el binario
+     * compilado directamente- no existe, y sin el respaldo la respuesta de salud
+     * llevaria `undefined` como version.
+     */
+    it('informa de la version que inyecta npm al arrancar', () => {
+      const previa = process.env.npm_package_version;
+      process.env.npm_package_version = '2.4.0';
+
+      try {
+        expect(new SaludControlador().estado().version).toBe('2.4.0');
+      } finally {
+        if (previa === undefined) {
+          process.env = Object.fromEntries(
+            Object.entries(process.env).filter(([c]) => c !== 'npm_package_version'),
+          );
+        } else {
+          process.env.npm_package_version = previa;
+        }
+      }
+    });
+
+    it('sin esa variable usa una version de respaldo, no undefined', () => {
+      const previa = process.env.npm_package_version;
+      process.env = Object.fromEntries(
+        Object.entries(process.env).filter(([c]) => c !== 'npm_package_version'),
+      );
+
+      try {
+        expect(new SaludControlador().estado().version).toBe('1.0.0');
+      } finally {
+        if (previa !== undefined) process.env.npm_package_version = previa;
+      }
+    });
+
     it('no revela nada sensible sobre el entorno', () => {
       // Un endpoint publico no debe filtrar rutas, cadenas de conexion ni
       // variables de entorno: seria reconocimiento gratis para un atacante.

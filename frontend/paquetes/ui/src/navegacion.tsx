@@ -48,6 +48,26 @@ function zonaDe(href: string): string {
     ? ZONA_INVENTARIO
     : '';
 }
+
+/**
+ * Convierte un enlace absoluto en la ruta que entiende el enrutador de la zona.
+ *
+ * Next resuelve las rutas de un `<Link>` RELATIVAS al `basePath` de la
+ * aplicacion. Dentro del inventario, `/inventario/compras` hay que pasarlo como
+ * `/compras`: dejarlo absoluto produciria `/inventario/inventario/compras`.
+ *
+ * El respaldo a `/` cubre el enlace a la raiz de la propia zona, donde el
+ * recorte deja una cadena vacia y Next interpretaria "la URL actual" en lugar
+ * de la portada. Hoy ningun enlace del menu es exactamente la raiz de la zona,
+ * pero es la clase de detalle que rompe el dia que se anada uno.
+ *
+ * Se extrae como funcion con nombre por eso mismo: es la unica linea del
+ * componente que hace una transformacion no evidente, y asi se puede comprobar
+ * por si sola en lugar de solo a traves del arbol renderizado.
+ */
+export function rutaEnZona(href: string, zonaActual: string = ZONA_ACTUAL): string {
+  return href.slice(zonaActual.length) || '/';
+}
 interface Enlace {
   href: string;
   etiqueta: string;
@@ -193,7 +213,7 @@ export function NavegacionPrincipal({
             ) : (
               <Link
                 key={enlace.href}
-                href={enlace.href.slice(ZONA_ACTUAL.length) || '/'}
+                href={rutaEnZona(enlace.href)}
                 aria-current={esActivo(enlace.href) ? 'page' : undefined}
                 className={claseEnlace(esActivo(enlace.href))}
               >
@@ -278,7 +298,7 @@ export function NavegacionPrincipal({
               <li key={enlace.href}>
                 {zonaDe(enlace.href) === ZONA_ACTUAL ? (
                   <Link
-                    href={enlace.href.slice(ZONA_ACTUAL.length) || '/'}
+                    href={rutaEnZona(enlace.href)}
                     aria-current={esActivo(enlace.href) ? 'page' : undefined}
                     className={claseEnlace(esActivo(enlace.href))}
                     onClick={() => setMenuAbierto(false)}

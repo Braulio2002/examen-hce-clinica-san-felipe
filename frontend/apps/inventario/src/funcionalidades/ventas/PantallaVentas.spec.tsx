@@ -251,6 +251,38 @@ describe('PantallaVentas', () => {
       });
     });
 
+    /*
+     * Con lineas invalidas, la guarda de `registrar()` detiene el envio y
+     * explica que corregir. Es la red por si el boton llegara a pulsarse antes
+     * de deshabilitarse.
+     */
+    it('con lineas invalidas el boton se deshabilita y no se llama al servidor', async () => {
+      render(<PantallaVentas />);
+      await agregarProducto();
+      const tabla = await screen.findByRole('table');
+      const cantidad = within(tabla).getByDisplayValue('1');
+      await userEvent.clear(cantidad);
+      await userEvent.type(cantidad, '99');
+
+      const boton = screen.getByRole('button', { name: /Registrar venta/i });
+      await userEvent.click(boton);
+
+      expect(dobles.registrarVenta).not.toHaveBeenCalled();
+      expect(boton).toBeDisabled();
+    });
+
+    it('una cantidad de cero tambien se senala', async () => {
+      render(<PantallaVentas />);
+      await agregarProducto();
+      const tabla = await screen.findByRole('table');
+      const cantidad = within(tabla).getByDisplayValue('1');
+
+      await userEvent.clear(cantidad);
+      await userEvent.type(cantidad, '0');
+
+      expect(await screen.findByText(/cantidad mayor a cero/i)).toBeVisible();
+    });
+
     it('una cantidad excesiva impide registrar', async () => {
       render(<PantallaVentas />);
       await agregarProducto();
@@ -312,6 +344,19 @@ describe('PantallaVentas', () => {
 
       await waitFor(() => {
         expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      });
+    });
+
+    it('la confirmacion se puede descartar', async () => {
+      render(<PantallaVentas />);
+      await agregarProducto();
+      await userEvent.click(screen.getByRole('button', { name: /Registrar venta/i }));
+      await screen.findByRole('status');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Descartar mensaje' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
       });
     });
 

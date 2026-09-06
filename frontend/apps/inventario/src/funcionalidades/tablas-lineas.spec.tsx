@@ -110,6 +110,18 @@ describe('Tablas de detalle', () => {
       expect(onQuitar).toHaveBeenCalledWith('f1');
     });
 
+    /*
+     * Mientras el usuario borra un campo para reescribirlo, la cantidad o el
+     * precio quedan vacios un instante. El importe de esa fila se calcula como
+     * cero en vez de propagar un NaN: una tabla que muestra "S/ NaN" mientras se
+     * teclea parece rota.
+     */
+    it('una fila con campos a medio escribir muestra importe cero, no NaN', () => {
+      montar([{ ...LINEA, cantidad: '', precio: '' }]);
+
+      expect(screen.getByRole('table')).not.toHaveTextContent(/NaN/);
+    });
+
     it('muestra el error de una linea invalida', () => {
       montar([{ ...LINEA, cantidad: '0' }], () => 'La cantidad debe ser mayor a cero.');
 

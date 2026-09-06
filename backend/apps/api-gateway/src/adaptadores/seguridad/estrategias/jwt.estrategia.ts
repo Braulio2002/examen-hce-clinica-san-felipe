@@ -30,8 +30,14 @@ export interface UsuarioAutenticado {
  * tipo real es opcional aunque las definiciones de Express lo declaren siempre
  * presente. Se estrecha de forma explicita en lugar de encadenar `?.` sobre un
  * tipo que el compilador cree no nulo.
+ *
+ * Se exporta para poder probarla directamente. Es el mecanismo del que depende
+ * toda la autenticacion del FrontEnd -la cookie HttpOnly es la via principal, y
+ * la cabecera Bearer solo el respaldo-, y Passport la guarda en una propiedad
+ * interna una vez configurada: llegar hasta ella desde una prueba significaria
+ * atarse a un detalle de la libreria que puede cambiar sin aviso.
  */
-function extraerDeCookie(peticion: Request, nombreCookie: string): string | null {
+export function extraerDeCookie(peticion: Request, nombreCookie: string): string | null {
   const cookies: unknown = (peticion as { cookies?: unknown }).cookies;
   if (typeof cookies !== 'object' || cookies === null) return null;
 

@@ -127,20 +127,23 @@ export function PantallaCompras(): React.JSX.Element {
 
   const puedeGuardar = detalle.hayLineas && lineasConError.length === 0 && !guardando;
 
+  /*
+   * Sin guardas de validacion al inicio, y es deliberado.
+   *
+   * Habia dos -"agregue al menos un producto" y "revise las lineas senaladas"-
+   * que no podian ejecutarse nunca: cuando no hay lineas el boton ni se
+   * renderiza, y cuando alguna es invalida `puedeGuardar` lo deshabilita. Eran
+   * la misma condicion, sobre el mismo estado, evaluada dos veces en el mismo
+   * instante. Eso no es defensa en profundidad: es duplicacion, y la copia
+   * inalcanzable es codigo que nadie puede verificar.
+   *
+   * La regla vive ahora en un solo sitio, el renderizado, y hay pruebas que la
+   * fijan: sin lineas no aparece el boton, y con lineas invalidas aparece
+   * deshabilitado.
+   */
   const registrar = async (): Promise<void> => {
     catalogo.limpiarError();
     setExito(null);
-
-    if (!detalle.hayLineas) {
-      catalogo.reportarError('Agregue al menos un producto a la compra.');
-      return;
-    }
-    if (lineasConError.length > 0) {
-      catalogo.reportarError(
-        'Revise las lineas senaladas: hay cantidades o costos no validos.',
-      );
-      return;
-    }
 
     setGuardando(true);
     try {

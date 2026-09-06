@@ -5,6 +5,7 @@ import {
   MARGEN_PRECIO_VENTA,
   calcularImportes,
   formatearCantidad,
+  formatearFecha,
   formatearMoneda,
   precioVentaDesdeCosto,
   sumarImportes,
@@ -129,8 +130,75 @@ describe('Formulas de importes', () => {
       expect(formatearCantidad(5)).toBe('5');
     });
 
+    /*
+     * Los formateadores y el calculo del precio blindan la entrada porque estan
+     * al final de la cadena, justo antes de la pantalla. Un NaN que llegue hasta
+     * aqui -de una division por cero, de un campo vacio, de un dato que la API
+     * no envio- se muestra como "NaN" o "S/ NaN" en una tabla de importes. Es
+     * peor que un cero: parece un fallo del sistema y nadie sabe de donde sale.
+     */
+    it.each([
+      ['NaN', Number.NaN],
+      ['infinito', Number.POSITIVE_INFINITY],
+      ['un costo negativo', -5],
+    ])('precioVentaDesdeCosto devuelve 0 ante %s', (_caso, entrada) => {
+      expect(precioVentaDesdeCosto(entrada)).toBe(0);
+    });
+
+    it.each([
+      ['NaN', Number.NaN],
+      ['infinito', Number.POSITIVE_INFINITY],
+    ])('formatearMoneda muestra cero ante %s, no el texto del fallo', (_caso, valor) => {
+      expect(formatearMoneda(valor)).not.toMatch(/NaN|Infinity/);
+      expect(formatearMoneda(valor)).toMatch(/0[.,]00/);
+    });
+
+    it.each([
+      ['NaN', Number.NaN],
+      ['infinito', Number.NEGATIVE_INFINITY],
+    ])('formatearCantidad muestra cero ante %s', (_caso, valor) => {
+      expect(formatearCantidad(valor)).toBe('0');
+    });
+
     it('formatearCantidad conserva los decimales que importan', () => {
       expect(formatearCantidad(2.5)).toMatch(/2[.,]5/);
+    });
+  });
+
+  /*
+   * Las fechas llegan de la API como cadena ISO y de los formularios como
+   * objeto Date. La funcion acepta las dos porque obligar a convertir en cada
+   * punto de uso es garantizar que alguien lo olvide.
+   */
+  describe('formatearFecha', () => {
+    it('formatea una cadena ISO al formato local', () => {
+      const texto = formatearFecha('2026-09-03T14:30:00Z');
+
+      expect(texto).toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    });
+
+    it('acepta tambien un objeto Date', () => {
+      const texto = formatearFecha(new Date('2026-09-03T14:30:00Z'));
+
+      expect(texto).toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    });
+
+    it('incluye la hora, que es lo que distingue dos movimientos del mismo dia', () => {
+      expect(formatearFecha('2026-09-03T14:30:00Z')).toMatch(/\d{2}:\d{2}/);
+    });
+
+    /*
+     * Una fecha ilegible se muestra como un guion y no como "Invalid Date".
+     * Puede llegar de un campo nulo o de un formato que el navegador no
+     * reconoce; un guion en la celda se entiende, "Invalid Date" parece un
+     * error del sistema.
+     */
+    it.each([
+      ['una cadena que no es fecha', 'no soy una fecha'],
+      ['una cadena vacia', ''],
+      ['un Date invalido', new Date('x')],
+    ])('muestra un guion ante %s', (_caso, valor) => {
+      expect(formatearFecha(valor)).toBe('-');
     });
   });
 });

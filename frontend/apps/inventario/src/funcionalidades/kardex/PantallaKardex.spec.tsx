@@ -312,5 +312,29 @@ describe('PantallaKardex', () => {
 
       expect(await screen.findByRole('dialog')).toBeVisible();
     });
+
+    /*
+     * Al cerrarlo, la pantalla olvida el producto seleccionado. Si no lo
+     * hiciera, el modal se quedaria montado con datos viejos y al abrir el de
+     * otro producto se verian los movimientos del anterior durante un instante.
+     */
+    it('al cerrarlo se olvida el producto seleccionado', async () => {
+      render(<PantallaKardex />);
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Ver movimientos de Paracetamol 500 mg',
+        }),
+      );
+      await screen.findByRole('dialog');
+
+      const cierres = screen.getAllByRole('button', { name: 'Cerrar' });
+      const ultimo = cierres.at(-1);
+      if (!ultimo) throw new Error('No se encontro el boton de cerrar.');
+      await userEvent.click(ultimo);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+    });
   });
 });

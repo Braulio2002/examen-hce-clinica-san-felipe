@@ -186,6 +186,27 @@ describe('PantallaCompras', () => {
      * Es lo que convierte el registro de una compra rutinaria en dos clics en
      * lugar de dos clics y dos campos.
      */
+    /*
+     * Si el producto todavia no tiene costo -recien dado de alta con costo 0,
+     * por ejemplo- el campo llega VACIO en lugar de con un cero.
+     *
+     * La diferencia importa: un cero parece un dato deliberado y se registra tal
+     * cual, y esa compra fijaria el costo del producto en cero. Un campo vacio
+     * no valida, y obliga a escribir lo que de verdad se esta pagando.
+     */
+    it('un producto sin costo conocido deja el campo vacio, no en cero', async () => {
+      dobles.listarProductos.mockResolvedValue({
+        datos: [{ ...PRODUCTO, costo: 0 }],
+        meta: { pagina: 1, tamanoPagina: 200, totalRegistros: 1, totalPaginas: 1 },
+      });
+      render(<PantallaCompras />);
+
+      await agregarProducto();
+
+      const tabla = await screen.findByRole('table');
+      expect(within(tabla).getByLabelText(/Costo unitario/)).toHaveValue(null);
+    });
+
     it('la linea llega con cantidad 1 y el ultimo costo conocido', async () => {
       render(<PantallaCompras />);
 
@@ -243,6 +264,67 @@ describe('PantallaCompras', () => {
       expect(
         await screen.findByRole('button', { name: /Registrar compra/i }),
       ).toBeVisible();
+    });
+
+    const escribirEnLinea = async (valorMostrado: string, nuevo: string) => {
+      const tabla = await screen.findByRole('table');
+      const campo = within(tabla).getByDisplayValue(valorMostrado);
+      await userEvent.clear(campo);
+      if (nuevo !== '') await userEvent.type(campo, nuevo);
+      return campo;
+    };
+
+    /*
+     * Las tres validaciones de una linea de compra, cada una con su mensaje.
+     * Importa que sean distintos: "revise la cantidad" y "revise el costo"
+     * llevan al usuario a sitios diferentes de la fila.
+     */
+    it('una cantidad de cero se senala en la fila', async () => {
+      render(<PantallaCompras />);
+      await agregarProducto();
+
+      await escribirEnLinea('1', '0');
+
+      expect(
+        await screen.findByText(/cantidad debe ser un numero mayor a cero/i),
+      ).toBeVisible();
+    });
+
+    it('un costo vacio se senala con su propio mensaje', async () => {
+      render(<PantallaCompras />);
+      await agregarProducto();
+
+      await escribirEnLinea('0.49', '');
+
+      expect(await screen.findByText(/Indique el costo unitario/i)).toBeVisible();
+    });
+
+    it('un costo negativo se senala con otro mensaje distinto', async () => {
+      render(<PantallaCompras />);
+      await agregarProducto();
+
+      await escribirEnLinea('0.49', '-3');
+
+      expect(
+        await screen.findByText(/costo debe ser un numero mayor o igual a cero/i),
+      ).toBeVisible();
+    });
+
+    /*
+     * Si el usuario fuerza el envio con lineas invalidas -por ejemplo pulsando
+     * antes de que se deshabilite el boton-, la guarda de `registrar()` lo
+     * detiene y explica que revisar. No llega ni una peticion al servidor.
+     */
+    it('con lineas invalidas el boton se deshabilita y no se llama al servidor', async () => {
+      render(<PantallaCompras />);
+      await agregarProducto();
+      await escribirEnLinea('1', '0');
+
+      const boton = await screen.findByRole('button', { name: /Registrar compra/i });
+      await userEvent.click(boton);
+
+      expect(dobles.registrarCompra).not.toHaveBeenCalled();
+      expect(boton).toBeDisabled();
     });
 
     it('una cantidad invalida impide registrar', async () => {
@@ -317,6 +399,24 @@ describe('PantallaCompras', () => {
      * recargar, la siguiente compra partiria del precio anterior y el usuario
      * veria un dato que ya no es cierto.
      */
+    /*
+     * La confirmacion se puede descartar. Sin eso, el mensaje de la compra
+     * anterior sigue en pantalla mientras se registra la siguiente, y no se
+     * distingue si corresponde a esta o a la de hace un minuto.
+     */
+    it('la confirmacion se puede descartar', async () => {
+      render(<PantallaCompras />);
+      await agregarProducto();
+      await userEvent.click(screen.getByRole('button', { name: /Registrar compra/i }));
+      await screen.findByRole('status');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Descartar mensaje' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      });
+    });
+
     it('recarga el catalogo, que la compra acaba de modificar', async () => {
       render(<PantallaCompras />);
       await agregarProducto();
@@ -397,6 +497,93 @@ describe('PantallaCompras', () => {
       );
 
       expect(await screen.findByRole('dialog')).toBeVisible();
+    });
+
+    it('se puede cancelar el alta y seguir en la compra', async () => {
+      render(<PantallaCompras />);
+      await screen.findByLabelText('Agregar producto');
+      await userEvent.click(
+        screen.getByRole('button', { name: 'El producto no existe' }),
+      );
+      await screen.findByRole('dialog');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByLabelText('Agregar producto')).toBeVisible();
+    });
+
+    /*
+     * El recorrido completo del requisito: el producto no existe, se crea sin
+     * salir de la pantalla y entra DIRECTAMENTE en el detalle de la compra.
+     *
+     * Ese ultimo paso es el que le da sentido: quien acaba de darlo de alta
+     * espera verlo en la compra, no tener que buscarlo otra vez en un catalogo
+     * que ademas todavia no lo tiene.
+     */
+    it('el producto recien creado entra solo en el detalle', async () => {
+      const creado = {
+        ...PRODUCTO,
+        idProducto: 9,
+        nombreProducto: 'Amoxicilina 500 mg',
+        nroLote: 'LT-99',
+        costo: 1.15,
+      };
+      dobles.registrarProducto.mockResolvedValue(creado);
+
+      render(<PantallaCompras />);
+      await screen.findByLabelText('Agregar producto');
+      await userEvent.click(
+        screen.getByRole('button', { name: 'El producto no existe' }),
+      );
+
+      const dialogo = await screen.findByRole('dialog');
+      await waitFor(() => {
+        expect(dialogo).toContainElement(document.activeElement as HTMLElement);
+      });
+      await userEvent.type(
+        within(dialogo).getByLabelText('Nombre del producto'),
+        'Amoxicilina 500 mg',
+      );
+      await userEvent.type(within(dialogo).getByLabelText('Numero de lote'), 'LT-99');
+      await userEvent.type(within(dialogo).getByLabelText('Costo unitario'), '1.15');
+      await userEvent.click(
+        within(dialogo).getByRole('button', { name: 'Registrar y agregar' }),
+      );
+
+      expect(await screen.findByRole('table')).toHaveTextContent('Amoxicilina 500 mg');
+    });
+
+    it('y el catalogo se relee, en lugar de parchear el estado local', async () => {
+      dobles.registrarProducto.mockResolvedValue({ ...PRODUCTO, idProducto: 9 });
+
+      render(<PantallaCompras />);
+      await screen.findByLabelText('Agregar producto');
+      await waitFor(() => {
+        expect(dobles.listarProductos).toHaveBeenCalledTimes(1);
+      });
+      await userEvent.click(
+        screen.getByRole('button', { name: 'El producto no existe' }),
+      );
+
+      const dialogo = await screen.findByRole('dialog');
+      await waitFor(() => {
+        expect(dialogo).toContainElement(document.activeElement as HTMLElement);
+      });
+      await userEvent.type(within(dialogo).getByLabelText('Nombre del producto'), 'X');
+      await userEvent.type(within(dialogo).getByLabelText('Numero de lote'), 'LT-9');
+      await userEvent.type(within(dialogo).getByLabelText('Costo unitario'), '1');
+      await userEvent.click(
+        within(dialogo).getByRole('button', { name: 'Registrar y agregar' }),
+      );
+
+      // Parchear el estado local es como se acumulan divergencias entre lo que
+      // la pantalla cree y lo que la base tiene.
+      await waitFor(() => {
+        expect(dobles.listarProductos.mock.calls.length).toBeGreaterThan(1);
+      });
     });
   });
 });

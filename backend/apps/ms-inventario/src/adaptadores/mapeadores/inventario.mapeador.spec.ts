@@ -122,6 +122,20 @@ describe('InventarioMapeador', () => {
       });
     });
 
+    it('admite un documento sin lineas', () => {
+      expect(InventarioMapeador.aDocumentoVenta([cabecera], undefined).detalle).toEqual(
+        [],
+      );
+    });
+
+    it('usa 0 como identificador de linea si el procedimiento no lo devuelve', () => {
+      const doc = InventarioMapeador.aDocumentoVenta([cabecera], [detalleCrudo]);
+
+      // Mismo criterio que en la compra: el identificador de linea solo lo
+      // devuelven los procedimientos de consulta, no los de registro.
+      expect(doc.detalle[0]?.idDetalle).toBe(0);
+    });
+
     it('falla si no hay cabecera', () => {
       expect(() => InventarioMapeador.aDocumentoVenta([], [])).toThrow(
         ErrorInfraestructura,

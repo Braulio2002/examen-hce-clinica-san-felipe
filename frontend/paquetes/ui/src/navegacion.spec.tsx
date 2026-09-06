@@ -41,7 +41,7 @@ vi.mock('./sesion', () => ({
   }),
 }));
 
-const { NavegacionPrincipal } = await import('./navegacion');
+const { NavegacionPrincipal, rutaEnZona } = await import('./navegacion');
 
 /**
  * Pruebas de la navegacion principal.
@@ -164,6 +164,172 @@ describe('NavegacionPrincipal', () => {
 
       const productos = screen.getAllByRole('link', { name: /Productos/ })[0];
       expect(productos).toHaveAttribute('aria-current', 'page');
+    });
+  });
+
+  /*
+   * El menu plegable es el que se ve por debajo de `lg`, es decir el de las
+   * TABLETS, que son el dispositivo de planta. No es un extra para moviles: es
+   * la navegacion principal del puesto de trabajo real.
+   *
+   * Tiene ademas la misma distincion de zonas que el de escritorio. Antes todos
+   * sus enlaces eran `<a>`, de modo que cada cambio de pantalla en tablet
+   * recargaba la aplicacion entera; la prueba fija que eso no vuelva a pasar.
+   */
+  /*
+   * Next resuelve las rutas de un `<Link>` relativas al `basePath` de la zona,
+   * asi que un enlace absoluto hay que recortarlo antes de pasarlo. Es la unica
+   * transformacion no evidente del componente y por eso tiene funcion propia.
+   */
+  describe('rutaEnZona', () => {
+    it('en el shell -sin basePath- deja la ruta tal cual', () => {
+      expect(rutaEnZona('/productos', '')).toBe('/productos');
+    });
+
+    it('dentro del inventario recorta el prefijo de la zona', () => {
+      // Sin el recorte, Next resolveria `/inventario/inventario/compras`.
+      expect(rutaEnZona('/inventario/compras', '/inventario')).toBe('/compras');
+    });
+
+    /*
+     * El enlace a la raiz de la propia zona: el recorte deja una cadena vacia, y
+     * un `<Link href="">` significa para Next "la URL actual", no la portada.
+     */
+    it('la raiz de la zona se convierte en la barra, no en una cadena vacia', () => {
+      expect(rutaEnZona('/inventario', '/inventario')).toBe('/');
+    });
+
+    it('la raiz del shell tambien es la barra', () => {
+      expect(rutaEnZona('/', '')).toBe('/');
+    });
+  });
+
+  describe('menu plegable de tablet', () => {
+    const abrirMenu = async () => {
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Abrir menu de navegacion' }),
+      );
+    };
+
+    it('empieza cerrado', () => {
+      render(<NavegacionPrincipal />);
+
+      expect(
+        screen.getByRole('button', { name: 'Abrir menu de navegacion' }),
+      ).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('cerrado hay una sola navegacion en la pagina', () => {
+      render(<NavegacionPrincipal />);
+
+      expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    });
+
+    it('al pulsarlo se despliega', async () => {
+      render(<NavegacionPrincipal />);
+
+      await abrirMenu();
+
+      expect(screen.getAllByRole('navigation')).toHaveLength(2);
+    });
+
+    it('lo declara con aria-expanded', async () => {
+      render(<NavegacionPrincipal />);
+
+      await abrirMenu();
+
+      // Sin esto, quien usa lector de pantalla no sabe si el menu esta
+      // desplegado o si el boton no hizo nada.
+      expect(
+        screen.getByRole('button', { name: 'Abrir menu de navegacion' }),
+      ).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('ofrece las mismas cinco secciones', async () => {
+      render(<NavegacionPrincipal />);
+
+      await abrirMenu();
+
+      for (const seccion of ['Inicio', 'Productos', 'Compras', 'Ventas', 'Kardex']) {
+        expect(
+          screen.getAllByRole('link', { name: new RegExp(seccion) }).length,
+        ).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('dentro de la zona usa navegacion de cliente', async () => {
+      render(<NavegacionPrincipal />);
+      await abrirMenu();
+
+      const enlaces = screen.getAllByRole('link', { name: /Productos/ });
+      expect(enlaces.at(-1)).toHaveAttribute('data-enlace', 'cliente');
+    });
+
+    it('hacia la otra zona usa navegacion completa', async () => {
+      render(<NavegacionPrincipal />);
+      await abrirMenu();
+
+      // El mismo criterio que en escritorio, y aqui pesa mas: es la navegacion
+      // que se usa de verdad en el puesto.
+      const enlaces = screen.getAllByRole('link', { name: /Compras/ });
+      expect(enlaces.at(-1)).not.toHaveAttribute('data-enlace', 'cliente');
+    });
+
+    it('marca la seccion activa igual que el de escritorio', async () => {
+      render(<NavegacionPrincipal rutaActual="/productos" />);
+      await abrirMenu();
+
+      const enlaces = screen.getAllByRole('link', { name: /Productos/ });
+      expect(enlaces.at(-1)).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('tambien cuando la seccion activa es de la otra zona', async () => {
+      render(<NavegacionPrincipal rutaActual="/inventario/compras" />);
+      await abrirMenu();
+
+      // Un enlace de otra zona se sirve como `<a>`, pero sigue teniendo que
+      // marcarse como la pagina actual: estar en otra zona no significa estar
+      // en ningun sitio.
+      const enlaces = screen.getAllByRole('link', { name: /Compras/ });
+      expect(enlaces.at(-1)).toHaveAttribute('aria-current', 'page');
+    });
+
+    /*
+     * Elegir una seccion cierra el menu. Sin eso, al llegar a la pantalla nueva
+     * el menu sigue desplegado tapandola, y hay que cerrarlo a mano en cada
+     * navegacion.
+     */
+    it('elegir una seccion de la misma zona lo cierra', async () => {
+      render(<NavegacionPrincipal />);
+      await abrirMenu();
+
+      const enlaces = screen.getAllByRole('link', { name: /Productos/ });
+      const delMenu = enlaces.at(-1);
+      if (!delMenu) throw new Error('No se encontro el enlace del menu plegable.');
+      await userEvent.click(delMenu);
+
+      expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    });
+
+    it('elegir una seccion de la otra zona tambien lo cierra', async () => {
+      render(<NavegacionPrincipal />);
+      await abrirMenu();
+
+      const enlaces = screen.getAllByRole('link', { name: /Compras/ });
+      const delMenu = enlaces.at(-1);
+      if (!delMenu) throw new Error('No se encontro el enlace del menu plegable.');
+      await userEvent.click(delMenu);
+
+      expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    });
+
+    it('se puede volver a cerrar con el mismo boton', async () => {
+      render(<NavegacionPrincipal />);
+      await abrirMenu();
+
+      await abrirMenu();
+
+      expect(screen.getAllByRole('navigation')).toHaveLength(1);
     });
   });
 

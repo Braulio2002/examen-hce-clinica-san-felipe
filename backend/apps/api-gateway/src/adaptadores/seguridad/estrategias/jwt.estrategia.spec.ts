@@ -1,7 +1,8 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
 
-import { JwtEstrategia, type PayloadJwt } from './jwt.estrategia';
+import { extraerDeCookie, JwtEstrategia, type PayloadJwt } from './jwt.estrategia';
 
 /**
  * Pruebas de la estrategia de validacion del token.
@@ -81,6 +82,58 @@ describe('JwtEstrategia', () => {
       // configurado cuando existe, y este por defecto cuando no.
       expect(new JwtEstrategia(doble)).toBeInstanceOf(JwtEstrategia);
       expect(get).toHaveBeenCalledWith('JWT_COOKIE', 'hce_access_token');
+    });
+  });
+
+  /*
+   * El token se acepta desde dos fuentes: la cookie HttpOnly, que es lo que usa
+   * el FrontEnd, y la cabecera Authorization, para Postman y clientes que no
+   * manejan cookies. La primera es la que importa para la seguridad: al no ser
+   * accesible desde JavaScript, un XSS no puede robarla.
+   *
+   * `Request.cookies` solo existe si cookie-parser esta registrado, asi que la
+   * lectura tiene que ser defensiva de verdad. Si un despliegue olvidara ese
+   * middleware, lo correcto es que la autenticacion falle limpiamente y caiga a
+   * la cabecera, no que el gateway se caiga con "no se puede leer de undefined"
+   * en cada peticion.
+   */
+  describe('extraccion del token desde la cookie', () => {
+    const peticionCon = (cookies: unknown): Request =>
+      ({ cookies }) as unknown as Request;
+
+    it('devuelve el token cuando la cookie existe', () => {
+      expect(
+        extraerDeCookie(
+          peticionCon({ hce_access_token: 'token-123' }),
+          'hce_access_token',
+        ),
+      ).toBe('token-123');
+    });
+
+    it('devuelve null si esa cookie no esta entre las presentes', () => {
+      expect(extraerDeCookie(peticionCon({ otra: 'x' }), 'hce_access_token')).toBeNull();
+    });
+
+    it.each([
+      ['no hay cookies en la peticion', undefined],
+      ['cookies es null', null],
+      ['cookies no es un objeto', 'no soy un objeto'],
+    ])('devuelve null si %s', (_caso, cookies) => {
+      // Es el escenario de un despliegue sin cookie-parser: se cae con
+      // elegancia a la cabecera Authorization en lugar de romper la peticion.
+      expect(extraerDeCookie(peticionCon(cookies), 'hce_access_token')).toBeNull();
+    });
+
+    it('devuelve null si el valor de la cookie no es una cadena', () => {
+      expect(
+        extraerDeCookie(peticionCon({ hce_access_token: 42 }), 'hce_access_token'),
+      ).toBeNull();
+    });
+
+    it('lee el nombre de cookie que se le pida', () => {
+      expect(extraerDeCookie(peticionCon({ otro_nombre: 'tok' }), 'otro_nombre')).toBe(
+        'tok',
+      );
     });
   });
 

@@ -181,6 +181,23 @@ describe('ExcepcionHttpFiltro', () => {
       ).toBeUndefined();
     });
 
+    /*
+     * Una excepcion cuya respuesta es un objeto SIN campo `message`. Ocurre
+     * cuando alguien lanza `new HttpException({ codigo: 'X' }, 400)`: sin el
+     * respaldo a `excepcion.message`, la respuesta llevaria `undefined` como
+     * mensaje y el usuario veria un hueco en blanco.
+     */
+    it('recurre al mensaje de la excepcion si la respuesta no lo trae', () => {
+      const cuerpo = capturar(
+        new HttpException({ codigo: 'PERSONALIZADO' }, 400, {
+          description: 'sin campo message',
+        }),
+      ).cuerpo();
+
+      expect(typeof cuerpo.mensaje).toBe('string');
+      expect(cuerpo.mensaje.length).toBeGreaterThan(0);
+    });
+
     it('acepta una excepcion cuya respuesta es una cadena', () => {
       expect(capturar(new HttpException('texto plano', 418)).cuerpo().mensaje).toBe(
         'texto plano',

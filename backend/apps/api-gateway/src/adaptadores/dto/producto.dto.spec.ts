@@ -145,6 +145,17 @@ describe('DTO de producto', () => {
       expect(errores.length).toBeGreaterThan(0);
     });
 
+    it('convierte a numero el precio de venta que llega como texto', () => {
+      const { instancia, errores } = validar(CrearProductoDto, {
+        ...valido,
+        precioVenta: '0.66',
+      });
+
+      expect(errores).toHaveLength(0);
+      expect(typeof instancia.precioVenta).toBe('number');
+      expect(instancia.precioVenta).toBeCloseTo(0.66, 4);
+    });
+
     it('convierte a numero el costo que llega como texto', () => {
       const { instancia } = validar(CrearProductoDto, { ...valido, costo: '0.49' });
 
@@ -199,6 +210,19 @@ describe('DTO de producto', () => {
         validar(ActualizarProductoDto, { costo: -0.01 }).errores.length,
       ).toBeGreaterThan(0);
     });
+
+    it('convierte a numero los importes que llegan como texto', () => {
+      const { instancia, errores } = validar(ActualizarProductoDto, {
+        costo: '0.55',
+        precioVenta: '0.74',
+      });
+
+      // Igual que en el alta: un formulario envia texto, y la columna espera un
+      // decimal. Sin la conversion, la cadena viajaria hasta SQL Server.
+      expect(errores).toHaveLength(0);
+      expect(instancia.costo).toBeCloseTo(0.55, 4);
+      expect(instancia.precioVenta).toBeCloseTo(0.74, 4);
+    });
   });
 
   describe('ListarProductosDto', () => {
@@ -245,6 +269,29 @@ describe('DTO de producto', () => {
       const { errores } = validar(ListarProductosDto, { tamanoPagina: '100000' });
 
       expect(mensajesDe(errores).join(' ')).toMatch(/tamano maximo/i);
+    });
+
+    /*
+     * `soloConStock` llega del query string como la CADENA "true", no como el
+     * booleano. Sin la transformacion, `@IsBoolean` rechazaria toda peticion que
+     * usara el filtro, y el usuario veria un 400 al marcar una casilla.
+     */
+    it.each([
+      ['la cadena "true"', 'true', true],
+      ['el booleano true', true, true],
+      ['la cadena "false"', 'false', false],
+      ['cualquier otra cosa', 'quiza', false],
+    ])('convierte %s en un booleano', (_caso, entrada, esperado) => {
+      const { instancia, errores } = validar(ListarProductosDto, {
+        soloConStock: entrada,
+      });
+
+      expect(errores).toHaveLength(0);
+      expect(instancia.soloConStock).toBe(esperado);
+    });
+
+    it('sin el filtro, no se restringe por existencias', () => {
+      expect(validar(ListarProductosDto, {}).instancia.soloConStock).toBe(false);
     });
 
     it('acepta el texto de busqueda', () => {

@@ -253,6 +253,25 @@ describe('MssqlService', () => {
       // de cualquier peticion. Sin este oyente, el fallo seria invisible.
       expect(pool.on).toHaveBeenCalledWith('error', expect.any(Function));
     });
+
+    /*
+     * Y el oyente tiene que registrar algo. Un `pool.on('error', () => {})`
+     * vacio pasa igual de bien la comprobacion anterior y deja la caida de la
+     * conexion completamente muda, que es el peor de los casos: el servicio
+     * responde 500 a todo y en los registros no hay ni una linea que lo explique.
+     */
+    it('y ese oyente registra el fallo cuando el pool lo emite', async () => {
+      const fallar = jest.spyOn(Logger.prototype, 'error');
+      const { pool } = await servicioConectado();
+      fallar.mockClear();
+
+      const oyente = pool.on.mock.calls.find(([evento]) => evento === 'error')?.[1] as
+        ((error: Error) => void) | undefined;
+      oyente?.(new Error('conexion perdida con el servidor'));
+
+      expect(fallar).toHaveBeenCalledTimes(1);
+      expect(String(fallar.mock.calls[0]?.[0])).toContain('conexion perdida');
+    });
   });
 
   describe('cierre', () => {
@@ -599,6 +618,25 @@ describe('MssqlService', () => {
       await expect(servicio.ejecutarProcedimiento('hce.usp_X')).rejects.toMatchObject({
         codigo: CodigoError.INFRAESTRUCTURA,
       });
+    });
+
+    /*
+     * Un objeto sin `message` y sin el mensaje anidado del driver. Sin el ultimo
+     * respaldo, el registro del servidor guardaria "undefined" como motivo del
+     * fallo, que es exactamente la linea que no sirve de nada al investigarlo.
+     */
+    it('un fallo sin mensaje reconocible se describe igualmente', async () => {
+      const fallar = jest.spyOn(Logger.prototype, 'error');
+      const { servicio } = await servicioConectado({
+        errorAlEjecutar: { number: 99_999 },
+      });
+      fallar.mockClear();
+
+      await expect(servicio.ejecutarProcedimiento('hce.usp_X')).rejects.toThrow();
+
+      expect(String(fallar.mock.calls[0]?.[0])).toContain(
+        'Error desconocido de base de datos',
+      );
     });
 
     it('una excepcion de dominio ya traducida se deja pasar sin tocar', async () => {

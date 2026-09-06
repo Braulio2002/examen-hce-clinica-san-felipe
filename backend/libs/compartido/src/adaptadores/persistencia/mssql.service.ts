@@ -81,10 +81,24 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
+    /*
+     * El destino se arma aparte para poder nombrarlo en la traza de conexion.
+     *
+     * Leerlo despues de `sql.config` obligaria a un `?? '-'` en cada campo,
+     * porque ese tipo declara `port` y `database` como opcionales; y ese
+     * respaldo nunca podria ejecutarse, ya que aqui siempre se les da valor.
+     * Codigo que no se puede alcanzar es codigo que no se puede verificar.
+     */
+    const destino = {
+      servidor: this.config.get<string>('DB_HOST', 'localhost'),
+      puerto: Number(this.config.get<string>('DB_PORT', '1433')),
+      baseDatos: this.config.get<string>('DB_NAME', 'HCE_Insumos'),
+    };
+
     const configuracion: sql.config = {
-      server: this.config.get<string>('DB_HOST', 'localhost'),
-      port: Number(this.config.get<string>('DB_PORT', '1433')),
-      database: this.config.get<string>('DB_NAME', 'HCE_Insumos'),
+      server: destino.servidor,
+      port: destino.puerto,
+      database: destino.baseDatos,
       user: this.config.get<string>('DB_USER', 'sa'),
       password: this.config.get<string>('DB_PASSWORD', ''),
       options: {
@@ -106,7 +120,7 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
       ),
     };
 
-    await this.conectarConReintentos(configuracion);
+    await this.conectarConReintentos(configuracion, destino);
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -191,7 +205,10 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
    * 20 y 60 segundos en aceptar conexiones; sin esto el microservicio muere en
    * el arranque del docker-compose aunque la base termine levantando bien.
    */
-  private async conectarConReintentos(configuracion: sql.config): Promise<void> {
+  private async conectarConReintentos(
+    configuracion: sql.config,
+    destino: { servidor: string; puerto: number; baseDatos: string },
+  ): Promise<void> {
     const maxIntentos = Number(this.config.get<string>('DB_MAX_REINTENTOS', '15'));
     const esperaMs = Number(this.config.get<string>('DB_ESPERA_REINTENTO_MS', '4000'));
 
@@ -202,8 +219,8 @@ export class MssqlService implements OnModuleInit, OnModuleDestroy {
           this.logger.error(`Error del pool: ${err.message}`);
         });
         this.logger.log(
-          `Conectado a SQL Server ${configuracion.server}:` +
-            `${configuracion.port ?? '-'}/${configuracion.database ?? '-'}`,
+          `Conectado a SQL Server ${destino.servidor}:` +
+            `${String(destino.puerto)}/${destino.baseDatos}`,
         );
         return;
       } catch (error) {

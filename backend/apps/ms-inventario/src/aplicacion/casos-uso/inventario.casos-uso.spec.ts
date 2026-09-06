@@ -230,6 +230,16 @@ describe('Casos de uso del inventario', () => {
       });
     });
 
+    it('ObtenerVentaCasoUso devuelve la venta', async () => {
+      const { repositorio } = crearRepositorio();
+      const caso = new ObtenerVentaCasoUso(repositorio);
+
+      // El camino de exito, no solo el de fallo: un caso de uso que solo se
+      // prueba cuando el documento no existe podria estar devolviendo cualquier
+      // cosa cuando si existe.
+      await expect(caso.ejecutar({ idVentaCab: 1 })).resolves.toBe(VENTA);
+    });
+
     it('ObtenerVentaCasoUso lanza NO_ENCONTRADO si no existe', async () => {
       const { repositorio } = crearRepositorio({
         obtenerVenta: () => Promise.resolve(null),

@@ -79,6 +79,28 @@ describe('BcryptAdaptador', () => {
     ])('trata %s como verificacion fallida, no como error', async (_caso, hash) => {
       await expect(adaptador.verificar('Clinica2026$', hash)).resolves.toBe(false);
     });
+
+    /*
+     * El caso que de verdad hace saltar la captura del adaptador. Con una cadena
+     * mal formada bcrypt devuelve false sin quejarse; con algo que no es una
+     * cadena, LANZA.
+     *
+     * No es hipotetico: una columna PasswordHash con NULL -por una migracion a
+     * medias o un usuario creado a mano- llega hasta aqui como null. Sin la
+     * captura eso seria un 500, y un 500 en un usuario y un 401 en otro le dice
+     * a quien esta probando que ese usuario existe.
+     */
+    it.each([
+      ['null, como una columna sin valor', null],
+      ['undefined', undefined],
+      ['un numero', 12_345],
+    ])('un hash que es %s tampoco propaga la excepcion', async (_caso, hash) => {
+      const hashInvalido = hash as unknown as string;
+
+      await expect(adaptador.verificar('Clinica2026$', hashInvalido)).resolves.toBe(
+        false,
+      );
+    });
   });
 
   describe('coste configurable', () => {

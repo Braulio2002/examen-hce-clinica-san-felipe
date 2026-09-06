@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * Se sustituyen las dos dependencias externas del proveedor: el enrutador de
@@ -154,6 +154,118 @@ describe('ProveedorSesion', () => {
       montar();
 
       expect(dobles.registrarManejadorExpiracion).toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Que el manejador este registrado no basta: hay que comprobar lo que HACE.
+   *
+   * Es el que se dispara cuando la API responde 401 con la sesion ya iniciada,
+   * es decir cuando pasan los 30 minutos de vigencia del token. Sin el, el
+   * usuario se queda en una pantalla que ya no puede cargar nada y no entiende
+   * por que: las tablas se vacian, los botones fallan y no hay mensaje alguno.
+   *
+   * `window.location` se sustituye porque jsdom no navega y avisa por consola
+   * de cada intento.
+   */
+  describe('expiracion de la sesion', () => {
+    const ubicacionOriginal = window.location;
+
+    const simularUbicacion = (pathname: string) => {
+      const falsa = { pathname, href: '' };
+      Object.defineProperty(window, 'location', {
+        value: falsa,
+        writable: true,
+        configurable: true,
+      });
+      return falsa;
+    };
+
+    afterEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: ubicacionOriginal,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    /** Recupera el manejador que el proveedor entrego al cliente de la API. */
+    const manejadorRegistrado = (): (() => void) => {
+      const registrado = dobles.registrarManejadorExpiracion.mock.calls[0]?.[0] as
+        (() => void) | undefined;
+      if (!registrado) throw new Error('El proveedor no registro el manejador.');
+      return registrado;
+    };
+
+    it('limpia el token al expirar', async () => {
+      const ubicacion = simularUbicacion('/productos');
+      montar();
+      await waitFor(() => {
+        expect(screen.getByTestId('cargando')).toHaveTextContent('false');
+      });
+      dobles.establecerToken.mockClear();
+
+      act(() => {
+        manejadorRegistrado()();
+      });
+
+      expect(dobles.establecerToken).toHaveBeenCalledWith(null);
+      expect(ubicacion.href).toContain('/login');
+    });
+
+    /*
+     * El parametro `expirada` es lo que permite al login distinguir "tu sesion
+     * caduco" de "todavia no has entrado". Son dos mensajes distintos y el
+     * segundo desconcierta a quien llevaba media hora trabajando.
+     */
+    it('avisa al login de que la sesion caduco, no de que nunca se inicio', async () => {
+      const ubicacion = simularUbicacion('/kardex');
+      montar();
+      await waitFor(() => {
+        expect(screen.getByTestId('cargando')).toHaveTextContent('false');
+      });
+
+      act(() => {
+        manejadorRegistrado()();
+      });
+
+      expect(ubicacion.href).toBe('/login?expirada=1');
+    });
+
+    it('deja de mostrar al usuario', async () => {
+      simularUbicacion('/productos');
+      montar();
+      await waitFor(() => {
+        expect(screen.getByTestId('usuario')).toHaveTextContent('admin');
+      });
+
+      act(() => {
+        manejadorRegistrado()();
+      });
+
+      expect(screen.getByTestId('usuario')).toHaveTextContent('ninguno');
+    });
+
+    /*
+     * Estando ya en el login no se redirige. Sin esta comprobacion, un 401 en la
+     * propia pantalla de acceso -que es lo normal al equivocarse de contrasena-
+     * provocaria una recarga y el usuario perderia lo que estaba escribiendo.
+     */
+    it.each([
+      ['la propia pantalla de acceso', '/login'],
+      ['una subruta suya', '/login/recuperar'],
+    ])('estando ya en %s no redirige ni recarga', async (_caso, ruta) => {
+      const ubicacion = simularUbicacion(ruta);
+      montar();
+      await waitFor(() => {
+        expect(screen.getByTestId('cargando')).toHaveTextContent('false');
+      });
+
+      act(() => {
+        manejadorRegistrado()();
+      });
+
+      expect(ubicacion.href).toBe('');
     });
   });
 

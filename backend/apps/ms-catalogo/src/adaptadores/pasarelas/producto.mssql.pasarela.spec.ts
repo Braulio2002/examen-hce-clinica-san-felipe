@@ -135,6 +135,56 @@ describe('ProductoMssqlPasarela', () => {
       expect(consultar.mock.calls[0]?.[0]).toBe('hce.usp_Producto_Actualizar');
     });
 
+    /*
+     * La actualizacion es PARCIAL: cada campo omitido viaja como null para que el
+     * procedimiento sepa que no debe tocarlo. Esta prueba recorre el otro lado de
+     * esos `?? null`, con todos los campos presentes, y comprueba que cuando se
+     * envian llegan con su valor y no convertidos en null.
+     */
+    it('envia cada campo con su valor cuando se indican todos', async () => {
+      const { doble, consultar } = baseDatos();
+
+      await new ProductoMssqlPasarela(doble).actualizar({
+        idProducto: 1,
+        nombreProducto: 'Paracetamol 650 mg',
+        nroLote: 'LT-2026-0099',
+        costo: 0.55,
+        precioVenta: 0.74,
+        usuarioApp: 'admin',
+      });
+
+      expect(parametro(consultar, 'Nombre_producto')?.valor).toBe('Paracetamol 650 mg');
+      expect(parametro(consultar, 'NroLote')?.valor).toBe('LT-2026-0099');
+      // Importes en coma flotante: se comparan con tolerancia.
+      expect(parametro(consultar, 'Costo')?.valor).toBeCloseTo(0.55, 4);
+      expect(parametro(consultar, 'PrecioVenta')?.valor).toBeCloseTo(0.74, 4);
+      expect(parametro(consultar, 'UsuarioApp')?.valor).toBe('admin');
+    });
+
+    it('los campos omitidos viajan como null, para que el procedimiento los ignore', async () => {
+      const { doble, consultar } = baseDatos();
+
+      await new ProductoMssqlPasarela(doble).actualizar({ idProducto: 1, costo: 2 });
+
+      expect(parametro(consultar, 'Nombre_producto')?.valor).toBeNull();
+      expect(parametro(consultar, 'NroLote')?.valor).toBeNull();
+      expect(parametro(consultar, 'PrecioVenta')?.valor).toBeNull();
+      expect(parametro(consultar, 'UsuarioApp')?.valor).toBeNull();
+    });
+
+    it('tambien el costo se omite como null si no se cambia', async () => {
+      const { doble, consultar } = baseDatos();
+
+      // Cambiar solo el nombre es una operacion normal: el costo no debe
+      // reescribirse con un cero por el hecho de no haberlo enviado.
+      await new ProductoMssqlPasarela(doble).actualizar({
+        idProducto: 1,
+        nombreProducto: 'Paracetamol 650 mg',
+      });
+
+      expect(parametro(consultar, 'Costo')?.valor).toBeNull();
+    });
+
     it('falla si el procedimiento no devuelve la fila afectada', async () => {
       const { doble } = baseDatos([]);
 
@@ -158,6 +208,17 @@ describe('ProductoMssqlPasarela', () => {
       // El total sale de la columna repetida por COUNT(*) OVER ().
       expect(resultado.meta.totalRegistros).toBe(13);
       expect(resultado.meta.totalPaginas).toBe(2);
+    });
+
+    it('sin paginacion pide la primera pagina de 20', async () => {
+      const { doble, consultar } = baseDatos();
+
+      await new ProductoMssqlPasarela(doble).listar({});
+
+      // Sin estos valores por defecto, el procedimiento recibiria null en el
+      // OFFSET y devolveria el catalogo entero de una vez.
+      expect(parametro(consultar, 'Pagina')?.valor).toBe(1);
+      expect(parametro(consultar, 'TamanoPagina')?.valor).toBe(20);
     });
 
     it('devuelve un resultado vacio y coherente sin filas', async () => {

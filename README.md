@@ -377,12 +377,12 @@ Las limitaciones conocidas están declaradas en el
 
 ## Verificación
 
-**1 215 comprobaciones automáticas** repartidas en cinco suites.
+**1 319 comprobaciones automáticas** repartidas en cinco suites.
 
 | Suite                                              | Casos | Qué cubre                                                             |
 | -------------------------------------------------- | :---: | --------------------------------------------------------------------- |
-| [BackEnd](#pruebas-del-backend)                    |  722  | Dominio, casos de uso, adaptadores, seguridad y raíces de composición |
-| [FrontEnd](#pruebas-del-frontend)                  |  428  | Cliente HTTP, componentes, hooks y pantallas                          |
+| [BackEnd](#pruebas-del-backend)                    |  757  | Dominio, casos de uso, adaptadores, seguridad y raíces de composición |
+| [FrontEnd](#pruebas-del-frontend)                  |  497  | Cliente HTTP, componentes, hooks y pantallas                          |
 | [Extremo a extremo](#pruebas-de-extremo-a-extremo) |  43   | El sistema completo en ejecución                                      |
 | [Base de datos](#pruebas-de-base-de-datos)         |  13   | Reglas de negocio y aislamiento entre servicios                       |
 | [Concurrencia](#prueba-de-concurrencia)            |   9   | El invariante de stock bajo competencia real                          |
@@ -394,14 +394,40 @@ cd backend  && npm run quality   # formato · tipos · lint · pruebas+cobertura
 cd frontend && npm run quality   # formato · tipos · lint · pruebas · build
 ```
 
-| Comprobación                                        | Backend                              | Frontend                             |
-| --------------------------------------------------- | ------------------------------------ | ------------------------------------ |
-| `format:check` (Prettier)                           | limpio                               | limpio                               |
-| `typecheck` (`strict` + `noUncheckedIndexedAccess`) | 0 errores                            | 0 errores                            |
-| `lint:strict` (0 avisos permitidos)                 | limpio                               | limpio                               |
-| Pruebas                                             | 722 casos                            | 428 casos                            |
-| Cobertura                                           | **98,9 %** sentencias · 94,8 % ramas | **97,1 %** sentencias · 96,0 % ramas |
-| `npm audit`                                         | 0 vulnerabilidades                   | 0 vulnerabilidades                   |
+| Comprobación                                        | Backend                          | Frontend                                                |
+| --------------------------------------------------- | -------------------------------- | ------------------------------------------------------- |
+| `format:check` (Prettier)                           | limpio                           | limpio                                                  |
+| `typecheck` (`strict` + `noUncheckedIndexedAccess`) | 0 errores                        | 0 errores                                               |
+| `lint:strict` (0 avisos permitidos)                 | limpio                           | limpio                                                  |
+| Pruebas                                             | 757 casos                        | 497 casos                                               |
+| Cobertura                                           | **100 %** en las cuatro métricas | **100 %** sentencias, funciones y líneas · 99,8 % ramas |
+| `npm audit`                                         | 0 vulnerabilidades               | 0 vulnerabilidades                                      |
+
+La cobertura es **completa y exigida**, no solo alcanzada: los umbrales estan
+declarados en `package.json` (Jest) y en `vitest.config.ts`, de modo que una
+linea nueva sin prueba hace fallar `npm test` y con ello la integracion continua.
+
+La unica excepcion es **una rama** del FrontEnd, en el atrapado de foco del
+modal:
+
+```ts
+const primero = enfocables[0];
+const ultimo = enfocables[enfocables.length - 1];
+if (!primero || !ultimo) return;
+```
+
+Con `noUncheckedIndexedAccess` activado, TypeScript exige comprobar el resultado
+de indexar un array. En ejecucion esa comprobacion no puede fallar: el contenedor
+del dialogo siempre incluye su boton de cerrar, asi que la lista nunca esta
+vacia. Cubrirla exigiria una asercion de no nulidad —que debilita los tipos y
+que el linter estricto prohibe— o retorcer el componente para fabricar un caso
+que no existe. El umbral refleja esa realidad (99,8 %) en lugar de disimularla.
+
+Llegar al 100 % hizo aflorar codigo que **nunca podia ejecutarse**: tres guardas
+que repetian, sobre el mismo estado y en el mismo instante, una condicion que la
+interfaz ya impedia, y un respaldo `?? '-'` en la traza de conexion a la base
+cuyos operandos siempre tienen valor. Se retiraron. Codigo inalcanzable no es
+defensa en profundidad: es duplicacion que nadie puede verificar.
 
 El linter no es el `next lint` por defecto: es `typescript-eslint` con reglas que
 usan información de tipos, más **SonarJS**, **unicorn**, **eslint-plugin-security**,

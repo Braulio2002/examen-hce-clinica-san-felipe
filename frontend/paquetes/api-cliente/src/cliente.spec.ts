@@ -1,4 +1,9 @@
-import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import type {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -55,7 +60,10 @@ describe('Cliente HTTP', () => {
 
     const respuesta = (
       cliente.interceptors.response as unknown as {
-        handlers: { rejected: ManejadorRespuesta }[];
+        handlers: {
+          fulfilled: (r: AxiosResponse) => AxiosResponse;
+          rejected: ManejadorRespuesta;
+        }[];
       }
     ).handlers[0];
 
@@ -176,6 +184,21 @@ describe('Cliente HTTP', () => {
       const fallo = new Error('ya era un Error');
 
       await expect(interceptores(cliente).peticion.rejected(fallo)).rejects.toBe(fallo);
+    });
+  });
+
+  describe('interceptor de respuesta: camino correcto', () => {
+    /*
+     * Una respuesta correcta pasa TAL CUAL. Es lo que se espera de un
+     * interceptor de errores, y conviene fijarlo: si algun dia se le anadiera
+     * una transformacion aqui, afectaria a todas las pantallas a la vez y seria
+     * dificil de atribuir.
+     */
+    it('deja pasar la respuesta sin tocarla', () => {
+      const cliente = crearCliente(BASE);
+      const original = { data: { idProducto: 1 }, status: 200 } as AxiosResponse;
+
+      expect(interceptores(cliente).respuesta.fulfilled(original)).toBe(original);
     });
   });
 

@@ -200,6 +200,27 @@ describe('Modal', () => {
     });
 
     /*
+     * Un modal sin ningun control enfocable. Ocurre de verdad mientras se carga
+     * su contenido: el dialogo esta abierto y dentro solo hay un indicador de
+     * progreso. Tabular ahi no debe romper nada.
+     *
+     * El codigo comprueba primero y ultimo por separado en lugar de mirar la
+     * longitud, y es deliberado: `querySelectorAll` devuelve una coleccion viva,
+     * asi que entre la comprobacion y el acceso el DOM puede haber cambiado.
+     */
+    it('tabular en un modal sin controles no rompe nada', async () => {
+      render(
+        <Modal abierto titulo="Cargando" onCerrar={vi.fn()}>
+          <p>Recuperando movimientos...</p>
+        </Modal>,
+      );
+
+      await userEvent.tab();
+
+      expect(screen.getByRole('dialog')).toBeVisible();
+    });
+
+    /*
      * La devolucion del foco al cerrar. Se comprueba de verdad -abriendo,
      * cerrando y mirando donde quedo el foco- porque es un efecto de limpieza,
      * y los efectos de limpieza son justo lo que desaparece sin ruido en una
