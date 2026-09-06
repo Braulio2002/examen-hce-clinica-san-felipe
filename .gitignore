@@ -38,3 +38,9 @@ Thumbs.db
 
 # Volumenes locales de Docker
 docker/volumenes/
+
+# Material de trabajo local: notas, borradores y apuntes de apoyo. El
+# repositorio contiene el entregable y nada mas.
+*.local.md
+notas/
+borradores/
